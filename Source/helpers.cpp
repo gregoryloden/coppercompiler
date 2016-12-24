@@ -89,6 +89,12 @@ int intval(bool val) {
 		return -1;
 	return 0;
 }
+int min(int a, int b) {
+	return a < b ? a : b;
+}
+int max(int a, int b) {
+	return a > b ? a : b;
+}
 template <class type> Array<type>::Array():
 ObjCounter("ARRY"),
 	inner(new type[1]),

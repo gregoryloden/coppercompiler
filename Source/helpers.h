@@ -22,6 +22,8 @@ string to4bytes(int i);
 string to2bytes(int i);
 int roundup(int num, int divisor);
 int intval(bool val);
+int min(int a, int b);
+int max(int a, int b);
 
 template <class type> class Array
 : public ObjCounter
