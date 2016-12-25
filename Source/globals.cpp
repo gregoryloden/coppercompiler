@@ -2,6 +2,19 @@
 #include "Representation.h"
 #include "AssemblyInstruction.h"
 
+size_t pos = 0;
+char* contents;
+size_t clength;
+Array<Expression*> tokens;
+int tlength;
+Array<Function*> functions;
+Array<MainFunction*> mainfunctions;
+int errors = 0;
+char snippet[SNIPPETCHARS * 3 / 2 + 3];
+bool warnings = false;
+int* rows;
+int* cols;
+
 int codesize;
 int rdataRVA;
 int rdatasize;
@@ -32,6 +45,38 @@ Thunk TGetProcessHeap ("GetProcessHeap", 0x156);
 Thunk THeapAlloc ("HeapAlloc", 0x1BD);
 Thunk THeapReAlloc ("HeapReAlloc", 0x1C4);
 
+//make an error
+void makeError(int type, char* message, size_t loc) {
+	//error message
+	printf("Error at line %d column %d: ", rows[loc], cols[loc]);
+	if (type == 0)
+		printf("%s\n", message);
+	else if (type == 1)
+		printf("reached the end of the file while searching for %s\n", message);
+	showSnippet(loc);
+	errors += 1;
+	throw NULL;
+}
+//show the snippet where the error/warning is
+void showSnippet(size_t loc) {
+	memset(snippet, ' ', SNIPPETCHARS);
+	int spot = (int)(loc - SNIPPETCHARS / 2);
+	int maxval = min(SNIPPETCHARS, (int)(clength)-spot);
+	for (int i = max(0, -spot); i < maxval; i += 1) {
+		char c = contents[i + spot];
+		if (c != '\t' && c != '\r' && c != '\n')
+			snippet[i] = c;
+	}
+	puts(snippet);
+}
+//make a warning
+void makeWarning(int type, char* message, size_t loc) {
+	printf("Warning at line %d column %d: ", rows[loc], cols[loc]);
+	if (type == 0)
+		printf("%s\n", message);
+	warnings = true;
+	showSnippet(loc);
+}
 //build all of the Main. functions
 void buildMainFunctions(Array<MainFunction*>* mainfunctions) {
 	//Main.exit(int);

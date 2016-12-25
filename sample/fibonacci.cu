@@ -18,9 +18,8 @@ Function main = void() (
 //i can't remember
 int returnValue;
 Function fib = void(int i) (
-	fibAcc(i, 1, 0);
-);
-Function fibAcc = void(int i, int fib1, int fib2) (
+	int fib1 = 1;
+	int fib2 = 0;
 	for (; i > 0; i--) (
 		int sum = fib1 + fib2;
 		fib2 = fib1;
