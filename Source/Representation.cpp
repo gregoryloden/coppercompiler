@@ -205,17 +205,17 @@ Array<AssemblyInstruction*>* Function::getInstructions() {
 }
 VariableStack::VariableStack(VariableData* v, Function* f, VariableStack* n):
 ObjCounter("VSTK"),
-	 val(v),
-	 next(n),
-	 num(n != NULL ? n->num + 1 : 1) {
-	 if (num > f->vnum)
-		 f->vnum = num;
+	val(v),
+	next(n),
+	num(n != NULL ? n->num + 1 : 1) {
+	if (num > f->vnum)
+		f->vnum = num;
 }
 VariableStack::~VariableStack() {}
 BlockStack::BlockStack(Expression* e, BlockStack* n):
 ObjCounter("BSTK"),
-	 val(e),
-	 next(n) {
+	val(e),
+	next(n) {
 }
 BlockStack::~BlockStack() {}
 Thunk::Thunk(const char* thename, int thethunk):

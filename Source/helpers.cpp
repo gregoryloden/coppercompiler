@@ -250,11 +250,11 @@ BigInt::~BigInt() {
 }
 //gives the BigInt a new, empty array
 void BigInt::newarray() {
-	 inner = new int[4];
-	 for (int i = 0; i < 4; i += 1)
-		 inner[i] = 0;
-	 innerlength = 4;
-	 highbyte = -1;
+	inner = new int[4];
+	for (int i = 0; i < 4; i += 1)
+		inner[i] = 0;
+	innerlength = 4;
+	highbyte = -1;
 }
 //add a digit of this BigInt's base
 void BigInt::digit(int c) {
