@@ -1,10 +1,14 @@
+class Token;
+class Identifier;
 class MainFunction;
 class Expression;
 class IntConstant;
 template <class type> class Array;
 
+Token* lex();
 void buildTokens();
 void skipWhitespace();
+Identifier* lexIdentifier();
 MainFunction* nextMainFunction();
 string variableName();
 Expression* tonum(int base);

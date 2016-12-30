@@ -2,6 +2,16 @@
 #include "Step01_Lex.h"
 #include "Representation.h"
 
+//retrieve the next token from contents
+//pos location: the first character after the lexed token
+Token* lex() {
+	Token* t = nullptr;
+	skipWhitespace();
+	if ((t = lexIdentifier()) != nullptr)
+		return t;
+	throw NULL;
+	return nullptr;
+}
 //split the entire file into a bunch of token expressions
 //pos location: clength
 void buildTokens() {
@@ -196,6 +206,12 @@ void skipWhitespace() {
 			break;
 		pos += 1;
 	}
+}
+Identifier* lexIdentifier() {
+	if (!isalpha(contents[pos]))
+		return nullptr;
+
+	return nullptr;
 }
 //check if the next statement is a Main. function
 //pos location: the character after the close parenthesis of the Main. function

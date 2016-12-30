@@ -399,3 +399,80 @@ public:
 
 	bool added;
 };
+//-------------------------------------------------------------------------------------------------------------------------------------------------------------
+enum OperatorType: unsigned char {
+	Dot,
+	Increment,
+	Decrement,
+	VariableLogicalNot,
+	VariableBitwiseNot,
+	VariableNegate,
+	LogicalNot,
+	BitwiseNot,
+	Negate,
+	Multiply,
+	Divide,
+	Modulus,
+	Add,
+	Subtract,
+	ShiftLeft,
+	ShiftRight,
+	ShiftArithmeticRight,
+	RotateLeft,
+	RotateRight,
+	BitwiseAnd,
+	BitwiseXor,
+	BitwiseOr,
+	Equal,
+	NotEqual,
+	LessOrEqual,
+	GreaterOrEqual,
+	LessThan,
+	GreaterThan,
+	BooleanAnd,
+	BooleanXor,
+	BooleanOr,
+	QuestionMark,
+	Colon,
+	Assign,
+	AssignAdd,
+	AssignSubtract,
+	AssignMultiply,
+	AssignDivide,
+	AssignModulus,
+	AssignShiftLeft,
+	AssignShiftRight,
+	AssignShiftArithmeticRight,
+	AssignRotateLeft,
+	AssignRotateRight,
+	AssignBitwiseAnd,
+	AssignBitwiseXor,
+	AssignBitwiseOr,
+	AssignBooleanAnd,
+	AssignBooleanXor,
+	AssignBooleanOr
+};
+
+class Token
+: public ObjCounter
+ {
+public:
+	Token(size_t pContentPos);
+	~Token();
+
+	size_t contentPos;
+};
+class Identifier: public Token {
+public:
+	Identifier(string pName, size_t pContentPos);
+	~Identifier();
+
+	string name;
+};
+class Operator: public Token {
+public:
+	Operator(OperatorType pType, size_t pContentPos);
+	~Operator();
+
+	OperatorType type;
+};

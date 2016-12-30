@@ -261,24 +261,23 @@ int varType(string s) {
 bool isReservedWord(string s) {
 	return s.compare("true") == 0 ||
 		s.compare("false") == 0 ||
-		s.compare("fixed") == 0 ||
 		s.compare("return") == 0 ||
 		s.compare("if") == 0 ||
 		s.compare("else") == 0 ||
 		s.compare("for") == 0 ||
 		s.compare("while") == 0 ||
 		s.compare("do") == 0 ||
-
-		s.compare("is") == 0 ||
-		s.compare("has") == 0 ||
-		s.compare("use") == 0 ||
+		s.compare("switch") == 0 ||
+		s.compare("case") == 0 ||
+		s.compare("default") == 0 ||
 		s.compare("goto") == 0 ||
 		s.compare("new") == 0 ||
+		s.compare("delete") == 0 ||
 		s.compare("public") == 0 ||
 		s.compare("private") == 0 ||
 		s.compare("final") == 0 ||
-		s.compare("tight") == 0 ||
-		s.compare("loose") == 0;
+		s.compare("is") == 0 ||
+		s.compare("class") == 0;
 }
 //replace a spot in the tokens array with the given expression
 Expression* replace(int loc, Expression* val) {

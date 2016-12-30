@@ -153,6 +153,18 @@ Array<AssemblyInstruction*>* getAllAssembly(Array<AssemblyInstruction*>* to, Arr
 		addAssembly(to, e->getAssembly(false, EAX), true);
 	return to;
 }
+//---------------------------------------------------------------------------------------------------------------------------------------------------
+Token::Token(size_t pContentPos):
+ObjCounter("TOKN"),
+	contentPos(pContentPos) {
+}
+Token::~Token() {}
+Identifier::Identifier(string pName, size_t pContentPos):
+	Token(pContentPos),
+	name(pName) {
+}
+Identifier::~Identifier() {}
+//---------------------------------------------------------------------------------------------------------------------------------------------------
 Expression::Expression(int theetype, bool thevalue, int thecontext, size_t thecontentpos):
 ObjCounter("EXPN"),
 	etype(theetype),
