@@ -2,14 +2,31 @@
 #include "Step01_Lex.h"
 #include "Representation.h"
 
+bool skipWhitespace();
+Token* lexIdentifier();
+Token* lexNumber();
+MainFunction* nextMainFunction();
+string variableName();
+Expression* tonum(int base);
+bool foundAndSkipped(string s);
+void addDigit(BigInt* b, char d);
+string stringVal();
+char escapeSequenceCharacter();
+int toint(int base, size_t loc, size_t end);
+
+char c;
+
 //retrieve the next token from contents
-//pos location: the first character after the lexed token
+//pos location: the first character after the next token | clength
 Token* lex() {
-	Token* t = nullptr;
-	skipWhitespace();
-	if ((t = lexIdentifier()) != nullptr)
+	if (!skipWhitespace())
+		return nullptr;
+	c = contents[pos];
+	Token* t;
+	if ((t = lexIdentifier()) != nullptr ||
+		(t = lexNumber()) != nullptr)
 		return t;
-	throw NULL;
+	makeError(0, "unexpected character", pos);
 	return nullptr;
 }
 //split the entire file into a bunch of token expressions
@@ -36,7 +53,7 @@ void buildTokens() {
 				e = new IntConstant(false, oldpos);
 			else
 				e = new UnknownValue(s, oldpos);
-			//number
+		//number
 		} else if (isdigit(c)) {
 			int base = 10;
 			//different base
@@ -48,19 +65,19 @@ void buildTokens() {
 					begin = (pos += 2);
 					if (outofbounds() || (!isalnum(c = contents[pos]) && c != '_'))
 						makeError(1, "the number definition", oldpos);
-					//binary
+				//binary
 				} else if (c == 'b') {
 					base = 2;
 					begin = (pos += 2);
 					if (outofbounds() || (!isalnum(c = contents[pos]) && c != '_'))
 						makeError(1, "the number definition", oldpos);
-					//octal
+				//octal
 				} else if (c == 'o') {
 					base = 8;
 					begin = (pos += 2);
 					if (outofbounds() || (!isalnum(c = contents[pos]) && c != '_'))
 						makeError(1, "the number definition", oldpos);
-					//other
+				//other
 				} else if (c == 'r') {
 					pos += 2;
 					if (outofbounds())
@@ -77,19 +94,19 @@ void buildTokens() {
 					begin = (pos += 1);
 					if (outofbounds() || (!isalnum(c = contents[pos]) && c != '_'))
 						makeError(1, "the number definition", oldpos);
-					//not different base
+				//not different base
 				} else
 					begin = oldpos;
 			} else
 				begin = oldpos;
 			e = tonum(base);
-			//string literal
+		//string literal
 		} else if (c == '\"') {
 			pos += 1;
 			//don't make a new object until we know its arguments are valid
 			string s = stringVal();
 			e = new ObjectConstant(s, oldpos);
-			//character literal
+		//character literal
 		} else if (c == '\'') {
 			pos += 1;
 			if (outofbounds())
@@ -106,7 +123,7 @@ void buildTokens() {
 			pos += 1;
 			e = new IntConstant(c, oldpos);
 			castConstant((IntConstant*)(e), TBYTE);
-			//division or comment
+		//division or comment
 		} else if (c == '/') {
 			pos += 1;
 			if (outofbounds())
@@ -116,13 +133,13 @@ void buildTokens() {
 			if (c == '=') {
 				pos += 1;
 				e = new Operation("/=", oldpos, tokens.length);
-				//single line comment
+			//single line comment
 			} else if (c == '/') {
 				pos += 1;
 				while (inbounds() && contents[pos] != '\n' && contents[pos] != '\r')
 					pos += 1;
 				continue;
-				//multiple line comment
+			//multiple line comment
 			} else if (c == '*') {
 				pos += 1;
 				while (inbounds() && (contents[pos] != '/' || contents[pos - 1] != '*'))
@@ -131,14 +148,14 @@ void buildTokens() {
 					makeError(1, "the end of the comment", oldpos);
 				pos += 1;
 				continue;
-				//regular division
+			//regular division
 			} else
 				e = new Operation("/", oldpos, tokens.length);
-			//separator
+		//separator
 		} else if (c == '(' || c == ')' || c == ',' || c == ';') {
 			pos += 1;
 			e = new Separator(c, oldpos);
-			//operator
+		//operator
 		} else {
 			begin = pos;
 			pos += 1;
@@ -198,20 +215,135 @@ void buildTokens() {
 	tlength = tokens.length;
 }
 //skip all whitespace
+//returns whether there are more characters left in contents
 //pos location: clength | non-whitespace character
-void skipWhitespace() {
+bool skipWhitespace() {
 	while (inbounds()) {
-		char c = contents[pos];
+		c = contents[pos];
 		if (c != ' ' && c != '\t' && c != '\n' && c != '\r')
+			return true;
+		pos += 1;
+	}
+	return false;
+}
+//get a variable name, type, or keyword
+//pos location: no change | the first character after the identifier | clength
+Token* lexIdentifier() {
+	if (!isalpha(c))
+		return nullptr;
+
+	size_t begin = pos;
+	pos += 1;
+	//find the rest of the identifier characters
+	while (inbounds()) {
+		c = contents[pos];
+		if (!isalnum(c) && c != '_')
 			break;
 		pos += 1;
 	}
+	string s (contents + begin, pos - begin);
+
+	if (s.compare("true") == 0)
+		return new IntConstant2(1, begin);
+	else if (s.compare("false") == 0)
+		return new IntConstant2(0, begin);
+	else
+		return new Identifier(s, begin);
 }
-Identifier* lexIdentifier() {
-	if (!isalpha(contents[pos]))
+//get a number, either int or float
+//pos location: no change | the first character after the identifier | clength
+Token* lexNumber() {
+	if (!isdigit(c))
 		return nullptr;
 
-	return nullptr;
+	size_t begin = pos;
+	int base = 10;
+	//different base
+	char c2;
+	if (c == '0' && pos + 1 < clength && !isdigit(c2 = contents[pos + 1])) {
+		if (c2 == 'x') {
+			base = 16;
+			pos += 2;
+		} else if (c2 == 'o') {
+			base = 8;
+			pos += 2;
+		} else if (c2 == 'b') {
+			base = 2;
+			pos += 2;
+		}
+		if (outofbounds())
+			makeError(1, "the number definition", begin);
+		c = contents[pos];
+	}
+
+	BigInt2 num (base);
+	bool lexingExponent = false;
+	bool isFloat = false;
+	bool digitExpected = false;
+	int fractionDigits = 0;
+	int exponent = 0;
+	int exponentMultiplier = 1;
+	//lex number characters
+	do {
+		if (c == '_')
+			;
+		else if (c == '.') {
+			if (!isFloat) {
+				isFloat = true;
+				digitExpected = true;
+			} else
+				break;
+		} else if (c == '^') {
+			if (isFloat && !lexingExponent && !digitExpected) {
+				lexingExponent = true;
+				digitExpected = true;
+			} else
+				break;
+		} else if (c == '-') {
+			if (lexingExponent && digitExpected && exponentMultiplier == 1)
+				exponentMultiplier = -1;
+			else
+				break;
+		} else {
+			char digit;
+			if (c >= '0' && c <= '9')
+				digit = c - '0';
+			else if (c >= 'a' && c <= 'z')
+				digit = c - 'a' + 10;
+			else if (c >= 'A' && c <= 'Z')
+				digit = c - 'A' + 10;
+			else
+				break;
+
+			if (digit > base)
+				break;
+			if (lexingExponent)
+				exponent = exponent * base + digit * exponentMultiplier;
+			else {
+				num.digit(digit);
+				if (isFloat)
+					fractionDigits++;
+			}
+			digitExpected = false;
+		}
+		pos += 1;
+		if (outofbounds())
+			break;
+		c = contents[pos];
+	} while (true);
+
+	if (digitExpected)
+		makeError(0, "expected digit", pos);
+
+	//we've now finished reading the number
+	//turn it into the appropriate constant
+	//if it's not a float, we're done
+	if (!isFloat)
+		return new IntConstant2(num.getInt(), begin);
+
+	//TODO: Get floats working
+	int expbias = 1 == 1 ? 1023/* double */ : 127/* float */;
+	return FloatConstant2(&num, 0, begin);
 }
 //check if the next statement is a Main. function
 //pos location: the character after the close parenthesis of the Main. function
@@ -256,7 +388,7 @@ string variableName() {
 //pos location: clength | the character after the number
 Expression* tonum(int base) {
 	size_t oldpos = pos;
-	BigInt b(base);
+	BigInt b (base);
 	char d = ' ';
 	//first stage: all numbers before the period
 	for (; inbounds(); pos += 1) {
@@ -312,7 +444,7 @@ Expression* tonum(int base) {
 	if (d == '^' || d == 'e') {
 		bool negexp = false;
 		pos += 1;
-		BigInt p(base);
+		BigInt p (base);
 		while (inbounds() && (d = contents[pos]) == '_')
 			pos += 1;
 		if (outofbounds())
@@ -352,7 +484,7 @@ Expression* tonum(int base) {
 		exp += b.bitCount();
 	} else if (power < 0) {
 		int abc = b.getInt();
-		BigInt p(base);
+		BigInt p (base);
 		p.digit(1);
 		for (int i = 0; i > power; i -= 1)
 			p.digit(0);
@@ -397,7 +529,7 @@ string stringVal() {
 		else if (c == '\"') {
 			pos += 1;
 			return outputstring;
-			//regular character
+		//regular character
 		} else {
 			outputstring += c;
 			pos += 1;
@@ -450,7 +582,7 @@ char escapeSequenceCharacter() {
 //convert string to int
 int toint(int base, size_t loc, size_t end) {
 	char d;
-	BigInt b(base);
+	BigInt b (base);
 	for (; loc < end; loc += 1) {
 		d = contents[loc];
 		if (d >= '0' && d <= '9')
@@ -481,13 +613,13 @@ void castConstant(IntConstant* c, int context) {
 			c->context = TBYTE;
 		} else
 			makeError(0, "value is not a byte value", c->contentpos);
-		//cast to int
+	//cast to int
 	} else if (context == TINT) {
 		if (c->context == TBYTE)
 			c->context = TINT;
 		else
 			makeError(0, "value is not an int value", c->contentpos);
-		//cast to something else
+	//cast to something else
 	} else
 		makeError(0, "value has wrong expression type", c->contentpos);
 }

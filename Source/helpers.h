@@ -90,3 +90,22 @@ public:
 	int base;
 	int highbyte;
 };
+class BigInt2
+: public ObjCounter
+ {
+public:
+	BigInt2(int pBase);
+	BigInt2(BigInt2* pSource);
+	~BigInt2();
+
+	unsigned char base;
+	unsigned char* inner;
+	int innerLength;
+	int highByte;
+
+	void digit(unsigned char d);
+	void expand(int scale);
+	int getInt();
+	int bitCount();
+	void rShift(int bits);
+};

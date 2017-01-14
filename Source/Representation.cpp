@@ -154,16 +154,31 @@ Array<AssemblyInstruction*>* getAllAssembly(Array<AssemblyInstruction*>* to, Arr
 	return to;
 }
 //---------------------------------------------------------------------------------------------------------------------------------------------------
-Token::Token(size_t pContentPos):
-ObjCounter("TOKN"),
-	contentPos(pContentPos) {
+Token::Token(size_t pContentPos)
+: ObjCounter("TOKN")
+, contentPos(pContentPos) {
 }
 Token::~Token() {}
-Identifier::Identifier(string pName, size_t pContentPos):
-	Token(pContentPos),
-	name(pName) {
+Identifier::Identifier(string pName, size_t pContentPos)
+: Token(pContentPos)
+, name(pName) {
 }
 Identifier::~Identifier() {}
+IntConstant2::IntConstant2(int pVal, size_t pContentPos)
+: Token(pContentPos)
+, val(pVal) {
+}
+IntConstant2::~IntConstant2() {}
+FloatConstant2::FloatConstant2(BigInt2* pBits, short pExponent, size_t pContentPos)
+: Token(pContentPos)
+, bits(pBits) {
+}
+FloatConstant2::~FloatConstant2() {}
+Operator::Operator(OperatorType pType, size_t pContentPos)
+: Token(pContentPos)
+, type(pType) {
+}
+Operator::~Operator() {}
 //---------------------------------------------------------------------------------------------------------------------------------------------------
 Expression::Expression(int theetype, bool thevalue, int thecontext, size_t thecontentpos):
 ObjCounter("EXPN"),

@@ -424,3 +424,78 @@ int BigInt::getBit(int bit) {
 		return 0;
 	return inner[byte] >> (bit & 7) & 1;
 }
+//------------------------------------------------------------------------------------------------------------------
+BigInt2::BigInt2(int pBase)
+: ObjCounter("BGNT")
+, base(pBase)
+, innerLength(1)
+, highByte(-1)
+, inner(new unsigned char[1]) {
+}
+//this one is strictly for use right before pSource will be deleted
+BigInt2::BigInt2(BigInt2* pSource)
+: ObjCounter("BGNT")
+, base(pSource->base)
+, innerLength(pSource->innerLength)
+, highByte(pSource->highByte)
+, inner(pSource->inner) {
+	pSource->inner = nullptr;
+}
+BigInt2::~BigInt2() {
+	delete[] inner;
+}
+//add a digit of this BigInt's base
+void BigInt2::digit(unsigned char c) {
+	short add = (short)(c) << 8;
+	for (int i = 0; i <= highByte; i++) {
+		add = (short)(inner[i]) * (short)(base) + (add >> 8);
+		inner[i] = (unsigned char)add;
+	}
+	if (add >= 256) {
+		highByte++;
+		if (highByte >= innerLength)
+			expand(2);
+		inner[highByte] = (unsigned char)(add >> 8);
+	}
+}
+//expand the length of the inner array
+void BigInt2::expand(int scale) {
+	innerLength *= scale;
+	unsigned char* newInner = new unsigned char[innerLength];
+	for (int i = highByte; i >= 0; i--)
+		newInner[i] = inner[i];
+	delete[] inner;
+	inner = newInner;
+}
+//get this BigInt as an int
+int BigInt2::getInt() {
+	return (int)(inner[0]) | (int)(inner[1]) << 8 | (int)(inner[2]) << 16 | (int)(inner[3]) << 24;
+}
+//get the number of bits that the int occupies
+int BigInt2::bitCount() {
+	if (highByte == -1)
+		return 0;
+	int num = highByte * 8;
+	for (unsigned char val = inner[highByte]; val > 0; val >>= 1)
+		num++;
+	return num;
+}
+//right shift the BigInt by the given amount
+void BigInt2::rShift(int bits) {
+	char bitShift = bits & 7;
+	int byteShift = bits >> 3;
+	//no inter-byte shifting is easy
+	if (bitShift == 0) {
+		for (int i = 0; i <= highByte - byteShift; i++)
+			inner[i] = inner[i + byteShift];
+	//inter-byte shifting, combine two bytes after shifting them appropriately
+	//we want the upper bits of the lower byte and the lower bits of the upper byte
+	} else {
+		char reverseShift = 8 - bitShift;
+		for (int i = 0; i < highByte - byteShift; i++)
+			inner[i] = (inner[i + byteShift] >> bitShift) | (inner[i + byteShift + 1] << reverseShift);
+		if ((inner[highByte - byteShift] = inner[highByte] >> bitShift) == 0)
+			highByte -= 1;
+	}
+	highByte -= byteShift;
+}

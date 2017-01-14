@@ -469,6 +469,21 @@ public:
 
 	string name;
 };
+class IntConstant2: public Token {
+public:
+	IntConstant2(int pVal, size_t pContentPos);
+	~IntConstant2();
+
+	int val;
+};
+class FloatConstant2: public Token {
+public:
+	FloatConstant2(BigInt2* pBits, short pExponent, size_t pContentPos);
+	~FloatConstant2();
+
+	BigInt2 bits;
+	short exponent;
+};
 class Operator: public Token {
 public:
 	Operator(OperatorType pType, size_t pContentPos);

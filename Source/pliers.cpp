@@ -24,6 +24,8 @@ Array<AssemblySequence*> sequences;
 int main(int argc, char* argv[]) {
 	ObjCounter::start();
 	puts("Copper Compiler v0.0");
+puts("Suspended until the rewrite is complete");
+while (true) {}
 	if (argc < 2) {
 		puts("You need an input file");
 		return 0;
@@ -265,6 +267,8 @@ bool isReservedWord(string s) {
 		s.compare("if") == 0 ||
 		s.compare("else") == 0 ||
 		s.compare("for") == 0 ||
+		s.compare("break") == 0 ||
+		s.compare("continue") == 0 ||
 		s.compare("while") == 0 ||
 		s.compare("do") == 0 ||
 		s.compare("switch") == 0 ||
@@ -275,9 +279,19 @@ bool isReservedWord(string s) {
 		s.compare("delete") == 0 ||
 		s.compare("public") == 0 ||
 		s.compare("private") == 0 ||
+		s.compare("readonly") == 0 ||
+		s.compare("writeonly") == 0 ||
+		s.compare("local") == 0 ||
 		s.compare("final") == 0 ||
 		s.compare("is") == 0 ||
-		s.compare("class") == 0;
+		s.compare("class") == 0 ||
+		s.compare("enum") == 0 ||
+		s.compare("raw") == 0 ||
+		s.compare("partial") == 0 ||
+		s.compare("abstract") == 0 ||
+		s.compare("recurse") == 0 ||
+		s.compare("nonnull") == 0 ||
+		s.compare("nullable") == 0;
 }
 //replace a spot in the tokens array with the given expression
 Expression* replace(int loc, Expression* val) {

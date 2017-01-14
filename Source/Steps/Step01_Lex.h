@@ -1,20 +1,6 @@
 class Token;
-class Identifier;
-class MainFunction;
-class Expression;
 class IntConstant;
-template <class type> class Array;
 
 Token* lex();
 void buildTokens();
-void skipWhitespace();
-Identifier* lexIdentifier();
-MainFunction* nextMainFunction();
-string variableName();
-Expression* tonum(int base);
-bool foundAndSkipped(string s);
-void addDigit(BigInt* b, char d);
-string stringVal();
-char escapeSequenceCharacter();
-int toint(int base, size_t loc, size_t end);
 void castConstant(IntConstant* c, int context);
