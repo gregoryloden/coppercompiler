@@ -343,7 +343,7 @@ Token* lexNumber() {
 
 	//TODO: Get floats working
 	int expbias = 1 == 1 ? 1023/* double */ : 127/* float */;
-	return FloatConstant2(&num, 0, begin);
+	return new FloatConstant2(&num, 0, begin);
 }
 //check if the next statement is a Main. function
 //pos location: the character after the close parenthesis of the Main. function
