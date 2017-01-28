@@ -400,7 +400,14 @@ public:
 	bool added;
 };
 //-------------------------------------------------------------------------------------------------------------------------------------------------------------
+enum SeparatorType: unsigned char {
+	LeftParenthesis,
+	RightParenthesis,
+	Comma,
+	Semicolon
+};
 enum OperatorType: unsigned char {
+//	None,
 	Dot,
 	Increment,
 	Decrement,
@@ -418,8 +425,8 @@ enum OperatorType: unsigned char {
 	ShiftLeft,
 	ShiftRight,
 	ShiftArithmeticRight,
-	RotateLeft,
-	RotateRight,
+//	RotateLeft,
+//	RotateRight,
 	BitwiseAnd,
 	BitwiseXor,
 	BitwiseOr,
@@ -430,7 +437,7 @@ enum OperatorType: unsigned char {
 	LessThan,
 	GreaterThan,
 	BooleanAnd,
-	BooleanXor,
+//	BooleanXor,
 	BooleanOr,
 	QuestionMark,
 	Colon,
@@ -443,21 +450,21 @@ enum OperatorType: unsigned char {
 	AssignShiftLeft,
 	AssignShiftRight,
 	AssignShiftArithmeticRight,
-	AssignRotateLeft,
-	AssignRotateRight,
+//	AssignRotateLeft,
+//	AssignRotateRight,
 	AssignBitwiseAnd,
 	AssignBitwiseXor,
 	AssignBitwiseOr,
-	AssignBooleanAnd,
-	AssignBooleanXor,
-	AssignBooleanOr
+//	AssignBooleanAnd,
+//	AssignBooleanXor,
+//	AssignBooleanOr
 };
 
 class Token
 : public ObjCounter
  {
 public:
-	Token(size_t pContentPos);
+	Token(char* pObjType, size_t pContentPos);
 	~Token();
 
 	size_t contentPos;
@@ -478,11 +485,27 @@ public:
 };
 class FloatConstant2: public Token {
 public:
-	FloatConstant2(BigInt2* pBits, short pExponent, size_t pContentPos);
+	FloatConstant2(BigInt2* pMantissa, int pExponent, size_t pContentPos);
 	~FloatConstant2();
 
-	BigInt2 bits;
-	short exponent;
+	static const int FLOAT_TOO_BIG_EXPONENT = 0x100000;
+
+	BigInt2 mantissa;
+	int exponent;
+};
+class StringLiteral: public Token {
+public:
+	StringLiteral(string pVal, size_t pContentPos);
+	~StringLiteral();
+
+	string val;
+};
+class Separator2: public Token {
+public:
+	Separator2(SeparatorType pType, size_t pContentPos);
+	~Separator2();
+
+	SeparatorType type;
 };
 class Operator: public Token {
 public:

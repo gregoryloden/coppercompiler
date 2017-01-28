@@ -154,28 +154,40 @@ Array<AssemblyInstruction*>* getAllAssembly(Array<AssemblyInstruction*>* to, Arr
 	return to;
 }
 //---------------------------------------------------------------------------------------------------------------------------------------------------
-Token::Token(size_t pContentPos)
-: ObjCounter("TOKN")
+Token::Token(char* pObjType, size_t pContentPos)
+: ObjCounter(pObjType)
 , contentPos(pContentPos) {
 }
 Token::~Token() {}
 Identifier::Identifier(string pName, size_t pContentPos)
-: Token(pContentPos)
+: Token("IDNTFR", pContentPos)
 , name(pName) {
 }
 Identifier::~Identifier() {}
 IntConstant2::IntConstant2(int pVal, size_t pContentPos)
-: Token(pContentPos)
+: Token("ICNST", pContentPos)
 , val(pVal) {
 }
 IntConstant2::~IntConstant2() {}
-FloatConstant2::FloatConstant2(BigInt2* pBits, short pExponent, size_t pContentPos)
-: Token(pContentPos)
-, bits(pBits) {
+FloatConstant2::FloatConstant2(BigInt2* pMantissa, int pExponent, size_t pContentPos)
+: Token("FCNST", pContentPos)
+, mantissa(pMantissa)
+, exponent(pExponent) {
+	int expbias = 1 == 1 ? 1023/* double */ : 127/* float */;
 }
 FloatConstant2::~FloatConstant2() {}
+StringLiteral::StringLiteral(string pVal, size_t pContentPos)
+: Token("STRNG", pContentPos)
+, val(pVal) {
+}
+StringLiteral::~StringLiteral() {}
+Separator2::Separator2(SeparatorType pType, size_t pContentPos)
+: Token("SEPR", pContentPos)
+, type(pType) {
+}
+Separator2::~Separator2() {}
 Operator::Operator(OperatorType pType, size_t pContentPos)
-: Token(pContentPos)
+: Token("OPER", pContentPos)
 , type(pType) {
 }
 Operator::~Operator() {}

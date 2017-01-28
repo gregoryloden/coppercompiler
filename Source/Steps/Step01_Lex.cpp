@@ -3,8 +3,16 @@
 #include "Representation.h"
 
 bool skipWhitespace();
+bool skipComment();
 Token* lexIdentifier();
 Token* lexNumber();
+char cToDigit();
+StringLiteral* lexString();
+char nextStringCharacter();
+IntConstant2* lexCharacter();
+Separator2* lexSeparator();
+Operator* lexOperator();
+
 MainFunction* nextMainFunction();
 string variableName();
 Expression* tonum(int base);
@@ -16,15 +24,87 @@ int toint(int base, size_t loc, size_t end);
 
 char c;
 
+struct OperatorTypeTrie {
+	char operatorChar;
+	OperatorType type;
+	int count;
+	OperatorTypeTrie* tries;
+};
+const int baseOperatorTrieCount = 16;
+OperatorTypeTrie baseOperatorTries[] = {
+	{'.', Dot, 0, nullptr},
+	{'+', Add, 2, new OperatorTypeTrie[] {
+		{'+', Increment, 0, nullptr},
+		{'=', AssignAdd, 0, nullptr}
+	}},
+	{'-', Subtract, 2, new OperatorTypeTrie[] {
+		{'-', Decrement, 0, nullptr},
+		{'=', AssignSubtract, 0, nullptr}
+	}},
+	{'~', BitwiseNot, 3, new OperatorTypeTrie[] {
+		{'!', VariableLogicalNot, 0, nullptr},
+		{'~', VariableBitwiseNot, 0, nullptr},
+		{'-', VariableNegate, 0, nullptr}
+	}},
+	{'!', LogicalNot, 1, new OperatorTypeTrie[] {
+		{'=', NotEqual, 0, nullptr}
+	}},
+	{'*', Multiply, 1, new OperatorTypeTrie[] {
+		{'=', AssignMultiply, 0, nullptr}
+	}},
+	{'/', Divide, 1, new OperatorTypeTrie[] {
+		{'=', AssignDivide, 0, nullptr}
+	}},
+	{'%', Modulus, 1, new OperatorTypeTrie[] {
+		{'=', AssignModulus, 0, nullptr}
+	}},
+	{'<', LessThan, 2, new OperatorTypeTrie[] {
+		{'<', ShiftLeft, 1, new OperatorTypeTrie[] {
+			{'=', AssignShiftLeft, 0, nullptr}
+		}},
+		{'=', LessOrEqual, 0, nullptr}
+	}},
+	{'>', GreaterThan, 2, new OperatorTypeTrie[] {
+		{'>', ShiftRight, 2, new OperatorTypeTrie[] {
+			{'>', ShiftArithmeticRight, 1, new OperatorTypeTrie[] {
+				{'=', AssignShiftArithmeticRight, 0, nullptr}
+			}},
+			{'=', AssignShiftRight, 0, nullptr}
+		}},
+		{'=', GreaterOrEqual, 0, nullptr}
+	}},
+	{'&', BitwiseAnd, 2, new OperatorTypeTrie[] {
+		{'&', BooleanAnd, 0, nullptr},
+		{'=', AssignBitwiseAnd, 0, nullptr}
+	}},
+	{'^', BitwiseXor, 1, new OperatorTypeTrie[] {
+		{'=', AssignBitwiseXor, 0, nullptr}
+	}},
+	{'|', BitwiseOr, 1, new OperatorTypeTrie[] {
+		{'|', BooleanOr, 0, nullptr},
+		{'=', AssignBitwiseOr, 0, nullptr}
+	}},
+	{'=', Assign, 1, new OperatorTypeTrie[] {
+		{'=', Equal, 0, nullptr}
+	}},
+	{'?', QuestionMark, 0, nullptr},
+	{':', Colon, 0, nullptr}
+};
+
 //retrieve the next token from contents
 //pos location: the first character after the next token | clength
 Token* lex() {
-	if (!skipWhitespace())
-		return nullptr;
-	c = contents[pos];
+	do {
+		if (!skipWhitespace())
+			return nullptr;
+	} while (skipComment());
 	Token* t;
 	if ((t = lexIdentifier()) != nullptr ||
-		(t = lexNumber()) != nullptr)
+		(t = lexNumber()) != nullptr ||
+		(t = lexString()) != nullptr ||
+		(t = lexCharacter()) != nullptr ||
+		(t = lexSeparator()) != nullptr ||
+		(t = lexOperator()))
 		return t;
 	makeError(0, "unexpected character", pos);
 	return nullptr;
@@ -216,30 +296,52 @@ void buildTokens() {
 }
 //skip all whitespace
 //returns whether there are more characters left in contents
-//pos location: clength | non-whitespace character
+//pos location: the next non-whitespace character | clength
 bool skipWhitespace() {
-	while (inbounds()) {
+	for (; inbounds(); pos++) {
 		c = contents[pos];
 		if (c != ' ' && c != '\t' && c != '\n' && c != '\r')
 			return true;
-		pos += 1;
 	}
 	return false;
 }
+//skip the next comment if there is one
+//returns whether a comment was skipped
+//pos location: no change | the first character after the comment
+bool skipComment() {
+	char c2;
+	if (c != '/' || pos + 1 >= clength || ((c2 = contents[pos + 1]) != '/' && c2 != '*'))
+		return false;
+
+	bool lineComment = c2 == '/';
+	size_t oldPos = pos;
+	pos += 2;
+	for (; inbounds(); pos++) {
+		c = contents[pos];
+		if (lineComment ? c == '\n' : (c == '*' && pos + 1 < clength && contents[pos + 1] == '/')) {
+			pos += lineComment ? 1 : 2;
+			return true;
+		}
+	}
+	//reached the end of the file before the comment terminator, that's ok for a line comment but not a stream comment
+	if (!lineComment)
+		makeError(1, "the end of the stream comment", oldPos);
+	return true;
+}
 //get a variable name, type, or keyword
-//pos location: no change | the first character after the identifier | clength
+//pos location: no change | the first character after the identifier
 Token* lexIdentifier() {
 	if (!isalpha(c))
 		return nullptr;
 
 	size_t begin = pos;
-	pos += 1;
+	pos++;
 	//find the rest of the identifier characters
 	while (inbounds()) {
 		c = contents[pos];
 		if (!isalnum(c) && c != '_')
 			break;
-		pos += 1;
+		pos++;
 	}
 	string s (contents + begin, pos - begin);
 
@@ -250,8 +352,8 @@ Token* lexIdentifier() {
 	else
 		return new Identifier(s, begin);
 }
-//get a number, either int or float
-//pos location: no change | the first character after the identifier | clength
+//get a number constant, either int or float
+//pos location: no change | the first character after the number
 Token* lexNumber() {
 	if (!isdigit(c))
 		return nullptr;
@@ -281,10 +383,10 @@ Token* lexNumber() {
 	bool isFloat = false;
 	bool digitExpected = false;
 	int fractionDigits = 0;
-	int exponent = 0;
-	int exponentMultiplier = 1;
+	int baseExponent = 0;
+	bool negativeExponent = false;
 	//lex number characters
-	do {
+	while (true) {
 		if (c == '_')
 			;
 		else if (c == '.') {
@@ -300,37 +402,29 @@ Token* lexNumber() {
 			} else
 				break;
 		} else if (c == '-') {
-			if (lexingExponent && digitExpected && exponentMultiplier == 1)
-				exponentMultiplier = -1;
+			if (lexingExponent && digitExpected && !negativeExponent)
+				negativeExponent = true;
 			else
 				break;
 		} else {
-			char digit;
-			if (c >= '0' && c <= '9')
-				digit = c - '0';
-			else if (c >= 'a' && c <= 'z')
-				digit = c - 'a' + 10;
-			else if (c >= 'A' && c <= 'Z')
-				digit = c - 'A' + 10;
-			else
+			char digit = cToDigit();
+			if (digit == -1 || digit > base)
 				break;
-
-			if (digit > base)
-				break;
-			if (lexingExponent)
-				exponent = exponent * base + digit * exponentMultiplier;
-			else {
+			if (lexingExponent) {
+				if (baseExponent < FloatConstant2::FLOAT_TOO_BIG_EXPONENT)
+					baseExponent = baseExponent * base + digit;
+			} else {
 				num.digit(digit);
 				if (isFloat)
 					fractionDigits++;
 			}
 			digitExpected = false;
 		}
-		pos += 1;
+		pos++;
 		if (outofbounds())
 			break;
 		c = contents[pos];
-	} while (true);
+	}
 
 	if (digitExpected)
 		makeError(0, "expected digit", pos);
@@ -341,9 +435,186 @@ Token* lexNumber() {
 	if (!isFloat)
 		return new IntConstant2(num.getInt(), begin);
 
-	//TODO: Get floats working
-	int expbias = 1 == 1 ? 1023/* double */ : 127/* float */;
-	return new FloatConstant2(&num, 0, begin);
+	//it's a float
+	//first, adjust baseExponent
+	baseExponent = (negativeExponent ? -baseExponent : baseExponent) - fractionDigits;
+
+	//if we have no exponent, we're also done
+	if (baseExponent == 0)
+		return new FloatConstant2(&num, num.highBit(), begin);
+
+	//it has an exponent- we want to divide or multiply num by base^abs(baseExponent)
+	//we get this with the square-and-multiply trick
+	//first, find the highest bit in the exponent
+	int nextBaseExponentBit = 1;
+	while (baseExponent >> 1 >= nextBaseExponentBit)
+		nextBaseExponentBit <<= 1;
+
+	//next, square-and-multiply to get base^abs(baseExponent)
+	BigInt2 exponentNum (base);
+	//since baseExponent is not 0, the top bit is always set so we can stick two digits there
+	exponentNum.digit(1);
+	exponentNum.digit(0);
+	//for any remaining bits, square before possibly multiplying
+	for (nextBaseExponentBit >>= 1;
+			nextBaseExponentBit > 0 && exponentNum.highBit() < FloatConstant2::FLOAT_TOO_BIG_EXPONENT;
+			nextBaseExponentBit >>= 1) {
+		exponentNum.square();
+		if ((nextBaseExponentBit & baseExponent) != 0)
+			exponentNum.digit(0);
+	}
+
+	//we now have our big exponent number
+	//if it's positive, just multiply it and that's our number
+	if (baseExponent > 0) {
+		num.multiply(&exponentNum);
+		return new FloatConstant2(&num, num.highBit(), begin);
+	//if it's negative, grow num before dividing
+	} else {
+		//provide at least 64 bits of precision
+		int startingExponent = num.highBit();
+		int toShift = exponentNum.highBit() - num.highBit() + 64;
+		if (toShift > 0)
+			num.lShift(toShift);
+		int oldHighBit = num.highBit();
+		num.longDiv(&exponentNum);
+		return new FloatConstant2(&num, startingExponent + num.highBit() - oldHighBit, begin);
+	}
+}
+//convert c from a character to the digit it represents
+char cToDigit() {
+	if (c >= '0' && c <= '9')
+		return c - '0';
+	else if (c >= 'a' && c <= 'z')
+		return c - 'a' + 10;
+	else if (c >= 'A' && c <= 'Z')
+		return c - 'A' + 10;
+	else
+		return -1;
+}
+//get a string literal
+//pos location: no change | the first character after the string
+StringLiteral* lexString() {
+	if (c != '"')
+		return nullptr;
+
+	size_t oldPos = pos;
+	string val;
+	while (true) {
+		pos++;
+		if (outofbounds())
+			makeError(1, "the contents of the string", oldPos);
+
+		c = contents[pos];
+		if (c == '"') {
+			pos++;
+			return new StringLiteral(val, oldPos);
+		}
+		val += nextStringCharacter();
+	}
+}
+//returns the next character for the string, possibly from an escape sequence
+//pos location: the location of the character | the last character of the escape sequence
+char nextStringCharacter() {
+	if (c != '\\')
+		return c;
+
+	pos++;
+	if (outofbounds())
+		makeError(1, "the escape sequence", pos - 1);
+	c = contents[pos];
+	if (c == 'n')
+		return '\n';
+	else if (c == 'r')
+		return '\r';
+	else if (c == 't')
+		return '\t';
+	else if (c == 'b')
+		return '\b';
+	else if (c == '0')
+		return '\0';
+	//2-digit hex escape sequence
+	else if (c == 'x') {
+		if (pos + 2 >= clength)
+			makeError(1, "the escape sequence", pos);
+		char c2 = 0;
+		for (size_t max = pos + 2; pos < max;) {
+			pos++;
+			c = contents[pos];
+			char digit = cToDigit();
+			if (((unsigned char)digit) >= 16)
+				makeError(0, "escape sequence requires 2 hex digits", pos);
+			c2 = c2 << 4 | digit;
+		}
+		return c2;
+	//these escape sequences just needed the backslash to be properly interpreted
+	//anything else is an invalid escape sequence
+	} else if (c != '\\' && c != '\"' && c != '\'')
+		makeError(0, "invalid escape sequence", pos);
+	//it's one of the above 3 escape sequences
+	return c;
+}
+//get a character
+//pos location: no change | the first character after the character
+IntConstant2* lexCharacter() {
+	if (c != '\'')
+		return nullptr;
+
+	size_t oldPos = pos;
+	pos++;
+	if (outofbounds())
+		makeError(1, "the character definition", oldPos);
+
+	c = contents[pos];
+	c = nextStringCharacter();
+	pos++;
+	if (outofbounds())
+		makeError(1, "the character definition", oldPos);
+	if (contents[pos] != '\'')
+		makeError(1, "expected a close quote", pos);
+	pos++;
+	return new IntConstant2((int)c, oldPos);
+}
+//get a separator
+//pos location: no change | the first character after the separator
+Separator2* lexSeparator() {
+	Separator2* val;
+	if (c == '(')
+		val = new Separator2(LeftParenthesis, pos);
+	else if (c == ')')
+		val = new Separator2(RightParenthesis, pos);
+	else if (c == ',')
+		val = new Separator2(Comma, pos);
+	else if (c == ';')
+		val = new Separator2(Semicolon, pos);
+	else
+		return nullptr;
+
+	pos++;
+	return val;
+}
+//get an operator
+//pos location: no change | the first character after the operator
+Operator* lexOperator() {
+	size_t oldPos = pos;
+	OperatorType type = Dot;
+	OperatorTypeTrie* tries = baseOperatorTries;
+	int count = baseOperatorTrieCount;
+	bool found = false;
+	for (int i = 0; i < count; i++) {
+		if (tries[i].operatorChar == c) {
+			found = true;
+			type = tries[i].type;
+			pos++;
+			if (outofbounds())
+				break;
+			c = contents[pos];
+			tries = tries[i].tries;
+			count = tries[i].count;
+			i = -1;
+		}
+	}
+	return found ? new Operator(type, oldPos) : nullptr;
 }
 //check if the next statement is a Main. function
 //pos location: the character after the close parenthesis of the Main. function

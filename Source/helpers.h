@@ -1,20 +1,20 @@
 #include "string"
 class ObjCounter {
 public:
-	ObjCounter(char* thectype);
+	ObjCounter(char* pObjType);
 	~ObjCounter();
 
 	static void start();
 	static void end();
 
-	char* ctype;
-	int objcountid;
-	static const int OBJIDSCOUNT = 4096;
-	static int objcount;
-	static int objid;
-	static int lowobjid;
-	static bool trackobjids;
-	static bool objids [OBJIDSCOUNT];
+	char* objType;
+	int objID;
+	static const int OBJ_IDS_COUNT = 4096;
+	static int objCount;
+	static int nextObjID;
+	static int untrackedObjCount;
+	static bool trackObjIDs;
+	static bool objIDs [OBJ_IDS_COUNT];
 };
 using namespace std;
 
@@ -104,8 +104,14 @@ public:
 	int highByte;
 
 	void digit(unsigned char d);
-	void expand(int scale);
+	void expand();
 	int getInt();
-	int bitCount();
+	int highBit();
+	void square();
+	void multiply(BigInt2* other);
+	void lShift(int bits);
+	void longDiv(BigInt2* other);
+	int compare(BigInt2* other);
+	void subtract(BigInt2* other);
 	void rShift(int bits);
 };
