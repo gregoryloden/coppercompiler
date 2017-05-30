@@ -1,6 +1,6 @@
-class Token;
+class LexToken;
 class IntConstant;
 
-Token* lex();
+LexToken* lex();
 void buildTokens();
 void castConstant(IntConstant* c, int context);

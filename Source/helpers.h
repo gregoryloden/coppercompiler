@@ -1,4 +1,5 @@
 #include "string"
+
 class ObjCounter {
 public:
 	ObjCounter(char* pObjType);

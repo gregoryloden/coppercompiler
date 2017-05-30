@@ -1,6 +1,4 @@
-#include "general.h"
-#include "Representation.h"
-#include "AssemblyInstruction.h"
+#include "Project.h"
 
 MEMPTR mstacktop (ESP, 0, -1, 0, false);
 intptr_t stacktop = (intptr_t)(&mstacktop);
@@ -153,45 +151,6 @@ Array<AssemblyInstruction*>* getAllAssembly(Array<AssemblyInstruction*>* to, Arr
 		addAssembly(to, e->getAssembly(false, EAX), true);
 	return to;
 }
-//---------------------------------------------------------------------------------------------------------------------------------------------------
-Token::Token(char* pObjType, size_t pContentPos)
-: ObjCounter(pObjType)
-, contentPos(pContentPos) {
-}
-Token::~Token() {}
-Identifier::Identifier(string pName, size_t pContentPos)
-: Token("IDNTFR", pContentPos)
-, name(pName) {
-}
-Identifier::~Identifier() {}
-IntConstant2::IntConstant2(int pVal, size_t pContentPos)
-: Token("ICNST", pContentPos)
-, val(pVal) {
-}
-IntConstant2::~IntConstant2() {}
-FloatConstant2::FloatConstant2(BigInt2* pMantissa, int pExponent, size_t pContentPos)
-: Token("FCNST", pContentPos)
-, mantissa(pMantissa)
-, exponent(pExponent) {
-	int expbias = 1 == 1 ? 1023/* double */ : 127/* float */;
-}
-FloatConstant2::~FloatConstant2() {}
-StringLiteral::StringLiteral(string pVal, size_t pContentPos)
-: Token("STRNG", pContentPos)
-, val(pVal) {
-}
-StringLiteral::~StringLiteral() {}
-Separator2::Separator2(SeparatorType pType, size_t pContentPos)
-: Token("SEPR", pContentPos)
-, type(pType) {
-}
-Separator2::~Separator2() {}
-Operator::Operator(OperatorType pType, size_t pContentPos)
-: Token("OPER", pContentPos)
-, type(pType) {
-}
-Operator::~Operator() {}
-//---------------------------------------------------------------------------------------------------------------------------------------------------
 Expression::Expression(int theetype, bool thevalue, int thecontext, size_t thecontentpos):
 ObjCounter("EXPN"),
 	etype(theetype),

@@ -1,8 +1,4 @@
-#include "general.h"
-#include "pliers.h"
-#include "AssemblyInstruction.h"
-#include "Representation.h"
-#include "Steps.h"
+#include "Project.h"
 
 //check if tpos is within the tokens
 #define tinbounds() (tpos < tlength)
@@ -24,19 +20,20 @@ Array<AssemblySequence*> sequences;
 int main(int argc, char* argv[]) {
 	ObjCounter::start();
 	puts("Copper Compiler v0.0");
-puts("Suspended until the rewrite is complete");
-while (true) {}
 	if (argc < 2) {
 		puts("You need an input file");
-		return 0;
+		return -1;
 	}
 	char* filename = argv[1];
 	//build the file
 	contents = getFile(filename);
 	if (contents == NULL) {
 		puts("Unable to open file");
-		return 0;
+		return -1;
 	}
+Array<Token*>* tokens = parseDirectives(false);
+puts("Suspended until the rewrite is complete");
+while (true) {}
 	setRowsAndColumns();
 	//prepare the error snippet
 	snippet[SNIPPETCHARS] = '\n';
@@ -286,6 +283,7 @@ bool isReservedWord(string s) {
 		s.compare("is") == 0 ||
 		s.compare("class") == 0 ||
 		s.compare("enum") == 0 ||
+		s.compare("operator") == 0 ||
 		s.compare("raw") == 0 ||
 		s.compare("partial") == 0 ||
 		s.compare("abstract") == 0 ||

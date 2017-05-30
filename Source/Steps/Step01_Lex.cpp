@@ -1,17 +1,18 @@
-#include "general.h"
-#include "Step01_Lex.h"
-#include "Representation.h"
+#include "Project.h"
+
+#define BLOCK_COMMENT_SECOND_CHAR '\''
 
 bool skipWhitespace();
 bool skipComment();
-Token* lexIdentifier();
-Token* lexNumber();
+LexToken* lexIdentifier();
+LexToken* lexNumber();
 char cToDigit();
 StringLiteral* lexString();
 char nextStringCharacter();
 IntConstant2* lexCharacter();
 Separator2* lexSeparator();
 Operator* lexOperator();
+DirectiveTitle* lexDirectiveTitle();
 
 MainFunction* nextMainFunction();
 string variableName();
@@ -31,81 +32,105 @@ struct OperatorTypeTrie {
 	OperatorTypeTrie* tries;
 };
 const int baseOperatorTrieCount = 16;
+OperatorTypeTrie addOperatorTries[] = {
+	{'+', Increment, 0, nullptr},
+	{'=', AssignAdd, 0, nullptr}
+};
+OperatorTypeTrie subtractOperatorTries[] = {
+	{'-', Decrement, 0, nullptr},
+	{'=', AssignSubtract, 0, nullptr}
+};
+OperatorTypeTrie bitwiseNotOperatorTries[] = {
+	{'!', VariableLogicalNot, 0, nullptr},
+	{'~', VariableBitwiseNot, 0, nullptr},
+	{'-', VariableNegate, 0, nullptr}
+};
+OperatorTypeTrie logicalNotOperatorTries[] = {
+	{'=', NotEqual, 0, nullptr}
+};
+OperatorTypeTrie multiplyOperatorTries[] = {
+	{'=', AssignMultiply, 0, nullptr}
+};
+OperatorTypeTrie divideOperatorTries[] = {
+	{'=', AssignDivide, 0, nullptr}
+};
+OperatorTypeTrie modulusOperatorTries[] = {
+	{'=', AssignModulus, 0, nullptr}
+};
+OperatorTypeTrie shiftLeftOperatorTries[] = {
+	{'=', AssignShiftLeft, 0, nullptr}
+};
+OperatorTypeTrie lessThanOperatorTries[] = {
+	{'<', ShiftLeft, 1, shiftLeftOperatorTries},
+	{'=', LessOrEqual, 0, nullptr}
+};
+OperatorTypeTrie shiftArithmeticRightOperatorTries[] = {
+	{'=', AssignShiftArithmeticRight, 0, nullptr}
+};
+OperatorTypeTrie shiftRightOperatorTries[] = {
+	{'>', ShiftArithmeticRight, 1, shiftArithmeticRightOperatorTries},
+	{'=', AssignShiftRight, 0, nullptr}
+};
+OperatorTypeTrie greaterThanOperatorTries[] = {
+	{'>', ShiftRight, 2, shiftRightOperatorTries},
+	{'=', GreaterOrEqual, 0, nullptr}
+};
+OperatorTypeTrie bitwiseAndOperatorTries[] = {
+	{'&', BooleanAnd, 0, nullptr},
+	{'=', AssignBitwiseAnd, 0, nullptr}
+};
+OperatorTypeTrie bitwiseXorOperatorTries[] = {
+	{'=', AssignBitwiseXor, 0, nullptr}
+};
+OperatorTypeTrie bitwiseOrOperatorTries[] = {
+	{'|', BooleanOr, 0, nullptr},
+	{'=', AssignBitwiseOr, 0, nullptr}
+};
+OperatorTypeTrie assignOperatorTries[] = {
+	{'=', Equal, 0, nullptr}
+};
 OperatorTypeTrie baseOperatorTries[] = {
 	{'.', Dot, 0, nullptr},
-	{'+', Add, 2, new OperatorTypeTrie[] {
-		{'+', Increment, 0, nullptr},
-		{'=', AssignAdd, 0, nullptr}
-	}},
-	{'-', Subtract, 2, new OperatorTypeTrie[] {
-		{'-', Decrement, 0, nullptr},
-		{'=', AssignSubtract, 0, nullptr}
-	}},
-	{'~', BitwiseNot, 3, new OperatorTypeTrie[] {
-		{'!', VariableLogicalNot, 0, nullptr},
-		{'~', VariableBitwiseNot, 0, nullptr},
-		{'-', VariableNegate, 0, nullptr}
-	}},
-	{'!', LogicalNot, 1, new OperatorTypeTrie[] {
-		{'=', NotEqual, 0, nullptr}
-	}},
-	{'*', Multiply, 1, new OperatorTypeTrie[] {
-		{'=', AssignMultiply, 0, nullptr}
-	}},
-	{'/', Divide, 1, new OperatorTypeTrie[] {
-		{'=', AssignDivide, 0, nullptr}
-	}},
-	{'%', Modulus, 1, new OperatorTypeTrie[] {
-		{'=', AssignModulus, 0, nullptr}
-	}},
-	{'<', LessThan, 2, new OperatorTypeTrie[] {
-		{'<', ShiftLeft, 1, new OperatorTypeTrie[] {
-			{'=', AssignShiftLeft, 0, nullptr}
-		}},
-		{'=', LessOrEqual, 0, nullptr}
-	}},
-	{'>', GreaterThan, 2, new OperatorTypeTrie[] {
-		{'>', ShiftRight, 2, new OperatorTypeTrie[] {
-			{'>', ShiftArithmeticRight, 1, new OperatorTypeTrie[] {
-				{'=', AssignShiftArithmeticRight, 0, nullptr}
-			}},
-			{'=', AssignShiftRight, 0, nullptr}
-		}},
-		{'=', GreaterOrEqual, 0, nullptr}
-	}},
-	{'&', BitwiseAnd, 2, new OperatorTypeTrie[] {
-		{'&', BooleanAnd, 0, nullptr},
-		{'=', AssignBitwiseAnd, 0, nullptr}
-	}},
-	{'^', BitwiseXor, 1, new OperatorTypeTrie[] {
-		{'=', AssignBitwiseXor, 0, nullptr}
-	}},
-	{'|', BitwiseOr, 1, new OperatorTypeTrie[] {
-		{'|', BooleanOr, 0, nullptr},
-		{'=', AssignBitwiseOr, 0, nullptr}
-	}},
-	{'=', Assign, 1, new OperatorTypeTrie[] {
-		{'=', Equal, 0, nullptr}
-	}},
+	{'+', Add, 2, addOperatorTries},
+	{'-', Subtract, 2, subtractOperatorTries},
+	{'~', BitwiseNot, 3, bitwiseNotOperatorTries},
+	{'!', LogicalNot, 1, logicalNotOperatorTries},
+	{'*', Multiply, 1, multiplyOperatorTries},
+	{'/', Divide, 1, divideOperatorTries},
+	{'%', Modulus, 1, modulusOperatorTries},
+	{'<', LessThan, 2, lessThanOperatorTries},
+	{'>', GreaterThan, 2, greaterThanOperatorTries},
+	{'&', BitwiseAnd, 2, bitwiseAndOperatorTries},
+	{'^', BitwiseXor, 1, bitwiseXorOperatorTries},
+	{'|', BitwiseOr, 1, bitwiseOrOperatorTries},
+	{'=', Assign, 1, assignOperatorTries},
 	{'?', QuestionMark, 0, nullptr},
 	{':', Colon, 0, nullptr}
 };
 
 //retrieve the next token from contents
 //pos location: the first character after the next token | clength
-Token* lex() {
+LexToken* lex() {
 	do {
 		if (!skipWhitespace())
 			return nullptr;
 	} while (skipComment());
-	Token* t;
+	LexToken* t;
+size_t oldPos = pos;
 	if ((t = lexIdentifier()) != nullptr ||
-		(t = lexNumber()) != nullptr ||
-		(t = lexString()) != nullptr ||
-		(t = lexCharacter()) != nullptr ||
-		(t = lexSeparator()) != nullptr ||
-		(t = lexOperator()))
+			(t = lexNumber()) != nullptr ||
+			(t = lexString()) != nullptr ||
+			(t = lexCharacter()) != nullptr ||
+			(t = lexSeparator()) != nullptr ||
+			(t = lexOperator()) != nullptr ||
+			(t = lexDirectiveTitle()) != nullptr)
+{
+char cp = contents[pos];
+contents[pos] = 0;
+printf("%s\n", contents + oldPos);
+contents[pos] = cp;
 		return t;
+}
 	makeError(0, "unexpected character", pos);
 	return nullptr;
 }
@@ -310,7 +335,7 @@ bool skipWhitespace() {
 //pos location: no change | the first character after the comment
 bool skipComment() {
 	char c2;
-	if (c != '/' || pos + 1 >= clength || ((c2 = contents[pos + 1]) != '/' && c2 != '*'))
+	if (c != '/' || pos + 1 >= clength || ((c2 = contents[pos + 1]) != '/' && c2 != BLOCK_COMMENT_SECOND_CHAR))
 		return false;
 
 	bool lineComment = c2 == '/';
@@ -318,30 +343,29 @@ bool skipComment() {
 	pos += 2;
 	for (; inbounds(); pos++) {
 		c = contents[pos];
-		if (lineComment ? c == '\n' : (c == '*' && pos + 1 < clength && contents[pos + 1] == '/')) {
+		if (lineComment ? c == '\n' : (c == BLOCK_COMMENT_SECOND_CHAR && pos + 1 < clength && contents[pos + 1] == '/')) {
 			pos += lineComment ? 1 : 2;
 			return true;
 		}
 	}
-	//reached the end of the file before the comment terminator, that's ok for a line comment but not a stream comment
+	//reached the end of the file before the comment terminator, that's ok for a line comment but not a block comment
 	if (!lineComment)
-		makeError(1, "the end of the stream comment", oldPos);
+		makeError(1, "the end of the block comment", oldPos);
 	return true;
 }
 //get a variable name, type, or keyword
 //pos location: no change | the first character after the identifier
-Token* lexIdentifier() {
+LexToken* lexIdentifier() {
 	if (!isalpha(c))
 		return nullptr;
 
 	size_t begin = pos;
 	pos++;
 	//find the rest of the identifier characters
-	while (inbounds()) {
+	for (; inbounds(); pos++) {
 		c = contents[pos];
 		if (!isalnum(c) && c != '_')
 			break;
-		pos++;
 	}
 	string s (contents + begin, pos - begin);
 
@@ -354,7 +378,7 @@ Token* lexIdentifier() {
 }
 //get a number constant, either int or float
 //pos location: no change | the first character after the number
-Token* lexNumber() {
+LexToken* lexNumber() {
 	if (!isdigit(c))
 		return nullptr;
 
@@ -450,6 +474,7 @@ Token* lexNumber() {
 	while (baseExponent >> 1 >= nextBaseExponentBit)
 		nextBaseExponentBit <<= 1;
 
+	//TODO: reduce precision to only the necessary bits and track how many bits were taken
 	//next, square-and-multiply to get base^abs(baseExponent)
 	BigInt2 exponentNum (base);
 	//since baseExponent is not 0, the top bit is always set so we can stick two digits there
@@ -609,12 +634,36 @@ Operator* lexOperator() {
 			if (outofbounds())
 				break;
 			c = contents[pos];
-			tries = tries[i].tries;
 			count = tries[i].count;
+			tries = tries[i].tries;
 			i = -1;
 		}
 	}
 	return found ? new Operator(type, oldPos) : nullptr;
+}
+//get a directive title
+//pos location: no change | the first character after the directive title
+DirectiveTitle* lexDirectiveTitle() {
+	if (c != '#')
+		return nullptr;
+
+	pos++;
+	size_t begin = pos;
+	for (; inbounds(); pos++) {
+		c = contents[pos];
+		if (!isalpha(c) && c != '-')
+			break;
+	}
+
+	if (pos == begin)
+		makeError(0, "expected a directive name", pos);
+
+	string directiveName (contents + begin, pos - begin);
+	if (directiveName != "replace" &&
+			directiveName != "replace-input")
+		makeError(0, "only replace and replace-input are supported right now", begin);
+
+	return new DirectiveTitle(directiveName, pos);
 }
 //check if the next statement is a Main. function
 //pos location: the character after the close parenthesis of the Main. function

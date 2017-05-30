@@ -1,6 +1,5 @@
-#include "general.h"
-#include "AssemblyInstruction.h"
-#include "Representation.h"
+#include "Project.h"
+
 int ObjCounter::objCount = 0;
 int ObjCounter::nextObjID = 0;
 int ObjCounter::untrackedObjCount;
@@ -52,6 +51,9 @@ template class Array<VariableData*>;
 template class Array<MainFunction*>;
 template class Array<AssemblySequence*>;
 template class Array<ControlFlow*>;
+template class Array<LexToken*>;
+template class Array<Token*>;
+template class Array<Identifier*>;
 template class ArrayIterator<AssemblyInstruction*>;
 template class ArrayIterator<Thunk*>;
 template class ArrayIterator<Function*>;
@@ -60,6 +62,9 @@ template class ArrayIterator<VariableData*>;
 template class ArrayIterator<MainFunction*>;
 template class ArrayIterator<AssemblySequence*>;
 template class ArrayIterator<ControlFlow*>;
+template class ArrayIterator<LexToken*>;
+template class ArrayIterator<Token*>;
+template class ArrayIterator<Identifier*>;
 
 string to4bytes(int i) {
 	string s;

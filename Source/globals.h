@@ -54,6 +54,7 @@ extern Thunk THeapAlloc;
 extern Thunk THeapReAlloc;
 
 void makeError(int type, char* message, size_t loc);
+void makeRecoverableError(int type, char* message, size_t loc, bool recoverable);
 void showSnippet(size_t loc);
 void makeWarning(int type, char* message, size_t loc);
 void buildMainFunctions(Array<MainFunction*>* mainfunctions);

@@ -1,6 +1,4 @@
-#include "general.h"
-#include "Representation.h"
-#include "AssemblyInstruction.h"
+#include "Project.h"
 
 size_t pos = 0;
 char* contents;
@@ -48,7 +46,8 @@ Thunk THeapReAlloc ("HeapReAlloc", 0x1C4);
 //make an error
 void makeError(int type, char* message, size_t loc) {
 	//error message
-	printf("Error at line %d column %d: ", rows[loc], cols[loc]);
+	printf("Error at line ?? column ??: ");
+//	printf("Error at line %d column %d: ", rows[loc], cols[loc]);
 	if (type == 0)
 		printf("%s\n", message);
 	else if (type == 1)
@@ -56,6 +55,9 @@ void makeError(int type, char* message, size_t loc) {
 	showSnippet(loc);
 	errors += 1;
 	throw NULL;
+}
+void makeRecoverableError(int type, char* message, size_t loc, bool recoverable) {
+
 }
 //show the snippet where the error/warning is
 void showSnippet(size_t loc) {
