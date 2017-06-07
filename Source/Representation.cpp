@@ -1495,3 +1495,16 @@ MainFunction::MainFunction(Function* f, string s, size_t thecontentpos):
 	added(false) {
 }
 MainFunction::~MainFunction() {}
+//-------------------------------------------------------------------------------------------------------------------------------------------------------------
+CDirective::CDirective() {}
+CDirective::~CDirective() {}
+CDirectiveReplace::CDirectiveReplace(string pToReplace, Array<string>* pInput, AbstractCodeBlock* pReplacement)
+: CDirective()
+, toReplace(pToReplace)
+, input(pInput)
+, replacement(pReplacement) {
+}
+CDirectiveReplace::~CDirectiveReplace() {
+	delete input;
+	delete replacement;
+}

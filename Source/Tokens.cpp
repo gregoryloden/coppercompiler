@@ -42,17 +42,25 @@ Operator::Operator(OperatorType pType, size_t pContentPos)
 , left(nullptr)
 , right(nullptr) {
 }
-Operator::~Operator() {}
+Operator::~Operator() {
+	delete left;
+	delete right;
+}
 DirectiveTitle::DirectiveTitle(string pTitle, size_t pContentPos)
 : LexToken("DTTL", pContentPos)
-, title(pTitle) {
+, title(pTitle)
+, directive(nullptr) {
 }
 DirectiveTitle::~DirectiveTitle() {}
-AbstractCodeBlock::AbstractCodeBlock(size_t pContentPos)
+AbstractCodeBlock::AbstractCodeBlock(Array<Token*>* pTokens, Array<CDirective*>* pDirectives, size_t pContentPos)
 : Token("ACBLK", pContentPos)
-, tokens() {
+, tokens(pTokens)
+, directives(pDirectives) {
 }
-AbstractCodeBlock::~AbstractCodeBlock() {}
+AbstractCodeBlock::~AbstractCodeBlock() {
+	delete tokens;
+	delete directives;
+}
 //IdentifierList::IdentifierList(Identifier* pI1, Identifier* pI2)
 //: Token("IDLST", pI1->contentPos)
 //, identifiers(pI1) {

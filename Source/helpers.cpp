@@ -43,6 +43,7 @@ void ObjCounter::end() {
 	printf("Total objects used: %d\n", nextObjID);
 }
 
+template class Array<string>;
 template class Array<AssemblyInstruction*>;
 template class Array<Thunk*>;
 template class Array<Function*>;
@@ -54,6 +55,8 @@ template class Array<ControlFlow*>;
 template class Array<LexToken*>;
 template class Array<Token*>;
 template class Array<Identifier*>;
+template class Array<CDirective*>;
+template class ArrayIterator<string>;
 template class ArrayIterator<AssemblyInstruction*>;
 template class ArrayIterator<Thunk*>;
 template class ArrayIterator<Function*>;
@@ -65,6 +68,7 @@ template class ArrayIterator<ControlFlow*>;
 template class ArrayIterator<LexToken*>;
 template class ArrayIterator<Token*>;
 template class ArrayIterator<Identifier*>;
+template class ArrayIterator<CDirective*>;
 
 string to4bytes(int i) {
 	string s;

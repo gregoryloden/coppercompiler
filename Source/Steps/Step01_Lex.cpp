@@ -124,16 +124,17 @@ size_t oldPos = pos;
 			(t = lexSeparator()) != nullptr ||
 			(t = lexOperator()) != nullptr ||
 			(t = lexDirectiveTitle()) != nullptr)
-{
-char cp = contents[pos];
-contents[pos] = 0;
-printf("%s\n", contents + oldPos);
-contents[pos] = cp;
+//{
+//char cp = contents[pos];
+//contents[pos] = 0;
+//printf("%s\n", contents + oldPos);
+//contents[pos] = cp;
 		return t;
-}
+//}
 	makeError(0, "unexpected character", pos);
 	return nullptr;
 }
+/*
 //split the entire file into a bunch of token expressions
 //pos location: clength
 void buildTokens() {
@@ -319,6 +320,7 @@ void buildTokens() {
 	}
 	tlength = tokens.length;
 }
+*/
 //skip all whitespace
 //returns whether there are more characters left in contents
 //pos location: the next non-whitespace character | clength
@@ -523,17 +525,17 @@ StringLiteral* lexString() {
 	if (c != '"')
 		return nullptr;
 
-	size_t oldPos = pos;
+	size_t begin = pos;
 	string val;
 	while (true) {
 		pos++;
 		if (outofbounds())
-			makeError(1, "the contents of the string", oldPos);
+			makeError(1, "the contents of the string", begin);
 
 		c = contents[pos];
 		if (c == '"') {
 			pos++;
-			return new StringLiteral(val, oldPos);
+			return new StringLiteral(val, begin);
 		}
 		val += nextStringCharacter();
 	}
@@ -585,20 +587,20 @@ IntConstant2* lexCharacter() {
 	if (c != '\'')
 		return nullptr;
 
-	size_t oldPos = pos;
+	size_t begin = pos;
 	pos++;
 	if (outofbounds())
-		makeError(1, "the character definition", oldPos);
+		makeError(1, "the character definition", begin);
 
 	c = contents[pos];
 	c = nextStringCharacter();
 	pos++;
 	if (outofbounds())
-		makeError(1, "the character definition", oldPos);
+		makeError(1, "the character definition", begin);
 	if (contents[pos] != '\'')
 		makeError(1, "expected a close quote", pos);
 	pos++;
-	return new IntConstant2((int)c, oldPos);
+	return new IntConstant2((int)c, begin);
 }
 //get a separator
 //pos location: no change | the first character after the separator
@@ -621,7 +623,7 @@ Separator2* lexSeparator() {
 //get an operator
 //pos location: no change | the first character after the operator
 Operator* lexOperator() {
-	size_t oldPos = pos;
+	size_t begin = pos;
 	OperatorType type = Dot;
 	OperatorTypeTrie* tries = baseOperatorTries;
 	int count = baseOperatorTrieCount;
@@ -639,7 +641,7 @@ Operator* lexOperator() {
 			i = -1;
 		}
 	}
-	return found ? new Operator(type, oldPos) : nullptr;
+	return found ? new Operator(type, begin) : nullptr;
 }
 //get a directive title
 //pos location: no change | the first character after the directive title
@@ -663,8 +665,9 @@ DirectiveTitle* lexDirectiveTitle() {
 			directiveName != "replace-input")
 		makeError(0, "only replace and replace-input are supported right now", begin);
 
-	return new DirectiveTitle(directiveName, pos);
+	return new DirectiveTitle(directiveName, begin - 1);
 }
+/*
 //check if the next statement is a Main. function
 //pos location: the character after the close parenthesis of the Main. function
 MainFunction* nextMainFunction() {
@@ -943,3 +946,4 @@ void castConstant(IntConstant* c, int context) {
 	} else
 		makeError(0, "value has wrong expression type", c->contentpos);
 }
+*/

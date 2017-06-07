@@ -2,6 +2,7 @@
 using namespace std;
 
 class ObjCounter;
+class CDirective;
 template <class type> class Array;
 
 enum SeparatorType: unsigned char {
@@ -137,15 +138,17 @@ public:
 	virtual ~DirectiveTitle();
 
 	string title;
+	CDirective* directive;
 };
 
 //Tokens used in parsing
 class AbstractCodeBlock: public Token {
 public:
-	AbstractCodeBlock(size_t pContentPos);
+	AbstractCodeBlock(Array<Token*>* pTokens, Array<CDirective*>* pDirectives, size_t pContentPos);
 	virtual ~AbstractCodeBlock();
 
-	Array<Token*> tokens;
+	Array<Token*>* tokens;
+	Array<CDirective*>* directives;
 };
 //class IdentifierList: public Token {
 //public:

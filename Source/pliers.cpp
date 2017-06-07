@@ -17,6 +17,29 @@ int contexts[] = {TVOID , TBOOLEAN , TBYTE , TINT , TSTRING , TFUNCTION , TNONE}
 int tpos = 0;
 Expression** initializations = NULL;
 Array<AssemblySequence*> sequences;
+
+void printAbstractCodeBlock(AbstractCodeBlock* codeBlock, int spacesCount) {
+	ArrayIterator<Token*> ti (codeBlock->tokens);
+	printf(" -- %d directives\n", codeBlock->directives->length);
+	for (Token* t = ti.getFirst(); ti.hasThis(); t = ti.getNext()) {
+		for (int i = 0; i < spacesCount; i++)
+			printf("        ");
+		AbstractCodeBlock* at;
+		if ((at = dynamic_cast<AbstractCodeBlock*>(t)) != nullptr) {
+			printf("\\\\\\\\ (");
+			printAbstractCodeBlock(at, spacesCount + 1);
+			for (int i = 0; i < spacesCount; i++)
+				printf("        ");
+			puts("//// )");
+		} else {
+			pos = t->contentPos;
+			size_t begin = pos;
+			lex();
+			string value (contents + begin, pos - begin);
+			printf("%s\n", value.c_str());
+		}
+	}
+}
 int main(int argc, char* argv[]) {
 	ObjCounter::start();
 	puts("Copper Compiler v0.0");
@@ -31,7 +54,9 @@ int main(int argc, char* argv[]) {
 		puts("Unable to open file");
 		return -1;
 	}
-Array<Token*>* tokens = parseDirectives(false);
+AbstractCodeBlock* codeBlock = parseDirectives();
+printAbstractCodeBlock(codeBlock, 0);
+include();
 puts("Suspended until the rewrite is complete");
 while (true) {}
 	setRowsAndColumns();
@@ -125,7 +150,7 @@ void parseCode() {
 	puts("Parsing the file...\n");
 	try {
 		//split the code into tokens
-		buildTokens();
+//		buildTokens();
 		//find global variables
 		for (tpos = 0; tinbounds(); tpos += 1) {
 			//new variable
@@ -1113,7 +1138,7 @@ Expression* implicitCast(Expression* e, int context) {
 	if (e->context == context)
 		return e;
 	else if (e->etype == EINTCONSTANT) {
-		castConstant((IntConstant*)(e), context);
+//		castConstant((IntConstant*)(e), context);
 		return e;
 	}
 	//numerical expand-cast

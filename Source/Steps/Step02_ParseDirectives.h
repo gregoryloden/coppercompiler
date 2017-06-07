@@ -1,4 +1,3 @@
-class Token;
-template <class type> class Array;
+class AbstractCodeBlock;
 
-Array<Token*>* parseDirectives(bool endsWithParenthesis);
+AbstractCodeBlock* parseDirectives();

@@ -105,6 +105,7 @@ class AssemblyInstruction;
 template <class type> class Array;
 class Expression;
 class ObjCounter;
+class AbstractCodeBlock;
 
 int divhighreg(int rtype);
 bool isNumerical(int context, bool includeboolean);
@@ -400,6 +401,20 @@ public:
 	bool added;
 };
 //-------------------------------------------------------------------------------------------------------------------------------------------------------------
+class CDirective {
+public:
+	CDirective();
+	~CDirective();
+};
+class CDirectiveReplace: public CDirective {
+public:
+	CDirectiveReplace(string pToReplace, Array<string>* pInput, AbstractCodeBlock* pReplacement);
+	~CDirectiveReplace();
+
+	string toReplace;
+	Array<string>* input;
+	AbstractCodeBlock* replacement;
+};
 class SourceFile {
 public:
 //	Array<CVariable*> variables;
