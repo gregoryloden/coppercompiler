@@ -1,19 +1,19 @@
 #include "Project.h"
 
-#define BLOCK_COMMENT_SECOND_CHAR '\''
+//check if pos is within the code
+#define inbounds() (pos < contentsLength)
+#define outofbounds() (pos >= contentsLength)
+#define emptyTokenAtPos(name) EmptyToken name (pos, row, rowStartContentPos)
+#define goToOtherNewlineCharacterIfPresentAndIncrementRow() char c2; goToOtherNewlineCharacterIfPresentAndIncrementRowWithCharAndHandling(c2,)
+#define goToOtherNewlineCharacterIfPresentAndIncrementRowWithCharAndHandling(c2, handling) \
+	if (pos + 1 < contentsLength && ((c2 = contents[pos + 1]) == '\n' || c2 == '\r') && c2 != c) {\
+		pos++;\
+		handling;\
+	}\
+	row++;\
+	rowStartContentPos = pos + 1;
 
-bool skipWhitespace();
-bool skipComment();
-LexToken* lexIdentifier();
-LexToken* lexNumber();
-char cToDigit();
-StringLiteral* lexString();
-char nextStringCharacter();
-IntConstant2* lexCharacter();
-Separator2* lexSeparator();
-Operator* lexOperator();
-DirectiveTitle* lexDirectiveTitle();
-
+/*
 MainFunction* nextMainFunction();
 string variableName();
 Expression* tonum(int base);
@@ -22,8 +22,7 @@ void addDigit(BigInt* b, char d);
 string stringVal();
 char escapeSequenceCharacter();
 int toint(int base, size_t loc, size_t end);
-
-char c;
+*/
 
 struct OperatorTypeTrie {
 	char operatorChar;
@@ -108,15 +107,32 @@ OperatorTypeTrie baseOperatorTries[] = {
 	{':', Colon, 0, nullptr}
 };
 
+SourceFile* Lex::sourceFile;
+char* Lex::contents;
+int Lex::contentsLength = 0;
+int Lex::pos = 0;
+int Lex::row;
+int Lex::rowStartContentPos;
+char Lex::c;
+
+//prep lexing with the source file
+void Lex::initializeLexer(SourceFile* newSourceFile) {
+	sourceFile = newSourceFile;
+	contents = sourceFile->contents;
+	contentsLength = sourceFile->contentsLength;
+	pos = 0;
+	row = 0;
+	rowStartContentPos = 0;
+}
 //retrieve the next token from contents
-//pos location: the first character after the next token | clength
-LexToken* lex() {
+//lex location: the first character after the next token | EOF
+LexToken* Lex::lex() {
 	do {
 		if (!skipWhitespace())
 			return nullptr;
 	} while (skipComment());
 	LexToken* t;
-size_t oldPos = pos;
+//int oldPos = pos;
 	if ((t = lexIdentifier()) != nullptr ||
 			(t = lexNumber()) != nullptr ||
 			(t = lexString()) != nullptr ||
@@ -131,7 +147,7 @@ size_t oldPos = pos;
 //contents[pos] = cp;
 		return t;
 //}
-	makeError(0, "unexpected character", pos);
+	makeLexError(General, "unexpected character");
 	return nullptr;
 }
 /*
@@ -323,45 +339,53 @@ void buildTokens() {
 */
 //skip all whitespace
 //returns whether there are more characters left in contents
-//pos location: the next non-whitespace character | clength
-bool skipWhitespace() {
+//lex location: the next non-whitespace character | EOF
+bool Lex::skipWhitespace() {
 	for (; inbounds(); pos++) {
 		c = contents[pos];
-		if (c != ' ' && c != '\t' && c != '\n' && c != '\r')
+		if (c == '\n' || c == '\r') {
+			goToOtherNewlineCharacterIfPresentAndIncrementRow();
+		} else if (c != ' ' && c != '\t')
 			return true;
 	}
 	return false;
 }
 //skip the next comment if there is one
 //returns whether a comment was skipped
-//pos location: no change | the first character after the comment
-bool skipComment() {
+//lex location: no change | the first character after the comment | EOF
+bool Lex::skipComment() {
 	char c2;
-	if (c != '/' || pos + 1 >= clength || ((c2 = contents[pos + 1]) != '/' && c2 != BLOCK_COMMENT_SECOND_CHAR))
+	if (c != '/' || pos + 1 >= contentsLength || ((c2 = contents[pos + 1]) != '/' && c2 != '*'))
 		return false;
 
 	bool lineComment = c2 == '/';
-	size_t oldPos = pos;
+	emptyTokenAtPos(errorToken);
 	pos += 2;
 	for (; inbounds(); pos++) {
 		c = contents[pos];
-		if (lineComment ? c == '\n' : (c == BLOCK_COMMENT_SECOND_CHAR && pos + 1 < clength && contents[pos + 1] == '/')) {
-			pos += lineComment ? 1 : 2;
+		if (c == '\n' || c == '\r') {
+			goToOtherNewlineCharacterIfPresentAndIncrementRow();
+			if (lineComment) {
+				pos++;
+				return true;
+			}
+		} else if (!lineComment && c == '*' && pos + 1 < contentsLength && contents[pos + 1] == '/') {
+			pos += 2;
 			return true;
 		}
 	}
 	//reached the end of the file before the comment terminator, that's ok for a line comment but not a block comment
 	if (!lineComment)
-		makeError(1, "the end of the block comment", oldPos);
+		makeLexError(EndOfFileWhileSearching, "the end of the block comment", &errorToken);
 	return true;
 }
 //get a variable name, type, or keyword
-//pos location: no change | the first character after the identifier
-LexToken* lexIdentifier() {
+//lex location: no change | the first character after the identifier
+LexToken* Lex::lexIdentifier() {
 	if (!isalpha(c))
 		return nullptr;
 
-	size_t begin = pos;
+	int begin = pos;
 	pos++;
 	//find the rest of the identifier characters
 	for (; inbounds(); pos++) {
@@ -372,35 +396,31 @@ LexToken* lexIdentifier() {
 	string s (contents + begin, pos - begin);
 
 	if (s.compare("true") == 0)
-		return new IntConstant2(1, begin);
+		return new IntConstant2(1, begin, row, rowStartContentPos);
 	else if (s.compare("false") == 0)
-		return new IntConstant2(0, begin);
+		return new IntConstant2(0, begin, row, rowStartContentPos);
 	else
-		return new Identifier(s, begin);
+		return new Identifier(s, begin, row, rowStartContentPos);
 }
 //get a number constant, either int or float
-//pos location: no change | the first character after the number
-LexToken* lexNumber() {
+//lex location: no change | the first character after the number
+LexToken* Lex::lexNumber() {
 	if (!isdigit(c))
 		return nullptr;
 
-	size_t begin = pos;
+	emptyTokenAtPos(errorToken);
+	int begin = pos;
 	int base = 10;
 	//different base
 	char c2;
-	if (c == '0' && pos + 1 < clength && !isdigit(c2 = contents[pos + 1])) {
-		if (c2 == 'x') {
-			base = 16;
-			pos += 2;
-		} else if (c2 == 'o') {
-			base = 8;
-			pos += 2;
-		} else if (c2 == 'b') {
-			base = 2;
-			pos += 2;
+	if (c == '0' && pos + 1 < contentsLength && !isdigit(c2 = contents[pos + 1])) {
+		switch (c2) {
+			case 'x': base = 16; pos += 2; break;
+			case 'o': base = 8; pos += 2; break;
+			case 'b': base = 2; pos += 2; break;
 		}
 		if (outofbounds())
-			makeError(1, "the number definition", begin);
+			makeLexError(EndOfFileWhileReading, "the number definition", &errorToken);
 		c = contents[pos];
 	}
 
@@ -414,7 +434,7 @@ LexToken* lexNumber() {
 	//lex number characters
 	while (true) {
 		if (c == '_')
-			;
+			; //underscores can appear anywhere in the number definition after the first character
 		else if (c == '.') {
 			if (!isFloat) {
 				isFloat = true;
@@ -452,14 +472,18 @@ LexToken* lexNumber() {
 		c = contents[pos];
 	}
 
-	if (digitExpected)
-		makeError(0, "expected digit", pos);
+	if (digitExpected) {
+		if (outofbounds())
+			makeLexError(EndOfFileWhileReading, "the number definition");
+		else
+			makeLexError(General, "expected digit");
+	}
 
 	//we've now finished reading the number
 	//turn it into the appropriate constant
 	//if it's not a float, we're done
 	if (!isFloat)
-		return new IntConstant2(num.getInt(), begin);
+		return new IntConstant2(num.getInt(), begin, row, rowStartContentPos);
 
 	//it's a float
 	//first, adjust baseExponent
@@ -467,7 +491,7 @@ LexToken* lexNumber() {
 
 	//if we have no exponent, we're also done
 	if (baseExponent == 0)
-		return new FloatConstant2(&num, num.highBit(), begin);
+		return new FloatConstant2(&num, num.highBit(), begin, row, rowStartContentPos);
 
 	//it has an exponent- we want to divide or multiply num by base^abs(baseExponent)
 	//we get this with the square-and-multiply trick
@@ -495,7 +519,7 @@ LexToken* lexNumber() {
 	//if it's positive, just multiply it and that's our number
 	if (baseExponent > 0) {
 		num.multiply(&exponentNum);
-		return new FloatConstant2(&num, num.highBit(), begin);
+		return new FloatConstant2(&num, num.highBit(), begin, row, rowStartContentPos);
 	//if it's negative, grow num before dividing
 	} else {
 		//provide at least 64 bits of precision
@@ -505,125 +529,126 @@ LexToken* lexNumber() {
 			num.lShift(toShift);
 		int oldHighBit = num.highBit();
 		num.longDiv(&exponentNum);
-		return new FloatConstant2(&num, startingExponent + num.highBit() - oldHighBit, begin);
+		return new FloatConstant2(&num, startingExponent + num.highBit() - oldHighBit, begin, row, rowStartContentPos);
 	}
 }
 //convert c from a character to the digit it represents
-char cToDigit() {
-	if (c >= '0' && c <= '9')
-		return c - '0';
-	else if (c >= 'a' && c <= 'z')
-		return c - 'a' + 10;
-	else if (c >= 'A' && c <= 'Z')
-		return c - 'A' + 10;
-	else
-		return -1;
+char Lex::cToDigit() {
+	return
+		(c >= '0' && c <= '9') ? c - '0' :
+		(c >= 'a' && c <= 'z') ? c - 'a' + 10 :
+		(c >= 'A' && c <= 'Z') ? c - 'A' + 10 :
+		-1;
 }
 //get a string literal
-//pos location: no change | the first character after the string
-StringLiteral* lexString() {
+//lex location: no change | the first character after the string
+StringLiteral* Lex::lexString() {
 	if (c != '"')
 		return nullptr;
 
-	size_t begin = pos;
+	int begin = pos;
 	string val;
 	while (true) {
 		pos++;
 		if (outofbounds())
-			makeError(1, "the contents of the string", begin);
+			makeLexError(EndOfFileWhileReading, "the contents of the string");
 
 		c = contents[pos];
 		if (c == '"') {
 			pos++;
-			return new StringLiteral(val, begin);
+			return new StringLiteral(val, begin, row, rowStartContentPos);
 		}
 		val += nextStringCharacter();
+		if (c == '\n' || c == '\r') {
+			char c2;
+			goToOtherNewlineCharacterIfPresentAndIncrementRowWithCharAndHandling(c2, val += c2);
+		}
 	}
 }
 //returns the next character for the string, possibly from an escape sequence
-//pos location: the location of the character | the last character of the escape sequence
-char nextStringCharacter() {
+//lex location: the location of the character | the last character of the escape sequence
+char Lex::nextStringCharacter() {
 	if (c != '\\')
 		return c;
 
+	emptyTokenAtPos(errorToken);
 	pos++;
 	if (outofbounds())
-		makeError(1, "the escape sequence", pos - 1);
+		makeLexError(EndOfFileWhileReading, "the escape sequence", &errorToken);
 	c = contents[pos];
-	if (c == 'n')
-		return '\n';
-	else if (c == 'r')
-		return '\r';
-	else if (c == 't')
-		return '\t';
-	else if (c == 'b')
-		return '\b';
-	else if (c == '0')
-		return '\0';
-	//2-digit hex escape sequence
-	else if (c == 'x') {
-		if (pos + 2 >= clength)
-			makeError(1, "the escape sequence", pos);
-		char c2 = 0;
-		for (size_t max = pos + 2; pos < max;) {
-			pos++;
-			c = contents[pos];
-			char digit = cToDigit();
-			if (((unsigned char)digit) >= 16)
-				makeError(0, "escape sequence requires 2 hex digits", pos);
-			c2 = c2 << 4 | digit;
+	switch (c) {
+		case 'n': return '\n';
+		case 'r': return '\r';
+		case 't': return '\t';
+		case 'b': return '\b';
+		case '0': return '\0';
+		//2-digit hex escape sequence
+		case 'x': {
+			if (pos + 2 >= contentsLength)
+				makeLexError(EndOfFileWhileReading, "the hex digit escape sequence", &errorToken);
+			char c2 = 0;
+			for (int max = pos + 2; pos < max;) {
+				pos++;
+				c = contents[pos];
+				char digit = cToDigit();
+				if (((unsigned char)digit) >= 16)
+					makeLexError(General, "escape sequence requires 2 hex digits");
+				c2 = c2 << 4 | digit;
+			}
+			return c2;
 		}
-		return c2;
-	//these escape sequences just needed the backslash to be properly interpreted
-	//anything else is an invalid escape sequence
-	} else if (c != '\\' && c != '\"' && c != '\'')
-		makeError(0, "invalid escape sequence", pos);
-	//it's one of the above 3 escape sequences
-	return c;
+		//these escape sequences just needed the backslash to be properly interpreted
+		case '\\':
+		case '\"':
+		case '\'':
+			return c;
+		//anything else is an invalid escape sequence
+		default:
+			makeLexError(General, "invalid escape sequence");
+			return 0;
+	}
 }
 //get a character
-//pos location: no change | the first character after the character
-IntConstant2* lexCharacter() {
+//lex location: no change | the first character after the character
+IntConstant2* Lex::lexCharacter() {
 	if (c != '\'')
 		return nullptr;
 
-	size_t begin = pos;
+	emptyTokenAtPos(errorToken);
+	int begin = pos;
 	pos++;
 	if (outofbounds())
-		makeError(1, "the character definition", begin);
+		makeLexError(EndOfFileWhileReading, "the character definition", &errorToken);
 
 	c = contents[pos];
 	c = nextStringCharacter();
 	pos++;
 	if (outofbounds())
-		makeError(1, "the character definition", begin);
+		makeLexError(EndOfFileWhileReading, "the character definition", &errorToken);
 	if (contents[pos] != '\'')
-		makeError(1, "expected a close quote", pos);
+		makeLexError(General, "expected a close quote");
 	pos++;
-	return new IntConstant2((int)c, begin);
+	return new IntConstant2((int)c, begin, row, rowStartContentPos);
 }
 //get a separator
-//pos location: no change | the first character after the separator
-Separator2* lexSeparator() {
+//lex location: no change | the first character after the separator
+Separator2* Lex::lexSeparator() {
 	Separator2* val;
-	if (c == '(')
-		val = new Separator2(LeftParenthesis, pos);
-	else if (c == ')')
-		val = new Separator2(RightParenthesis, pos);
-	else if (c == ',')
-		val = new Separator2(Comma, pos);
-	else if (c == ';')
-		val = new Separator2(Semicolon, pos);
-	else
-		return nullptr;
+	switch (c) {
+		case '(': val = new Separator2(LeftParenthesis, pos, row, rowStartContentPos); break;
+		case ')': val = new Separator2(RightParenthesis, pos, row, rowStartContentPos); break;
+		case ',': val = new Separator2(Comma, pos, row, rowStartContentPos); break;
+		case ';': val = new Separator2(Semicolon, pos, row, rowStartContentPos); break;
+		default: return nullptr;
+	}
 
 	pos++;
 	return val;
 }
 //get an operator
-//pos location: no change | the first character after the operator
-Operator* lexOperator() {
-	size_t begin = pos;
+//lex location: no change | the first character after the operator
+Operator* Lex::lexOperator() {
+	int begin = pos;
 	OperatorType type = Dot;
 	OperatorTypeTrie* tries = baseOperatorTries;
 	int count = baseOperatorTrieCount;
@@ -641,31 +666,38 @@ Operator* lexOperator() {
 			i = -1;
 		}
 	}
-	return found ? new Operator(type, begin) : nullptr;
+	return found ? new Operator(type, begin, row, rowStartContentPos) : nullptr;
 }
 //get a directive title
-//pos location: no change | the first character after the directive title
-DirectiveTitle* lexDirectiveTitle() {
+//returns a token even if the directive title is invalid- ParseDirective will take care of it
+//lex location: no change | the first character after the directive title
+DirectiveTitle* Lex::lexDirectiveTitle() {
 	if (c != '#')
 		return nullptr;
 
 	pos++;
-	size_t begin = pos;
+	int begin = pos;
 	for (; inbounds(); pos++) {
 		c = contents[pos];
 		if (!isalpha(c) && c != '-')
 			break;
 	}
 
-	if (pos == begin)
-		makeError(0, "expected a directive name", pos);
+	if (outofbounds())
+		makeLexError(EndOfFileWhileReading, "the directive name");
+	else if (pos == begin)
+		makeLexError(General, "expected a directive name");
 
-	string directiveName (contents + begin, pos - begin);
-	if (directiveName != "replace" &&
-			directiveName != "replace-input")
-		makeError(0, "only replace and replace-input are supported right now", begin);
-
-	return new DirectiveTitle(directiveName, begin - 1);
+	return new DirectiveTitle(string(contents + begin, pos - begin), begin - 1, row, rowStartContentPos);
+}
+//throw an error at the current position
+void Lex::makeLexError(ErrorType type, char* message) {
+	emptyTokenAtPos(errorToken);
+	makeLexError(type, message, &errorToken);
+}
+//throw an error with the provided location information
+void Lex::makeLexError(ErrorType type, char* message, Token* errorToken) {
+	Error::makeError(type, message, sourceFile, errorToken);
 }
 /*
 //check if the next statement is a Main. function

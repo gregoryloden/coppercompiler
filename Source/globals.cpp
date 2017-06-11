@@ -1,14 +1,11 @@
 #include "Project.h"
 
-size_t pos = 0;
-char* contents;
-size_t clength;
+/*
 Array<Expression*> tokens;
 int tlength;
 Array<Function*> functions;
 Array<MainFunction*> mainfunctions;
-int errors = 0;
-char snippet[SNIPPETCHARS * 3 / 2 + 3];
+
 bool warnings = false;
 int* rows;
 int* cols;
@@ -42,35 +39,62 @@ Thunk TWriteFile ("WriteFile", 0x2F7);
 Thunk TGetProcessHeap ("GetProcessHeap", 0x156);
 Thunk THeapAlloc ("HeapAlloc", 0x1BD);
 Thunk THeapReAlloc ("HeapReAlloc", 0x1C4);
+*/
 
-//make an error
-void makeError(int type, char* message, size_t loc) {
-	//error message
-	printf("Error at line ?? column ??: ");
-//	printf("Error at line %d column %d: ", rows[loc], cols[loc]);
-	if (type == 0)
-		printf("%s\n", message);
-	else if (type == 1)
-		printf("reached the end of the file while searching for %s\n", message);
-	showSnippet(loc);
-	errors += 1;
-	throw NULL;
+template void deleteArrayAndContents(Array<Token*>* a);
+template void deleteArrayAndContents(Array<CDirective*>* a);
+
+char allPurposeStringBuffer [ALL_PURPOSE_STRING_BUFFER_SIZE];
+
+template <class type> void deleteArrayAndContents(Array<type>* a) {
+	ArrayIterator<type> ai (a);
+	for (type t = ai.getFirst(); ai.hasThis(); t = ai.getNext())
+		delete t;
+	delete a;
 }
-void makeRecoverableError(int type, char* message, size_t loc, bool recoverable) {
 
+char* Error::buildSnippet() {
+	char* val = new char[SNIPPET_CHARS * 3 / 2 + 3];
+	val[SNIPPET_CHARS] = '\n';
+	memset(val + SNIPPET_CHARS + 1, ' ', SNIPPET_CHARS / 2);
+	val[SNIPPET_CHARS * 3 / 2 + 1] = '^';
+	val[SNIPPET_CHARS * 3 / 2 + 2] = '\0';
+	return val;
+}
+char* Error::snippet = buildSnippet();
+int Error::errors = 0;
+int Error::lastErrorPos = -1;
+
+//print an error and throw
+void Error::makeError(ErrorType type, char* message, SourceFile* sourceFile, Token* token) {
+	if (token->contentPos != lastErrorPos) {
+		lastErrorPos = token->contentPos;
+		printf("Error in \"%s\" at line %d column %d: ", sourceFile->filename.c_str(), token->row, token->contentPos - token->rowStartContentPos);
+		switch (type) {
+			case General: puts(message); break;
+			case EndOfFileWhileSearching: printf("reached the end of the file while searching for %s\n", message); break;
+			case EndOfFileWhileReading: printf("reached the end of the file while reading %s\n", message); break;
+		}
+		showSnippet(sourceFile, token);
+		errors++;
+	}
+	throw 0;
 }
 //show the snippet where the error/warning is
-void showSnippet(size_t loc) {
-	memset(snippet, ' ', SNIPPETCHARS);
-	int spot = (int)(loc - SNIPPETCHARS / 2);
-	int maxval = min(SNIPPETCHARS, (int)(clength)-spot);
-	for (int i = max(0, -spot); i < maxval; i += 1) {
-		char c = contents[i + spot];
-		if (c != '\t' && c != '\r' && c != '\n')
-			snippet[i] = c;
+void Error::showSnippet(SourceFile* sourceFile, Token* token) {
+	int targetStart = token->contentPos - SNIPPET_CHARS / 2;
+	int targetEnd = targetStart + SNIPPET_CHARS;
+	int start = max(targetStart, 0);
+	int end = min(targetEnd, sourceFile->contentsLength);
+	memset(snippet, ' ', start - targetStart);
+	memset(snippet + end - targetStart, ' ', targetEnd - end);
+	for (int i = start; i < end; i++) {
+		char c = sourceFile->contents[i];
+		snippet[i - targetStart] = (c >= '!' && c <= '~') ? c : ' '; //make sure c is in the printable character range
 	}
 	puts(snippet);
 }
+/*
 //make a warning
 void makeWarning(int type, char* message, size_t loc) {
 	printf("Warning at line %d column %d: ", rows[loc], cols[loc]);
@@ -159,3 +183,4 @@ void buildMainFunctions(Array<MainFunction*>* mainfunctions) {
 	f->statements.add(as);
 	mainfunctions->add(new MainFunction(f, "Main.str", 0));
 }
+*/

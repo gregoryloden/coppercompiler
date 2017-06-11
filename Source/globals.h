@@ -1,6 +1,29 @@
-#include "string"
-using namespace std;
+//#include "string"
+//using namespace std;
+#ifndef GLOBALS_H
+#define GLOBALS_H
 
+#ifdef DEBUG
+#define onlyInDebug(x) x
+#define onlyInDebugWithComma(x) x,
+#else
+#define onlyInDebug(x)
+#define onlyInDebugWithComma(x)
+#endif
+
+#define ALL_PURPOSE_STRING_BUFFER_SIZE 0x100
+
+class SourceFile;
+class Token;
+template <class type> class Array;
+
+enum ErrorType: unsigned char {
+	General,
+	EndOfFileWhileSearching,
+	EndOfFileWhileReading
+};
+
+/*
 #define IMAGEBASE 0x400000
 #define VDATAGENERAL 0
 #define VDATAGENERAL2 4
@@ -16,26 +39,19 @@ using namespace std;
 #define STRING_ADDR 4
 #define FUNCTION_ADDR 0
 
-#define SNIPPETCHARS 33
-//check if pos is within the code
-#define inbounds() (pos < clength)
-#define outofbounds() (pos >= clength)
-
 class Thunk;
 template <class type> class Array;
 class Expression;
 class Function;
 class MainFunction;
 
-extern size_t pos;
-extern char* contents;
-extern size_t clength;
 extern Array<Expression*> tokens;
 extern int tlength;
 extern Array<Function*> functions;
 extern Array<MainFunction*> mainfunctions;
-extern int errors;
-extern char snippet[];
+*/
+extern char allPurposeStringBuffer[];
+/*
 extern bool warnings;
 extern int* rows;
 extern int* cols;
@@ -52,9 +68,24 @@ extern Thunk TWriteFile;
 extern Thunk TGetProcessHeap;
 extern Thunk THeapAlloc;
 extern Thunk THeapReAlloc;
+*/
 
-void makeError(int type, char* message, size_t loc);
-void makeRecoverableError(int type, char* message, size_t loc, bool recoverable);
-void showSnippet(size_t loc);
+template <class type> void deleteArrayAndContents(Array<type>* a);
+
+class Error {
+public:
+	static void makeError(ErrorType type, char* message, SourceFile* sourceFile, Token* token);
+private:
+	static const int SNIPPET_CHARS = 0x41;
+	static char* buildSnippet();
+	static char* snippet;
+	static int errors;
+	static int lastErrorPos;
+
+	static void showSnippet(SourceFile* sourceFile, Token* token);
+};
+/*
 void makeWarning(int type, char* message, size_t loc);
 void buildMainFunctions(Array<MainFunction*>* mainfunctions);
+*/
+#endif

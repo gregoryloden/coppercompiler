@@ -1,7 +1,8 @@
+#include "globals.h"
 #include "string"
 using namespace std;
 
-class ObjCounter;
+onlyInDebug(class ObjCounter;)
 class CDirective;
 template <class type> class Array;
 
@@ -67,41 +68,47 @@ enum OperatorType: unsigned char {
 
 //Booleans, etc. group on the right; additions, etc. groups on the left
 
-class Token
-: public ObjCounter
- {
+class Token onlyInDebug(: public ObjCounter) {
 protected:
-	Token(char* pObjType, size_t pContentPos);
+	Token(onlyInDebugWithComma(char* pObjType) int pContentPos, int pRow, int pRowStartContentPos);
 public:
 	virtual ~Token();
 
-	size_t contentPos;
+	int contentPos;
+	int row;
+	int rowStartContentPos;
+};
+//For empty contents (ex. errors, between commas or semicolons, etc.)
+class EmptyToken: public Token {
+public:
+	EmptyToken(int pContentPos, int pRow, int pRowStartContentPos);
+	virtual ~EmptyToken();
 };
 
 //Tokens used in lexing
 class LexToken: public Token {
 protected:
-	LexToken(char* pObjType, size_t pContentPos);
+	LexToken(onlyInDebugWithComma(char* pObjType) int pContentPos, int pRow, int pRowStartContentPos);
 public:
 	virtual ~LexToken();
 };
 class Identifier: public LexToken {
 public:
-	Identifier(string pName, size_t pContentPos);
+	Identifier(string pName, int pContentPos, int pRow, int pRowStartContentPos);
 	virtual ~Identifier();
 
 	string name;
 };
 class IntConstant2: public LexToken {
 public:
-	IntConstant2(int pVal, size_t pContentPos);
+	IntConstant2(int pVal, int pContentPos, int pRow, int pRowStartContentPos);
 	virtual ~IntConstant2();
 
 	int val;
 };
 class FloatConstant2: public LexToken {
 public:
-	FloatConstant2(BigInt2* pMantissa, int pExponent, size_t pContentPos);
+	FloatConstant2(BigInt2* pMantissa, int pExponent, int pContentPos, int pRow, int pRowStartContentPos);
 	virtual ~FloatConstant2();
 
 	static const int FLOAT_TOO_BIG_EXPONENT = 0x100000;
@@ -111,21 +118,21 @@ public:
 };
 class StringLiteral: public LexToken {
 public:
-	StringLiteral(string pVal, size_t pContentPos);
+	StringLiteral(string pVal, int pContentPos, int pRow, int pRowStartContentPos);
 	virtual ~StringLiteral();
 
 	string val;
 };
 class Separator2: public LexToken {
 public:
-	Separator2(SeparatorType pType, size_t pContentPos);
+	Separator2(SeparatorType pType, int pContentPos, int pRow, int pRowStartContentPos);
 	virtual ~Separator2();
 
 	SeparatorType type;
 };
 class Operator: public LexToken {
 public:
-	Operator(OperatorType pType, size_t pContentPos);
+	Operator(OperatorType pType, int pContentPos, int pRow, int pRowStartContentPos);
 	virtual ~Operator();
 
 	OperatorType type;
@@ -134,7 +141,7 @@ public:
 };
 class DirectiveTitle: public LexToken {
 public:
-	DirectiveTitle(string pTitle, size_t pContentPos);
+	DirectiveTitle(string pTitle, int pContentPos, int pRow, int pRowStartContentPos);
 	virtual ~DirectiveTitle();
 
 	string title;
@@ -144,7 +151,7 @@ public:
 //Tokens used in parsing
 class AbstractCodeBlock: public Token {
 public:
-	AbstractCodeBlock(Array<Token*>* pTokens, Array<CDirective*>* pDirectives, size_t pContentPos);
+	AbstractCodeBlock(Array<Token*>* pTokens, Array<CDirective*>* pDirectives);
 	virtual ~AbstractCodeBlock();
 
 	Array<Token*>* tokens;

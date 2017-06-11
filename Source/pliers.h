@@ -1,6 +1,7 @@
 #include "string"
 using namespace std;
 
+/*
 class Function;
 class Expression;
 template <class type> class Array;
@@ -17,7 +18,9 @@ void setRowsAndColumns();
 void parseCode();
 VariableData* newVariable(Function* owner, bool param, VariableStack* st);
 int varType(string s);
+*/
 bool isReservedWord(string s);
+/*
 Expression* replace(int loc, Expression* val);
 void advanceToSemicolon(size_t start, bool track, bool includecomma);
 Expression* getInitialization(VariableData* v, Function* owner, VariableStack* st);
@@ -38,3 +41,4 @@ void buildExecutable();
 void cleanup();
 template <class type> void empty(Array<type>* a);
 void emptyV(Array<VariableData*>* a);
+*/

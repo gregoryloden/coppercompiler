@@ -2,123 +2,128 @@
 
 //comletely parses all directives (builds #replace, evaluates #buildSetting, groups code for #if, #enable, etc.)
 
-//Token* addToIdentifier(Identifier* base, Token* next);
-AbstractCodeBlock* parseAbstractCodeBlock(bool endsWithParenthesis);
-CDirective* completeDirective(DirectiveTitle* dt);
-template <class TokenType> TokenType* parseToken(char* errorMessage);
-Identifier* parseIdentifier();
-Separator2* parseSeparator();
-void parseSeparator(SeparatorType type);
-Array<string>* parseParenthesizedCommaSeparatedIdentifierList();
+SourceFile* ParseDirectives::sourceFile;
 
 //get the list of tokens and directives
 //parse location: EOF
-AbstractCodeBlock* parseDirectives() {
-	return parseAbstractCodeBlock(false);
+void ParseDirectives::parseDirectives(SourceFile* newSourceFile) {
+	sourceFile = newSourceFile;
+	Lex::initializeLexer(newSourceFile);
+	newSourceFile->abstractContents = parseAbstractCodeBlock(false);
 }
 //get the list of tokens and maybe directives
 //parse location: EOF (endsWithParenthesis == false) | the next token after the right parenthesis (endsWithParenthesis == true)
-AbstractCodeBlock* parseAbstractCodeBlock(bool endsWithParenthesis) {
+AbstractCodeBlock* ParseDirectives::parseAbstractCodeBlock(bool endsWithParenthesis) {
 	Array<Token*>* tokens = new Array<Token*>();
 	Array<CDirective*>* directives = new Array<CDirective*>();
-	while (true) {
-		Token* next = lex();
-		if (next == nullptr) {
-			if (endsWithParenthesis)
-				makeError(0, "expected a right parenthesis", pos);
-			break;
-		}
-
-		DirectiveTitle* dt;
-		Separator2* s;
-		if ((dt = dynamic_cast<DirectiveTitle*>(next)) != nullptr)
-			directives->add(completeDirective(dt));
-		else if ((s = dynamic_cast<Separator2*>(next)) != nullptr) {
-			if (s->type == LeftParenthesis) {
-				delete s;
-				next = parseAbstractCodeBlock(true);
-			} else if (s->type == RightParenthesis) {
-				delete s;
+	try {
+		while (true) {
+			Token* next = Lex::lex();
+			if (next == nullptr) {
+				if (endsWithParenthesis)
+					Lex::makeLexError(EndOfFileWhileSearching, "a right parenthesis");
 				break;
 			}
-		}
 
-		//whatever it was, put it in tokens to make sure it's syntactically & semantically okay to be where it is
-		//if it's a directive and buildDirectives == true, tokens were parsed until after the semicolon
-		tokens->add(next);
+			DirectiveTitle* dt;
+			Separator2* s;
+			if ((dt = dynamic_cast<DirectiveTitle*>(next)) != nullptr) {
+				Retainer<DirectiveTitle> dtRetainer (dt);
+				directives->add(completeDirective(dt));
+				dtRetainer.release();
+			} else if ((s = dynamic_cast<Separator2*>(next)) != nullptr) {
+				if (s->type == LeftParenthesis) {
+					delete s;
+					next = parseAbstractCodeBlock(true);
+				} else if (s->type == RightParenthesis) {
+					Retainer<Separator2> sRetainer (s); //the retainer will handle the deletion of s
+					if (!endsWithParenthesis)
+						Error::makeError(General, "found a right parenthesis without a matching left parenthesis", sourceFile, s);
+					break;
+				}
+			}
+
+			//whatever it was, put it in tokens to make sure it's semantically okay to be where it is
+			//if it's a directive, tokens were parsed until after the semicolon
+			tokens->add(next);
+		}
+	} catch (...) {
 	}
-	return new AbstractCodeBlock(tokens, directives, tokens->length >= 1 ? tokens->inner[0]->contentPos : 0);
+	return new AbstractCodeBlock(tokens, directives);
 }
 //get the definition of a directive
-//parse location: the next token after the semicolon for the directive
-CDirective* completeDirective(DirectiveTitle* dt) {
+//parse location: the next token after the directive
+CDirective* ParseDirectives::completeDirective(DirectiveTitle* dt) {
 	CDirective* directive;
 	if (dt->title == "replace" || dt->title == "replace-input") {
-		Identifier* toReplace = parseIdentifier();
-		Array<string>* input = dt->title == "replace-input" ? parseParenthesizedCommaSeparatedIdentifierList() : nullptr;
+		Retainer<Identifier> toReplace (parseIdentifier());
+		Retainer<Array<string>> input (dt->title == "replace-input" ? parseParenthesizedCommaSeparatedIdentifierList() : nullptr);
 		parseSeparator(LeftParenthesis);
-		AbstractCodeBlock* replacement = parseAbstractCodeBlock(true);
-		directive = new CDirectiveReplace(toReplace->name, input, replacement);
-		delete toReplace;
+		//use retrieve() so that toReplace deletes the identifier
+		directive = new CDirectiveReplace(toReplace.retrieve()->name, input.release(), parseAbstractCodeBlock(true));
 	} else
-		makeError(0, "unexpected directive type", dt->contentPos);
-	parseSeparator(Semicolon);
+		Error::makeError(General, "unknown directive type", sourceFile, dt);
 	dt->directive = directive;
 	return directive;
 }
 //lex a token and make sure that it's the right type
 //parse location: the next token after this one
-template <class TokenType> TokenType* parseToken(char* errorMessage) {
+template <class TokenType> TokenType* ParseDirectives::parseToken(char* expectedTokenTypeName) {
 	LexToken* l;
-	if ((l = lex()) == nullptr)
-		makeError(0, errorMessage, pos);
+	if ((l = Lex::lex()) == nullptr)
+		Lex::makeLexError(EndOfFileWhileSearching, expectedTokenTypeName);
+	Retainer<LexToken> lRetainer (l);
 	TokenType* t;
 	if ((t = dynamic_cast<TokenType*>(l)) == nullptr)
-		makeError(0, errorMessage, l->contentPos);
+		makeUnexpectedTokenError(expectedTokenTypeName, l);
+	lRetainer.release();
 	return t;
 }
 //lex a token and make sure it's an identifier
 //parse location: the next token after the identifier
-Identifier* parseIdentifier() {
-	return parseToken<Identifier>("expected an identifier");
+Identifier* ParseDirectives::parseIdentifier() {
+	return parseToken<Identifier>("an identifier");
 }
 //lex a token and make sure it's a separator
 //parse location: the next token after the separator
-Separator2* parseSeparator() {
-	return parseToken<Separator2>("expected a separator");
+Separator2* ParseDirectives::parseSeparator() {
+	return parseToken<Separator2>("a separator");
 }
 //lex a token and make sure it's a separator of the right type
 //parse location: the next token after the separator
-void parseSeparator(SeparatorType type) {
-	char* errorMessage;
+void ParseDirectives::parseSeparator(SeparatorType type) {
+	char* expectedTokenTypeName;
 	switch (type) {
-		case Semicolon: errorMessage = "expected a semicolon"; break;
-		case LeftParenthesis: errorMessage = "expected a left parenthesis"; break;
-		case RightParenthesis: errorMessage = "expected a right parenthesis"; break;
-		default: errorMessage = "expected a comma"; break;
+		case Semicolon: expectedTokenTypeName = "a semicolon"; break;
+		case LeftParenthesis: expectedTokenTypeName = "a left parenthesis"; break;
+		case RightParenthesis: expectedTokenTypeName = "a right parenthesis"; break;
+		default: expectedTokenTypeName = "a comma"; break;
 	}
-	Separator2* s = parseToken<Separator2>(errorMessage);
+	Separator2* s = parseToken<Separator2>(expectedTokenTypeName);
+	Retainer<Separator2> sRetainer (s); //the retainer will handle the deletion of s
 	if (s->type != type)
-		makeError(0, errorMessage, s->contentPos);
-	delete s;
+		makeUnexpectedTokenError(expectedTokenTypeName, s);
 }
 //lex a comma-separated list of identifiers
 //parse location: the next token after the right parenthesis of the list
-Array<string>* parseParenthesizedCommaSeparatedIdentifierList() {
+Array<string>* ParseDirectives::parseParenthesizedCommaSeparatedIdentifierList() {
 	Array<string>* names = new Array<string>();
 	parseSeparator(LeftParenthesis);
 	while (true) {
 		Identifier* identifier = parseIdentifier();
 		names->add(identifier->name);
 		delete identifier;
-		Separator2* separator = parseSeparator();
-		if (separator->type == Comma)
-			delete separator;
-		else if (separator->type == RightParenthesis) {
-			delete separator;
+		Separator2* s = parseSeparator();
+		Retainer<Separator2> sRetainer (s); //the retainer will handle the deletion of s
+		if (s->type == RightParenthesis)
 			break;
-		} else
-			makeError(0, "expected a comma or right parenthesis", separator->contentPos);
+		else if (s->type != Comma)
+			makeUnexpectedTokenError("a comma or right parenthesis", s);
 	}
 	return names;
+}
+//throw an error about an unexpected token
+void ParseDirectives::makeUnexpectedTokenError(char* expectedTokenTypeName, Token* t) {
+	sprintf_s(allPurposeStringBuffer, ALL_PURPOSE_STRING_BUFFER_SIZE, "expected %s", expectedTokenTypeName);
+	Error::makeError(General, allPurposeStringBuffer, sourceFile, t);
 }

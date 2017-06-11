@@ -1,24 +1,25 @@
 #include "Project.h"
 
+const bool TRACK_OBJ_IDS = false;
+
+#ifdef DEBUG
 int ObjCounter::objCount = 0;
 int ObjCounter::nextObjID = 0;
 int ObjCounter::untrackedObjCount;
 bool ObjCounter::objIDs [ObjCounter::OBJ_IDS_COUNT];
-bool ObjCounter::trackObjIDs = false;
 ObjCounter::ObjCounter(char* pObjType)
 : objType(pObjType)
-, objID(nextObjID)
-{
+, objID(nextObjID) {
 	nextObjID++;
 	objCount++;
-	if (trackObjIDs) {
+	if (TRACK_OBJ_IDS) {
 		printf("  Added %s\t%d,\tobj count: %d\n", objType, objID, objCount);
 		objIDs[objID] = true;
 	}
 }
 ObjCounter::~ObjCounter() {
 	objCount--;
-	if (trackObjIDs) {
+	if (TRACK_OBJ_IDS) {
 		printf("Deleted %s\t%d,\tobj count: %d\n", objType, objID, objCount);
 		objIDs[objID] = false;
 	}
@@ -28,9 +29,9 @@ void ObjCounter::start() {
 }
 //final check for the objids array
 void ObjCounter::end() {
-	if (trackObjIDs) {
+	if (TRACK_OBJ_IDS) {
 		bool printed = false;
-		for (int i = untrackedObjCount; i < nextObjID; i += 1) {
+		for (int i = untrackedObjCount; i < nextObjID; i++) {
 			if (objIDs[i]) {
 				printf("Remaining object %d\n", i);
 				printed = true;
@@ -42,8 +43,10 @@ void ObjCounter::end() {
 		printf("Total remaining objects: %d\n", objCount - untrackedObjCount);
 	printf("Total objects used: %d\n", nextObjID);
 }
+#endif
 
 template class Array<string>;
+/*
 template class Array<AssemblyInstruction*>;
 template class Array<Thunk*>;
 template class Array<Function*>;
@@ -52,11 +55,13 @@ template class Array<VariableData*>;
 template class Array<MainFunction*>;
 template class Array<AssemblySequence*>;
 template class Array<ControlFlow*>;
+*/
 template class Array<LexToken*>;
 template class Array<Token*>;
 template class Array<Identifier*>;
 template class Array<CDirective*>;
 template class ArrayIterator<string>;
+/*
 template class ArrayIterator<AssemblyInstruction*>;
 template class ArrayIterator<Thunk*>;
 template class ArrayIterator<Function*>;
@@ -65,11 +70,18 @@ template class ArrayIterator<VariableData*>;
 template class ArrayIterator<MainFunction*>;
 template class ArrayIterator<AssemblySequence*>;
 template class ArrayIterator<ControlFlow*>;
+*/
 template class ArrayIterator<LexToken*>;
 template class ArrayIterator<Token*>;
 template class ArrayIterator<Identifier*>;
 template class ArrayIterator<CDirective*>;
+template class Retainer<Separator2>;
+template class Retainer<DirectiveTitle>;
+template class Retainer<Identifier>;
+template class Retainer<Array<string>>;
+template class Retainer<LexToken>;
 
+/*
 string to4bytes(int i) {
 	string s;
 	s.reserve(4);
@@ -94,105 +106,91 @@ int intval(bool val) {
 		return -1;
 	return 0;
 }
+*/
 int min(int a, int b) {
 	return a < b ? a : b;
 }
 int max(int a, int b) {
 	return a > b ? a : b;
 }
-template <class type> Array<type>::Array():
-ObjCounter("ARRY"),
-	inner(new type[1]),
-	innerlength(1),
-	length(0) {
-}
-template <class type> Array<type>::Array(type t):
-ObjCounter("ARRY"),
-	inner(new type[1]),
-	innerlength(1),
-	length(1) {
-	inner[0] = t;
+
+template <class type> Array<type>::Array()
+: onlyInDebugWithComma(ObjCounter("ARRY"))
+inner(new type[1])
+, innerLength(1)
+, length(0) {
 }
 template <class type> Array<type>::~Array() {
 	delete[] inner;
 }
 //resize the array by the given scale
 template <class type> void Array<type>::resize(int scale) {
-	type* newinner = new type[innerlength * scale];
-	for (int i = 0; i < length; i += 1) {
-		newinner[i] = inner[i];
-	}
+	type* newInner = new type[innerLength * scale];
+	for (int i = 0; i < length; i++)
+		newInner[i] = inner[i];
 	delete[] inner;
-	inner = newinner;
-	innerlength *= scale;
+	inner = newInner;
+	innerLength *= scale;
 }
 //add an item to the array at the given spot
-template <class type> Array<type>* Array<type>::add(type t, int pos) {
-	if (length >= innerlength)
+template <class type> void Array<type>::add(type t, int pos) {
+	if (length >= innerLength)
 		resize(2);
-	for (int i = length; i > pos; i -= 1) {
+	for (int i = length; i > pos; i--)
 		inner[i] = inner[i - 1];
-	}
 	inner[pos] = t;
-	length += 1;
-	return this;
+	length++;
 }
 //add an item to the array
-template <class type> Array<type>* Array<type>::add(type t) {
-	if (length >= innerlength)
+template <class type> void Array<type>::add(type t) {
+	if (length >= innerLength)
 		resize(2);
 	inner[length] = t;
-	length += 1;
-	return this;
+	length++;
 }
-//add another array's items to the array at the given spot, delete the array if indicated
-template <class type> Array<type>* Array<type>::add(Array<type>* a, int pos, bool deletable) {
+//add another array's items to this array at the given spot, deleting the array if indicated
+template <class type> void Array<type>::add(Array<type>* a, int pos, bool deletable) {
 	int shift = a->length;
-	if (shift + length > innerlength) {
+	type* otherInner = a->inner;
+	if (shift + length > innerLength) {
 		int scale = 2;
-		while (shift + length > innerlength * scale)
+		while (shift + length > innerLength * scale)
 			scale *= 2;
 		resize(scale);
 	}
-	for (int i = length - 1; i >= pos; i -= 1) {
+	for (int i = length - 1; i >= pos; i--)
 		inner[i + shift] = inner[i];
-	}
-	type* other = a->inner;
-	for (int i = 0; i < shift; i += 1) {
-		inner[i + pos] = other[i];
-	}
+	for (int i = shift - 1; i >= 0; i--)
+		inner[i + pos] = otherInner[i];
 	length += shift;
 	if (deletable)
 		delete a;
-	return this;
 }
-//add another array's items to the array, delete the array if indicated
-template <class type> Array<type>* Array<type>::add(Array<type>* a, bool deletable) {
-	return add(a, length, deletable);
+//add another array's items to the end of this array, deleting the array if indicated
+template <class type> void Array<type>::add(Array<type>* a, bool deletable) {
+	add(a, length, deletable);
 }
-//add another array's items to the array at the given spot
-template <class type> Array<type>* Array<type>::add(Array<type>* a, int pos) {
-	return add(a, pos, true);
+//add another array's items to this array at the given spot
+template <class type> void Array<type>::add(Array<type>* a, int pos) {
+	add(a, pos, true);
 }
-//add another array's items to the array at the given spot
-template <class type> Array<type>* Array<type>::add(Array<type>* a) {
-	return add(a, length, true);
+//add another array's items to the end of this array
+template <class type> void Array<type>::add(Array<type>* a) {
+	add(a, length, true);
 }
 //remove the item at the given spot
-template <class type> Array<type>* Array<type>::remove(int pos) {
-	return remove(pos, 1);
+template <class type> void Array<type>::remove(int pos) {
+	remove(pos, 1);
 }
 //remove the given number of items at the given spot
-template <class type> Array<type>* Array<type>::remove(int pos, int num) {
-	for (int i = pos + num; i < length; i += 1) {
+template <class type> void Array<type>::remove(int pos, int num) {
+	for (int i = pos + num; i < length; i++)
 		inner[i - num] = inner[i];
-	}
 	length -= num;
-	return this;
 }
 /*
 //get a subarray of this array
-template <class type> Array<type>* Array<type>::subArray(int pos, int num) {
+template <class type> void Array<type>::subArray(int pos, int num) {
 	Array<type>* a = new Array<type>();
 	a->resize(num);
 	for (int i = 0; i < num; i += 1) {
@@ -202,21 +200,34 @@ template <class type> Array<type>* Array<type>::subArray(int pos, int num) {
 	return a;
 }
 */
+//return the inner array
+template <class type> type* Array<type>::getInner() {
+	return inner;
+}
+//return the length
+template <class type> int Array<type>::getLength() {
+	return length;
+}
+//return the first item
+template <class type> type Array<type>::first() {
+	return inner[0];
+}
 //pop off the last item
 template <class type> type Array<type>::pop() {
 	length -= 1;
 	return inner[length];
 }
 template <class type> ArrayIterator<type>::ArrayIterator(Array<type>* a)
-: ObjCounter("ARYI")
- {
+onlyInDebug(: ObjCounter("ARYI")) {
 	if (a != NULL) {
-		inner = a->inner;
-		length = a->length;
+		inner = a->getInner();
+		length = a->getLength();
 	} else
 		length = 0;
 }
-template <class type> ArrayIterator<type>::~ArrayIterator() {}
+template <class type> ArrayIterator<type>::~ArrayIterator() {
+	//do not delete inner because it's owned by an array
+}
 //get the first element of the array
 template <class type> type ArrayIterator<type>::getFirst() {
 	index = 0;
@@ -230,10 +241,28 @@ template <class type> type ArrayIterator<type>::getNext() {
 		return NULL;
 	return inner[index];
 }
-//check if the iterator has this element
+//check if this iterator has the element it just returned via getNext()
 template <class type> bool ArrayIterator<type>::hasThis() {
 	return index < length;
 }
+template <class type> Retainer<type>::Retainer(type* pToRetain)
+: onlyInDebugWithComma(ObjCounter("RTNR"))
+retained(pToRetain) {
+}
+template <class type> Retainer<type>::~Retainer() {
+	delete retained;
+}
+//return the held object without releasing it
+template <class type> type* Retainer<type>::retrieve() {
+	return retained;
+}
+//return the held object and release it
+template <class type> type* Retainer<type>::release() {
+	type* val = retained;
+	retained = nullptr;
+	return val;
+}
+/*
 BigInt::BigInt(int b)
 : ObjCounter("BGNT")
  {
@@ -429,18 +458,19 @@ int BigInt::getBit(int bit) {
 		return 0;
 	return inner[byte] >> (bit & 7) & 1;
 }
+*/
 //------------------------------------------------------------------------------------------------------------------
 BigInt2::BigInt2(int pBase)
-: ObjCounter("BGNT")
-, base(pBase)
+: onlyInDebugWithComma(ObjCounter("BGNT"))
+base(pBase)
 , innerLength(1)
 , highByte(-1)
 , inner(new unsigned char[1]) {
 }
 //this one is for use right before pSource will be deleted or its inner will be replaced
 BigInt2::BigInt2(BigInt2* pSource)
-: ObjCounter("BGNT")
-, base(pSource->base)
+: onlyInDebugWithComma(ObjCounter("BGNT"))
+base(pSource->base)
 , innerLength(pSource->innerLength)
 , highByte(pSource->highByte)
 , inner(pSource->inner) {
@@ -591,7 +621,7 @@ void BigInt2::longDiv(BigInt2* other) {
 	}
 	//round up if necessary; rounding down has no effect on the final value
 	//we need to round up if the half bit is 1 and there is any remainder or rounding up results in an even number
-	if ((original.inner[0] & 1) != 0 && (original.highBit() >= 0 ||( original.inner[0] & 2) != 0)) {
+	if ((original.inner[0] & 1) != 0 && (original.highBit() >= 0 || (original.inner[0] & 2) != 0)) {
 		int i = 0;
 		//round up, cascade as necessary
 		for (; (original.inner[i] += 1) == 0; i++)
@@ -622,12 +652,12 @@ void BigInt2::subtract(BigInt2* other) {
 	int i = 0;
 	for (; i <= other->highByte; i++) {
 		//not sure whether >> is SAR or SHR so this works either way
-		carry = (short)(inner[i]) - (short)(other->inner[i]) + (carry /*>> 8*/ < 0 ? -1 : 0);
+		carry = (short)(inner[i]) - (short)(other->inner[i]) + (/* carry >> 8 */ carry < 0 ? -1 : 0);
 		inner[i] = (unsigned char)carry;
 	}
 	for (; carry < 0; i++) {
 		//not sure whether >> is SAR or SHR so this works either way
-		carry = (short)(inner[i]) + (carry /*>> 8*/ < 0 ? -1 : 0);
+		carry = (short)(inner[i]) + (/* carry >> 8 */ carry < 0 ? -1 : 0);
 	}
 	while (highByte >= 0 && inner[highByte] == 0)
 		highByte--;
@@ -647,7 +677,7 @@ void BigInt2::rShift(int bits) {
 		for (int i = byteShift; i < highByte; i++)
 			inner[i - byteShift] = (inner[i] >> bitShift) | (inner[i + 1] << reverseShift);
 		if (highByte >= byteShift && (inner[highByte - byteShift] = inner[highByte] >> bitShift) == 0)
-			highByte -= 1;
+			highByte--;
 	}
 	highByte -= byteShift;
 }

@@ -1,6 +1,7 @@
 #include "string"
 using namespace std;
 
+/*
 #define EEXPRESSION 0
 #define EOPERATION 1
 #define EBOOLEANOPER 2
@@ -102,10 +103,12 @@ using namespace std;
 
 class MEMPTR;
 class AssemblyInstruction;
-template <class type> class Array;
 class Expression;
-class ObjCounter;
+*/
+template <class type> class Array;
+onlyInDebug(class ObjCounter;)
 class AbstractCodeBlock;
+/*
 
 int divhighreg(int rtype);
 bool isNumerical(int context, bool includeboolean);
@@ -400,24 +403,32 @@ public:
 
 	bool added;
 };
+*/
 //-------------------------------------------------------------------------------------------------------------------------------------------------------------
-class CDirective {
+class SourceFile onlyInDebug(: public ObjCounter) {
+public:
+	SourceFile(string pFilename);
+	virtual ~SourceFile();
+
+	string filename;
+	char* contents;
+	int contentsLength;
+	AbstractCodeBlock* abstractContents;
+//	Array<CVariable*>* variables;
+//	Array<CClass*>* classes;
+//	Array<CDirective*>* directives;
+};
+class CDirective onlyInDebug(: public ObjCounter) {
 public:
 	CDirective();
-	~CDirective();
+	virtual ~CDirective();
 };
 class CDirectiveReplace: public CDirective {
 public:
 	CDirectiveReplace(string pToReplace, Array<string>* pInput, AbstractCodeBlock* pReplacement);
-	~CDirectiveReplace();
+	virtual ~CDirectiveReplace();
 
 	string toReplace;
 	Array<string>* input;
 	AbstractCodeBlock* replacement;
-};
-class SourceFile {
-public:
-//	Array<CVariable*> variables;
-//	Array<CClass*> classes;
-//	Array<CDirective*> directives;
 };

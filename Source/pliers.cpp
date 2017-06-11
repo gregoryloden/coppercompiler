@@ -1,5 +1,6 @@
 #include "Project.h"
 
+/*
 //check if tpos is within the tokens
 #define tinbounds() (tpos < tlength)
 #define toutofbounds() (tpos >= tlength)
@@ -17,7 +18,9 @@ int contexts[] = {TVOID , TBOOLEAN , TBYTE , TINT , TSTRING , TFUNCTION , TNONE}
 int tpos = 0;
 Expression** initializations = NULL;
 Array<AssemblySequence*> sequences;
+*/
 
+/*
 void printAbstractCodeBlock(AbstractCodeBlock* codeBlock, int spacesCount) {
 	ArrayIterator<Token*> ti (codeBlock->tokens);
 	printf(" -- %d directives\n", codeBlock->directives->length);
@@ -40,25 +43,21 @@ void printAbstractCodeBlock(AbstractCodeBlock* codeBlock, int spacesCount) {
 		}
 	}
 }
+*/
 int main(int argc, char* argv[]) {
-	ObjCounter::start();
+	#ifdef DEBUG
+		ObjCounter::start();
+	#endif
 	puts("Copper Compiler v0.0");
 	if (argc < 2) {
 		puts("You need an input file");
 		return -1;
 	}
-	char* filename = argv[1];
-	//build the file
-	contents = getFile(filename);
-	if (contents == NULL) {
-		puts("Unable to open file");
-		return -1;
-	}
-AbstractCodeBlock* codeBlock = parseDirectives();
-printAbstractCodeBlock(codeBlock, 0);
-include();
+	SourceFile* mainFile = new SourceFile(argv[1]);
+	ParseDirectives::parseDirectives(mainFile);
 puts("Suspended until the rewrite is complete");
-while (true) {}
+//printAbstractCodeBlock(mainFile->abstractContents, 0);
+	/*
 	setRowsAndColumns();
 	//prepare the error snippet
 	snippet[SNIPPETCHARS] = '\n';
@@ -93,11 +92,15 @@ while (true) {}
 			puts("Compiled!");
 		}
 	}
-	cleanup();
-	ObjCounter::end();
-while(true);
+	*/
+	#ifdef DEBUG
+		delete mainFile;//cleanup();
+		ObjCounter::end();
+	#endif
+while(true) {}
 	return 0;
 }
+/*
 //get the contents of a file as a char*
 char* getFile(char* filename) {
 	printf("Reading %s...\n\n", filename);
@@ -281,10 +284,16 @@ int varType(string s) {
 	}
 	return TNONE;
 }
+*/
 //check if the string is a keyword
 bool isReservedWord(string s) {
-	return s.compare("true") == 0 ||
+	return
+		//values
+		s.compare("true") == 0 ||
 		s.compare("false") == 0 ||
+		s.compare("null") == 0 ||
+		s.compare("recurse") == 0 ||
+		//control flow
 		s.compare("return") == 0 ||
 		s.compare("if") == 0 ||
 		s.compare("else") == 0 ||
@@ -297,25 +306,28 @@ bool isReservedWord(string s) {
 		s.compare("case") == 0 ||
 		s.compare("default") == 0 ||
 		s.compare("goto") == 0 ||
+		//memory
 		s.compare("new") == 0 ||
 		s.compare("delete") == 0 ||
-		s.compare("public") == 0 ||
+		//access modifiers
+		//s.compare("public") == 0 ||
 		s.compare("private") == 0 ||
 		s.compare("readonly") == 0 ||
 		s.compare("writeonly") == 0 ||
 		s.compare("local") == 0 ||
 		s.compare("final") == 0 ||
+		s.compare("nonnull") == 0 ||
+		s.compare("nullable") == 0 ||
+		//types
 		s.compare("is") == 0 ||
 		s.compare("class") == 0 ||
 		s.compare("enum") == 0 ||
 		s.compare("operator") == 0 ||
 		s.compare("raw") == 0 ||
 		s.compare("partial") == 0 ||
-		s.compare("abstract") == 0 ||
-		s.compare("recurse") == 0 ||
-		s.compare("nonnull") == 0 ||
-		s.compare("nullable") == 0;
+		s.compare("abstract") == 0;
 }
+/*
 //replace a spot in the tokens array with the given expression
 Expression* replace(int loc, Expression* val) {
 	delete tokens.inner[loc];
@@ -1558,3 +1570,4 @@ void emptyV(Array<VariableData*>* a) {
 		delete v;
 	}
 }
+*/

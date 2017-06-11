@@ -1,5 +1,6 @@
 *.lnk
 Debug/*
+Release/*
 *.bat
 *.sln
 *.sdf

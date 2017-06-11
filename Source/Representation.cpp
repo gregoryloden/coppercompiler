@@ -1,5 +1,6 @@
 #include "Project.h"
 
+/*
 MEMPTR mstacktop (ESP, 0, -1, 0, false);
 intptr_t stacktop = (intptr_t)(&mstacktop);
 
@@ -1495,8 +1496,34 @@ MainFunction::MainFunction(Function* f, string s, size_t thecontentpos):
 	added(false) {
 }
 MainFunction::~MainFunction() {}
+*/
 //-------------------------------------------------------------------------------------------------------------------------------------------------------------
-CDirective::CDirective() {}
+SourceFile::SourceFile(string pFilename)
+: onlyInDebugWithComma(ObjCounter("SRCFL"))
+filename(pFilename)
+, contents(nullptr)
+, contentsLength(0) {
+	FILE* file = nullptr;
+	fopen_s(&file, filename.c_str(), "rb");
+	if (file == nullptr) {
+		printf("Unable to open file \"%s\"\n", filename.c_str());
+		return;
+	}
+	fseek(file, 0, SEEK_END);
+	contentsLength = ftell(file);
+	contents = new char[contentsLength + 1];
+	rewind(file);
+	fread(contents, 1, contentsLength, file);
+	contents[contentsLength] = '\0';
+	fclose(file);
+}
+SourceFile::~SourceFile() {
+	delete[] contents;
+	delete abstractContents;
+}
+CDirective::CDirective()
+onlyInDebug(: ObjCounter("DRCTV")) {
+}
 CDirective::~CDirective() {}
 CDirectiveReplace::CDirectiveReplace(string pToReplace, Array<string>* pInput, AbstractCodeBlock* pReplacement)
 : CDirective()

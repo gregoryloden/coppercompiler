@@ -1,3 +1,4 @@
+/*
 #include "string"
 using namespace std;
 
@@ -288,6 +289,7 @@ public:
 	void set(int type, intptr_t val);
 };
 */
+/*
 class IDIV: public AssemblyInstruction {
 public:
 	IDIV(int type, intptr_t val);
@@ -308,6 +310,7 @@ public:
 	void set(int type, intptr_t val);
 };
 */
+/*
 class IMUL: public AssemblyInstruction {
 public:
 	IMUL(int type, intptr_t val);
@@ -374,6 +377,7 @@ public:
 	void set(int type, intptr_t val);
 };
 */
+/*
 class JL: public AssemblyInstruction {
 public:
 	JL(int type, intptr_t val);
@@ -512,6 +516,7 @@ public:
 	void set(int type1, intptr_t val1, int type2, intptr_t val2);
 };
 */
+/*
 class AND: public AssemblyInstruction {
 public:
 	AND(int type1, intptr_t val1, int type2, intptr_t val2);
@@ -568,6 +573,7 @@ public:
 	void set(int type1, intptr_t val1, int type2, intptr_t val2);
 };
 */
+/*
 class SHL: public AssemblyInstruction {
 public:
 	SHL(int type1, intptr_t val1, int type2, intptr_t val2);
@@ -633,6 +639,7 @@ public:
 	void set(int type1, intptr_t val1, int type2, intptr_t val2);
 };
 */
+/*
 class MOVSX: public AssemblyInstruction {
 public:
 	MOVSX(int type1, intptr_t val1, int type2, intptr_t val2);
@@ -642,3 +649,4 @@ public:
 	MOVSX* clone();
 	void set(int type1, intptr_t val1, int type2, intptr_t val2);
 };
+*/

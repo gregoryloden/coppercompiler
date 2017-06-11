@@ -1,5 +1,6 @@
 #include "Project.h"
 
+/*
 MEMPTR mblankdataptr (-1, -1, -1, IMAGEBASE, false);
 intptr_t blankdataptr = (intptr_t)(&mblankdataptr);
 
@@ -980,3 +981,4 @@ void MOVSX::set(int type1, intptr_t val1, int type2, intptr_t val2) {
 			setreg(type1, val1, type2, val2, "", "", 0, "", "\x66\x0F\xBE");
 	}
 }
+*/
