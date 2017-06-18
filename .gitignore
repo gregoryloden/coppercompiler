@@ -2,6 +2,7 @@
 Debug/*
 Release/*
 *.bat
+*.vs
 *.sln
 *.sdf
 *.suo

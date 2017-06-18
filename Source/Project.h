@@ -2,6 +2,10 @@
 #include "globals.h"
 #include "helpers.h"
 
+//util
+#include "Util/Array.h"
+#include "Util/BigInt.h"
+
 //structure
 #include "pliers.h"
 #include "AssemblyInstruction.h"
@@ -9,9 +13,9 @@
 #include "Tokens.h"
 
 //steps
-#include "Step01_Lex.h"
-#include "Step02_ParseDirectives.h"
-#include "Step03_Include.h"
-#include "Step04_Replace.h"
-#include "Step05_ParseExpressions.h"
-#include "Step06_Semant.h"
+#include "Steps/Step01_Lex.h"
+#include "Steps/Step02_ParseDirectives.h"
+#include "Steps/Step03_Include.h"
+#include "Steps/Step04_Replace.h"
+#include "Steps/Step05_ParseExpressions.h"
+#include "Steps/Step06_Semant.h"

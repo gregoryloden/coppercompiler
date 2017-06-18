@@ -414,6 +414,8 @@ public:
 	char* contents;
 	int contentsLength;
 	AbstractCodeBlock* abstractContents;
+	Array<SourceFile*>* includedFiles;
+	Array<SourceFile*>* inclusionListeners;
 //	Array<CVariable*>* variables;
 //	Array<CClass*>* classes;
 //	Array<CDirective*>* directives;
@@ -431,4 +433,12 @@ public:
 	string toReplace;
 	Array<string>* input;
 	AbstractCodeBlock* replacement;
+};
+class CDirectiveInclude: public CDirective {
+public:
+	CDirectiveInclude(string pFilename, bool pIncludeAll);
+	virtual ~CDirectiveInclude();
+
+	string filename;
+	bool includeAll;
 };

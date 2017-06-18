@@ -71,8 +71,8 @@ AbstractCodeBlock::AbstractCodeBlock(Array<Token*>* pTokens, Array<CDirective*>*
 	}
 }
 AbstractCodeBlock::~AbstractCodeBlock() {
-	deleteArrayAndContents(tokens);
-	deleteArrayAndContents(directives);
+	Memory::deleteArrayAndContents(tokens);
+	Memory::deleteArrayAndContents(directives);
 }
 //IdentifierList::IdentifierList(Identifier* pI1, Identifier* pI2)
 //: Token("IDLST", pI1->contentPos)

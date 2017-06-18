@@ -18,6 +18,8 @@ private:
 
 	static AbstractCodeBlock* parseAbstractCodeBlock(bool endsWithParenthesis);
 	static CDirective* completeDirective(DirectiveTitle* dt);
+	static CDirectiveReplace* completeDirectiveReplace(bool replaceInput);
+	static CDirectiveInclude* completeDirectiveInclude(bool includeAll);
 	template <class TokenType> static TokenType* parseToken(char* expectedTokenTypeName);
 	static Identifier* parseIdentifier();
 	static Separator2* parseSeparator();

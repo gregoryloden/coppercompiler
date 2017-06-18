@@ -53,8 +53,7 @@ int main(int argc, char* argv[]) {
 		puts("You need an input file");
 		return -1;
 	}
-	SourceFile* mainFile = new SourceFile(argv[1]);
-	ParseDirectives::parseDirectives(mainFile);
+	Array<SourceFile*>* allFiles = Include::loadFiles(argv[1]);
 puts("Suspended until the rewrite is complete");
 //printAbstractCodeBlock(mainFile->abstractContents, 0);
 	/*
@@ -94,7 +93,7 @@ puts("Suspended until the rewrite is complete");
 	}
 	*/
 	#ifdef DEBUG
-		delete mainFile;//cleanup();
+		Memory::deleteArrayAndContents(allFiles);//cleanup();
 		ObjCounter::end();
 	#endif
 while(true) {}

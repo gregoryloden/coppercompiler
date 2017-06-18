@@ -1502,7 +1502,10 @@ SourceFile::SourceFile(string pFilename)
 : onlyInDebugWithComma(ObjCounter("SRCFL"))
 filename(pFilename)
 , contents(nullptr)
-, contentsLength(0) {
+, contentsLength(0)
+, abstractContents(nullptr)
+, includedFiles(new Array<SourceFile*>())
+, inclusionListeners(new Array<SourceFile*>()) {
 	FILE* file = nullptr;
 	fopen_s(&file, filename.c_str(), "rb");
 	if (file == nullptr) {
@@ -1520,6 +1523,9 @@ filename(pFilename)
 SourceFile::~SourceFile() {
 	delete[] contents;
 	delete abstractContents;
+	//these source files will get deleted through the main source file list
+	delete includedFiles;
+	delete inclusionListeners;
 }
 CDirective::CDirective()
 onlyInDebug(: ObjCounter("DRCTV")) {
@@ -1535,3 +1541,9 @@ CDirectiveReplace::~CDirectiveReplace() {
 	delete input;
 	delete replacement;
 }
+CDirectiveInclude::CDirectiveInclude(string pFilename, bool pIncludeAll)
+: CDirective()
+, filename(pFilename)
+, includeAll(pIncludeAll) {
+}
+CDirectiveInclude::~CDirectiveInclude() {}

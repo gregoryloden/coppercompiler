@@ -2,8 +2,8 @@
 #include "string"
 using namespace std;
 
-onlyInDebug(class ObjCounter;)
 class CDirective;
+class Bigint2;
 template <class type> class Array;
 
 enum SeparatorType: unsigned char {

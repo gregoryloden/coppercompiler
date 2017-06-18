@@ -41,18 +41,63 @@ Thunk THeapAlloc ("HeapAlloc", 0x1BD);
 Thunk THeapReAlloc ("HeapReAlloc", 0x1C4);
 */
 
-template void deleteArrayAndContents(Array<Token*>* a);
-template void deleteArrayAndContents(Array<CDirective*>* a);
+template void Memory::deleteArrayAndContents(Array<Token*>* a);
+template void Memory::deleteArrayAndContents(Array<CDirective*>* a);
+template void Memory::deleteArrayAndContents(Array<SourceFile*>* a);
 
+const bool TRACK_OBJ_IDS = false;
 char allPurposeStringBuffer [ALL_PURPOSE_STRING_BUFFER_SIZE];
 
-template <class type> void deleteArrayAndContents(Array<type>* a) {
-	ArrayIterator<type> ai (a);
+#ifdef DEBUG
+int ObjCounter::objCount = 0;
+int ObjCounter::nextObjID = 0;
+int ObjCounter::untrackedObjCount;
+bool ObjCounter::objIDs[ObjCounter::OBJ_IDS_COUNT];
+ObjCounter::ObjCounter(char* pObjType)
+: objType(pObjType)
+, objID(nextObjID) {
+	nextObjID++;
+	objCount++;
+	if (TRACK_OBJ_IDS) {
+		printf("  Added %s\t%d,\tobj count: %d\n", objType, objID, objCount);
+		objIDs[objID] = true;
+	}
+}
+ObjCounter::~ObjCounter() {
+	objCount--;
+	if (TRACK_OBJ_IDS) {
+		printf("Deleted %s\t%d,\tobj count: %d\n", objType, objID, objCount);
+		objIDs[objID] = false;
+	}
+}
+//assign the initial object ID to exclude any statically-allocated ObjCounters
+void ObjCounter::start() {
+	untrackedObjCount = nextObjID;
+}
+//check for any non-deallocated objects
+void ObjCounter::end() {
+	if (TRACK_OBJ_IDS) {
+		bool printed = false;
+		for (int i = untrackedObjCount; i < nextObjID; i++) {
+			if (objIDs[i]) {
+				printf("Remaining object %d\n", i);
+				printed = true;
+			}
+		}
+		if (!printed)
+			puts("No remaining objects!");
+	} else
+		printf("Total remaining objects: %d\n", objCount - untrackedObjCount);
+	printf("Total objects used: %d\n", nextObjID);
+}
+#endif
+//delete the contents of the array and then delete the array
+template <class type> void Memory::deleteArrayAndContents(Array<type>* a) {
+	ArrayIterator<type> ai(a);
 	for (type t = ai.getFirst(); ai.hasThis(); t = ai.getNext())
 		delete t;
 	delete a;
 }
-
 char* Error::buildSnippet() {
 	char* val = new char[SNIPPET_CHARS * 3 / 2 + 3];
 	val[SNIPPET_CHARS] = '\n';
@@ -64,7 +109,6 @@ char* Error::buildSnippet() {
 char* Error::snippet = buildSnippet();
 int Error::errors = 0;
 int Error::lastErrorPos = -1;
-
 //print an error and throw
 void Error::makeError(ErrorType type, char* message, SourceFile* sourceFile, Token* token) {
 	if (token->contentPos != lastErrorPos) {

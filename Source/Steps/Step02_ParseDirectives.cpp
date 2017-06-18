@@ -55,15 +55,34 @@ AbstractCodeBlock* ParseDirectives::parseAbstractCodeBlock(bool endsWithParenthe
 //parse location: the next token after the directive
 CDirective* ParseDirectives::completeDirective(DirectiveTitle* dt) {
 	CDirective* directive;
-	if (dt->title == "replace" || dt->title == "replace-input") {
-		Retainer<Identifier> toReplace (parseIdentifier());
-		Retainer<Array<string>> input (dt->title == "replace-input" ? parseParenthesizedCommaSeparatedIdentifierList() : nullptr);
-		parseSeparator(LeftParenthesis);
-		//use retrieve() so that toReplace deletes the identifier
-		directive = new CDirectiveReplace(toReplace.retrieve()->name, input.release(), parseAbstractCodeBlock(true));
-	} else
+	if (dt->title == "replace")
+		directive = completeDirectiveReplace(false);
+	else if (dt->title == "replace-input")
+		directive = completeDirectiveReplace(true);
+	else if (dt->title == "include")
+		directive = completeDirectiveInclude(false);
+	else if (dt->title == "include-all")
+		directive = completeDirectiveInclude(false);
+	else
 		Error::makeError(General, "unknown directive type", sourceFile, dt);
 	dt->directive = directive;
+	return directive;
+}
+//get the definition of a replace directive
+//parse location: the next token after the replace directive
+CDirectiveReplace* ParseDirectives::completeDirectiveReplace(bool replaceInput) {
+	Retainer<Identifier> toReplace(parseIdentifier());
+	Retainer<Array<string>> input(replaceInput ? parseParenthesizedCommaSeparatedIdentifierList() : nullptr);
+	parseSeparator(LeftParenthesis);
+	//use retrieve() so that toReplace deletes the identifier
+	return new CDirectiveReplace(toReplace.retrieve()->name, input.release(), parseAbstractCodeBlock(true));
+}
+//get the definition of an include directive
+//parse location: the next token after the include directive
+CDirectiveInclude* ParseDirectives::completeDirectiveInclude(bool includeAll) {
+	StringLiteral* filenameLiteral = parseToken<StringLiteral>("a filename");
+	CDirectiveInclude* directive = new CDirectiveInclude(filenameLiteral->val, includeAll);
+	delete filenameLiteral;
 	return directive;
 }
 //lex a token and make sure that it's the right type

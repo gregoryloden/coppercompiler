@@ -1,7 +1,11 @@
-//#include "string"
-//using namespace std;
 #ifndef GLOBALS_H
 #define GLOBALS_H
+//#include "string"
+//using namespace std;
+
+class SourceFile;
+class Token;
+template <class type> class Array;
 
 #ifdef DEBUG
 #define onlyInDebug(x) x
@@ -11,17 +15,7 @@
 #define onlyInDebugWithComma(x)
 #endif
 
-#define ALL_PURPOSE_STRING_BUFFER_SIZE 0x100
-
-class SourceFile;
-class Token;
-template <class type> class Array;
-
-enum ErrorType: unsigned char {
-	General,
-	EndOfFileWhileSearching,
-	EndOfFileWhileReading
-};
+const int ALL_PURPOSE_STRING_BUFFER_SIZE = 0x100;
 
 /*
 #define IMAGEBASE 0x400000
@@ -70,8 +64,34 @@ extern Thunk THeapAlloc;
 extern Thunk THeapReAlloc;
 */
 
-template <class type> void deleteArrayAndContents(Array<type>* a);
+enum ErrorType: unsigned char {
+	General,
+	EndOfFileWhileSearching,
+	EndOfFileWhileReading
+};
+#ifdef DEBUG
+class ObjCounter {
+public:
+	ObjCounter(char* pObjType);
+	~ObjCounter();
+private:
+	char* objType;
+	int objID;
 
+	static const int OBJ_IDS_COUNT = 4096;
+	static int objCount;
+	static int nextObjID;
+	static int untrackedObjCount;
+	static bool objIDs[OBJ_IDS_COUNT];
+public:
+	static void start();
+	static void end();
+};
+#endif
+class Memory {
+public:
+	template <class type> static void deleteArrayAndContents(Array<type>* a);
+};
 class Error {
 public:
 	static void makeError(ErrorType type, char* message, SourceFile* sourceFile, Token* token);
