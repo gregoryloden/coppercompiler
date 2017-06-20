@@ -63,7 +63,7 @@ AbstractCodeBlock::AbstractCodeBlock(Array<Token*>* pTokens, Array<CDirective*>*
 : Token(onlyInDebugWithComma("ACBLK") 0, 0, 0)
 , tokens(pTokens)
 , directives(pDirectives) {
-	if (pTokens->getLength() >= 1) {
+	if (pTokens->length >= 1) {
 		Token* token = pTokens->first();
 		contentPos = token->contentPos;
 		row = token->row;

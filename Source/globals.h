@@ -5,7 +5,7 @@
 
 class SourceFile;
 class Token;
-template <class type> class Array;
+template <class Type> class Array;
 
 #ifdef DEBUG
 #define onlyInDebug(x) x
@@ -34,7 +34,7 @@ const int ALL_PURPOSE_STRING_BUFFER_SIZE = 0x100;
 #define FUNCTION_ADDR 0
 
 class Thunk;
-template <class type> class Array;
+template <class Type> class Array;
 class Expression;
 class Function;
 class MainFunction;
@@ -90,7 +90,7 @@ public:
 #endif
 class Memory {
 public:
-	template <class type> static void deleteArrayAndContents(Array<type>* a);
+	template <class Type> static void deleteArrayAndContents(Array<Type>* a);
 };
 class Error {
 public:

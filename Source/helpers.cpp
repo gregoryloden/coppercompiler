@@ -57,20 +57,20 @@ int max(int a, int b) {
 	return a > b ? a : b;
 }
 
-template <class type> Retainer<type>::Retainer(type* pToRetain)
+template <class Type> Retainer<Type>::Retainer(Type* pToRetain)
 : onlyInDebugWithComma(ObjCounter("RTNR"))
 retained(pToRetain) {
 }
-template <class type> Retainer<type>::~Retainer() {
+template <class Type> Retainer<Type>::~Retainer() {
 	delete retained;
 }
 //return the held object without releasing it
-template <class type> type* Retainer<type>::retrieve() {
+template <class Type> Type* Retainer<Type>::retrieve() {
 	return retained;
 }
 //return the held object and release it
-template <class type> type* Retainer<type>::release() {
-	type* val = retained;
+template <class Type> Type* Retainer<Type>::release() {
+	Type* val = retained;
 	retained = nullptr;
 	return val;
 }

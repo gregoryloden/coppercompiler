@@ -5,6 +5,7 @@
 //util
 #include "Util/Array.h"
 #include "Util/BigInt.h"
+#include "Util/AVLTree.h"
 
 //structure
 #include "pliers.h"

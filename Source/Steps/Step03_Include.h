@@ -1,5 +1,5 @@
 class SourceFile;
-template <class type> class Array;
+template <class Type> class Array;
 
 class Include {
 public:

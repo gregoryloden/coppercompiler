@@ -1,40 +1,38 @@
 #include "globals.h"
 
-template <class type> class Array onlyInDebug(: public ObjCounter) {
+template <class Type> class Array onlyInDebug(: public ObjCounter) {
 public:
 	Array();
 	virtual ~Array();
 
-	void add(type t, int pos);
-	void add(type t);
-	void add(Array<type>* a, int pos, bool deletable);
-	void add(Array<type>* a, bool deletable);
-	void add(Array<type>* a, int pos);
-	void add(Array<type>* a);
+	void add(Type t, int pos);
+	void add(Type t);
+	void add(Array<Type>* a, int pos, bool deletable);
+	void add(Array<Type>* a, bool deletable);
+	void add(Array<Type>* a, int pos);
+	void add(Array<Type>* a);
 	void remove(int pos, int num);
 	void remove(int pos);
-	int getLength();
-	type* getInner();
-	type first();
-	type pop();
+	Type first();
+	Type pop();
 
+	Type* inner; //readonly<ArrayIterator>
+	int length; //readonly
 private:
-	type* inner;
-	int length;
 	int innerLength;
 
 	void resize(int scale);
 };
-template <class type> class ArrayIterator onlyInDebug(: public ObjCounter) {
+template <class Type> class ArrayIterator onlyInDebug(: public ObjCounter) {
 public:
-	ArrayIterator(Array<type>* a);
+	ArrayIterator(Array<Type>* a);
 	virtual ~ArrayIterator();
 
-	type getFirst();
-	type getNext();
+	Type getFirst();
+	Type getNext();
 	bool hasThis();
 private:
-	type* inner;
+	Type* inner;
 	int length;
 	int index;
 };

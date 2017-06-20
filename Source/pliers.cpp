@@ -1554,7 +1554,7 @@ void cleanup() {
 	}
 }
 //empty the contents of an array
-template <class type> void empty(Array<type>* a) {
+template <class Type> void empty(Array<type>* a) {
 	ArrayIterator<type> ai (a);
 	for (type t = ai.getFirst(); ai.hasThis(); t = ai.getNext()) {
 		delete t;

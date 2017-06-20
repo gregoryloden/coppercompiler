@@ -4,7 +4,7 @@ using namespace std;
 
 class CDirective;
 class Bigint2;
-template <class type> class Array;
+template <class Type> class Array;
 
 enum SeparatorType: unsigned char {
 	LeftParenthesis,
@@ -74,9 +74,9 @@ protected:
 public:
 	virtual ~Token();
 
-	int contentPos;
-	int row;
-	int rowStartContentPos;
+	int contentPos; //readonly
+	int row; //readonly
+	int rowStartContentPos; //readonly
 };
 //For empty contents (ex. errors, between commas or semicolons, etc.)
 class EmptyToken: public Token {
@@ -97,14 +97,14 @@ public:
 	Identifier(string pName, int pContentPos, int pRow, int pRowStartContentPos);
 	virtual ~Identifier();
 
-	string name;
+	string name; //readonly
 };
 class IntConstant2: public LexToken {
 public:
 	IntConstant2(int pVal, int pContentPos, int pRow, int pRowStartContentPos);
 	virtual ~IntConstant2();
 
-	int val;
+	int val; //readonly
 };
 class FloatConstant2: public LexToken {
 public:
@@ -113,39 +113,39 @@ public:
 
 	static const int FLOAT_TOO_BIG_EXPONENT = 0x100000;
 
-	BigInt2 mantissa;
-	int exponent;
+	BigInt2 mantissa; //readonly
+	int exponent; //readonly
 };
 class StringLiteral: public LexToken {
 public:
 	StringLiteral(string pVal, int pContentPos, int pRow, int pRowStartContentPos);
 	virtual ~StringLiteral();
 
-	string val;
+	string val; //readonly
 };
 class Separator2: public LexToken {
 public:
 	Separator2(SeparatorType pType, int pContentPos, int pRow, int pRowStartContentPos);
 	virtual ~Separator2();
 
-	SeparatorType type;
+	SeparatorType type; //readonly
 };
 class Operator: public LexToken {
 public:
 	Operator(OperatorType pType, int pContentPos, int pRow, int pRowStartContentPos);
 	virtual ~Operator();
 
-	OperatorType type;
-	Token* left;
-	Token* right;
+	OperatorType type; //readonly
+	Token* left; //readonly
+	Token* right; //readonly
 };
 class DirectiveTitle: public LexToken {
 public:
 	DirectiveTitle(string pTitle, int pContentPos, int pRow, int pRowStartContentPos);
 	virtual ~DirectiveTitle();
 
-	string title;
-	CDirective* directive;
+	string title; //readonly
+	CDirective* directive; //readonly
 };
 
 //Tokens used in parsing
@@ -154,8 +154,8 @@ public:
 	AbstractCodeBlock(Array<Token*>* pTokens, Array<CDirective*>* pDirectives);
 	virtual ~AbstractCodeBlock();
 
-	Array<Token*>* tokens;
-	Array<CDirective*>* directives;
+	Array<Token*>* tokens; //readonly
+	Array<CDirective*>* directives; //readonly
 };
 //class IdentifierList: public Token {
 //public:

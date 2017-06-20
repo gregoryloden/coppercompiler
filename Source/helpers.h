@@ -13,15 +13,15 @@ int intval(bool val);
 */
 //used to delete objects during a throw
 //should always be stack allocated
-template <class type> class Retainer onlyInDebug(: public ObjCounter) {
+template <class Type> class Retainer onlyInDebug(: public ObjCounter) {
 public:
-	Retainer(type* pRetained);
+	Retainer(Type* pRetained);
 	virtual ~Retainer();
 
-	type* release();
-	type* retrieve();
+	Type* release();
+	Type* retrieve();
 private:
-	type* retained;
+	Type* retained;
 };
 /*
 class BigInt

@@ -92,9 +92,9 @@ void ObjCounter::end() {
 }
 #endif
 //delete the contents of the array and then delete the array
-template <class type> void Memory::deleteArrayAndContents(Array<type>* a) {
-	ArrayIterator<type> ai(a);
-	for (type t = ai.getFirst(); ai.hasThis(); t = ai.getNext())
+template <class Type> void Memory::deleteArrayAndContents(Array<Type>* a) {
+	ArrayIterator<Type> ai(a);
+	for (Type t = ai.getFirst(); ai.hasThis(); t = ai.getNext())
 		delete t;
 	delete a;
 }

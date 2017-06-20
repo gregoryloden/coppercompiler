@@ -60,7 +60,7 @@ using namespace std;
 
 class Thunk;
 class Function;
-template <class type> class Array;
+template <class Type> class Array;
 class AssemblyInstruction;
 class ObjCounter;
 

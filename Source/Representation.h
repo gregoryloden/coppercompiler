@@ -1,3 +1,4 @@
+#include "globals.h"
 #include "string"
 using namespace std;
 
@@ -105,8 +106,7 @@ class MEMPTR;
 class AssemblyInstruction;
 class Expression;
 */
-template <class type> class Array;
-onlyInDebug(class ObjCounter;)
+template <class Type> class Array;
 class AbstractCodeBlock;
 /*
 
@@ -410,12 +410,12 @@ public:
 	SourceFile(string pFilename);
 	virtual ~SourceFile();
 
-	string filename;
-	char* contents;
-	int contentsLength;
+	string filename; //readonly
+	char* contents; //readonly
+	int contentsLength; //readonly
 	AbstractCodeBlock* abstractContents;
-	Array<SourceFile*>* includedFiles;
-	Array<SourceFile*>* inclusionListeners;
+	Array<SourceFile*>* includedFiles; //readonly
+	Array<SourceFile*>* inclusionListeners; //readonly
 //	Array<CVariable*>* variables;
 //	Array<CClass*>* classes;
 //	Array<CDirective*>* directives;
@@ -430,15 +430,15 @@ public:
 	CDirectiveReplace(string pToReplace, Array<string>* pInput, AbstractCodeBlock* pReplacement);
 	virtual ~CDirectiveReplace();
 
-	string toReplace;
-	Array<string>* input;
-	AbstractCodeBlock* replacement;
+	string toReplace; //readonly
+	Array<string>* input; //readonly
+	AbstractCodeBlock* replacement; //readonly
 };
 class CDirectiveInclude: public CDirective {
 public:
 	CDirectiveInclude(string pFilename, bool pIncludeAll);
 	virtual ~CDirectiveInclude();
 
-	string filename;
-	bool includeAll;
+	string filename; //readonly
+	bool includeAll; //readonly
 };

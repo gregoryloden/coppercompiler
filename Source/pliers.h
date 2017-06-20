@@ -4,7 +4,7 @@ using namespace std;
 /*
 class Function;
 class Expression;
-template <class type> class Array;
+template <class Type> class Array;
 class Operation;
 class IntConstant;
 class VariableData;
@@ -39,6 +39,6 @@ void buildSections();
 void buildrdata();
 void buildExecutable();
 void cleanup();
-template <class type> void empty(Array<type>* a);
+template <class Type> void empty(Array<type>* a);
 void emptyV(Array<VariableData*>* a);
 */

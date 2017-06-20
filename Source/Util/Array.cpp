@@ -13,18 +13,18 @@ template class ArrayIterator<Identifier*>;
 template class ArrayIterator<CDirective*>;
 template class ArrayIterator<SourceFile*>;
 
-template <class type> Array<type>::Array()
+template <class Type> Array<Type>::Array()
 : onlyInDebugWithComma(ObjCounter("ARRY"))
-inner(new type[1])
+inner(new Type[1])
 , innerLength(1)
 , length(0) {
 }
-template <class type> Array<type>::~Array() {
+template <class Type> Array<Type>::~Array() {
 	delete[] inner;
 }
 //resize the array by the given scale
-template <class type> void Array<type>::resize(int scale) {
-	type* newInner = new type[innerLength * scale];
+template <class Type> void Array<Type>::resize(int scale) {
+	Type* newInner = new Type[innerLength * scale];
 	for (int i = 0; i < length; i++)
 		newInner[i] = inner[i];
 	delete[] inner;
@@ -32,7 +32,7 @@ template <class type> void Array<type>::resize(int scale) {
 	innerLength *= scale;
 }
 //add an item to the array at the given spot
-template <class type> void Array<type>::add(type t, int pos) {
+template <class Type> void Array<Type>::add(Type t, int pos) {
 	if (length >= innerLength)
 		resize(2);
 	for (int i = length; i > pos; i--)
@@ -41,16 +41,16 @@ template <class type> void Array<type>::add(type t, int pos) {
 	length++;
 }
 //add an item to the array
-template <class type> void Array<type>::add(type t) {
+template <class Type> void Array<Type>::add(Type t) {
 	if (length >= innerLength)
 		resize(2);
 	inner[length] = t;
 	length++;
 }
 //add another array's items to this array at the given spot, deleting the array if indicated
-template <class type> void Array<type>::add(Array<type>* a, int pos, bool deletable) {
+template <class Type> void Array<Type>::add(Array<Type>* a, int pos, bool deletable) {
 	int shift = a->length;
-	type* otherInner = a->inner;
+	Type* otherInner = a->inner;
 	if (shift + length > innerLength) {
 		int scale = 2;
 		while (shift + length > innerLength * scale)
@@ -66,69 +66,61 @@ template <class type> void Array<type>::add(Array<type>* a, int pos, bool deleta
 		delete a;
 }
 //add another array's items to the end of this array, deleting the array if indicated
-template <class type> void Array<type>::add(Array<type>* a, bool deletable) {
+template <class Type> void Array<Type>::add(Array<Type>* a, bool deletable) {
 	add(a, length, deletable);
 }
 //add another array's items to this array at the given spot
-template <class type> void Array<type>::add(Array<type>* a, int pos) {
+template <class Type> void Array<Type>::add(Array<Type>* a, int pos) {
 	add(a, pos, true);
 }
 //add another array's items to the end of this array
-template <class type> void Array<type>::add(Array<type>* a) {
+template <class Type> void Array<Type>::add(Array<Type>* a) {
 	add(a, length, true);
 }
 //remove the given number of items at the given spot
-template <class type> void Array<type>::remove(int pos, int num) {
+template <class Type> void Array<Type>::remove(int pos, int num) {
 	for (int i = pos + num; i < length; i++)
 		inner[i - num] = inner[i];
 	length -= num;
 }
 //remove the item at the given spot
-template <class type> void Array<type>::remove(int pos) {
+template <class Type> void Array<Type>::remove(int pos) {
 	remove(pos, 1);
 }
-//return the inner array
-template <class type> type* Array<type>::getInner() {
-	return inner;
-}
-//return the length
-template <class type> int Array<type>::getLength() {
-	return length;
-}
 //return the first item
-template <class type> type Array<type>::first() {
+template <class Type> Type Array<Type>::first() {
 	return inner[0];
 }
 //pop off the last item
-template <class type> type Array<type>::pop() {
+template <class Type> Type Array<Type>::pop() {
 	length -= 1;
 	return inner[length];
 }
-template <class type> ArrayIterator<type>::ArrayIterator(Array<type>* a)
+template <class Type> ArrayIterator<Type>::ArrayIterator(Array<Type>* a)
 onlyInDebug(: ObjCounter("ARYI")) {
 	if (a != NULL) {
-		inner = a->getInner();
-		length = a->getLength();
+		inner = a->inner;
+		length = a->length;
 	} else
 		length = 0;
 }
-template <class type> ArrayIterator<type>::~ArrayIterator() {
+template <class Type> ArrayIterator<Type>::~ArrayIterator() {
 	//do not delete inner because it's owned by an array
 }
 //get the first element of the array
-template <class type> type ArrayIterator<type>::getFirst() {
+template <class Type> Type ArrayIterator<Type>::getFirst() {
 	index = 0;
 	if (length < 1)
 		return NULL;
 	return inner[0];
 }
 //get the next element of the array
-template <class type> type ArrayIterator<type>::getNext() {
+template <class Type> Type ArrayIterator<Type>::getNext() {
 	if ((index += 1) >= length)
 		return NULL;
 	return inner[index];
 }
 //check if this iterator has the element it just returned via getNext()
-template <class type> bool ArrayIterator<type>::hasThis() {
+template <class Type> bool ArrayIterator<Type>::hasThis() {
 	return index < length;
 }

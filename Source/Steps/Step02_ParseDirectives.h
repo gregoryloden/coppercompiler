@@ -8,7 +8,7 @@ class DirectiveTitle;
 class Identifier;
 class Separator2;
 enum SeparatorType: unsigned char;
-template <class type> class Array;
+template <class Type> class Array;
 
 class ParseDirectives {
 public:
