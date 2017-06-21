@@ -91,11 +91,11 @@ template <class TokenType> TokenType* ParseDirectives::parseToken(char* expected
 	LexToken* l;
 	if ((l = Lex::lex()) == nullptr)
 		Lex::makeLexError(EndOfFileWhileSearching, expectedTokenTypeName);
-	Retainer<LexToken> lRetainer (l);
 	TokenType* t;
-	if ((t = dynamic_cast<TokenType*>(l)) == nullptr)
+	if ((t = dynamic_cast<TokenType*>(l)) == nullptr) {
+		Retainer<LexToken> lRetainer(l);
 		makeUnexpectedTokenError(expectedTokenTypeName, l);
-	lRetainer.release();
+	}
 	return t;
 }
 //lex a token and make sure it's an identifier

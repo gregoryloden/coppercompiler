@@ -68,7 +68,7 @@ template <class Type> Retainer<Type>::~Retainer() {
 template <class Type> Type* Retainer<Type>::retrieve() {
 	return retained;
 }
-//return the held object and release it
+//return the held object and release it so it won't be deleted
 template <class Type> Type* Retainer<Type>::release() {
 	Type* val = retained;
 	retained = nullptr;
