@@ -1,27 +1,24 @@
 #ifndef GLOBALS_H
 #define GLOBALS_H
-//#include "string"
-//using namespace std;
 
 class SourceFile;
 class Token;
 template <class Type> class Array;
 
-//TODO: Indent things after an #ifdef like any other if statement
 #ifdef DEBUG
-#define onlyInDebug(x) x
-#define onlyInDebugWithComma(x) x,
-/*/#define TRACK_OBJ_IDS /**/
+	#define onlyInDebug(x) x
+	#define onlyInDebugWithComma(x) x,
+	/*/#define TRACK_OBJ_IDS /**/
 #else
-#define onlyInDebug(x)
-#define onlyInDebugWithComma(x)
+	#define onlyInDebug(x)
+	#define onlyInDebugWithComma(x)
 #endif
 #ifdef TRACK_OBJ_IDS
-#define onlyWhenTrackingIDs(x) x
-#define onlyWhenTrackingIDsWithComma(x) x,
+	#define onlyWhenTrackingIDs(x) x
+	#define onlyWhenTrackingIDsWithComma(x) x,
 #else
-#define onlyWhenTrackingIDs(x)
-#define onlyWhenTrackingIDsWithComma(x)
+	#define onlyWhenTrackingIDs(x)
+	#define onlyWhenTrackingIDsWithComma(x)
 #endif
 
 const int ALL_PURPOSE_STRING_BUFFER_SIZE = 0x100;
@@ -79,29 +76,29 @@ enum ErrorType: unsigned char {
 	EndOfFileWhileReading
 };
 #ifdef DEBUG
-class ObjCounter {
-public:
-	ObjCounter(onlyWhenTrackingIDs(char* pObjType));
-	~ObjCounter();
-private:
-	#ifdef TRACK_OBJ_IDS
-	char* objType;
-	int objID;
-	ObjCounter* prev;
-	ObjCounter* next;
-	#endif
+	class ObjCounter {
+	public:
+		ObjCounter(onlyWhenTrackingIDs(char* pObjType));
+		~ObjCounter();
+	private:
+		#ifdef TRACK_OBJ_IDS
+			char* objType;
+			int objID;
+			ObjCounter* prev;
+			ObjCounter* next;
+		#endif
 
-	static int objCount;
-	static int untrackedObjCount;
-	static int nextObjID;
-	#ifdef TRACK_OBJ_IDS
-	static ObjCounter* head;
-	static ObjCounter* tail;
-	#endif
-public:
-	static void start();
-	static void end();
-};
+		static int objCount;
+		static int untrackedObjCount;
+		static int nextObjID;
+		#ifdef TRACK_OBJ_IDS
+			static ObjCounter* head;
+			static ObjCounter* tail;
+		#endif
+	public:
+		static void start();
+		static void end();
+	};
 #endif
 class Memory {
 public:
