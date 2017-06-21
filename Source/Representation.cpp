@@ -1499,7 +1499,7 @@ MainFunction::~MainFunction() {}
 */
 //-------------------------------------------------------------------------------------------------------------------------------------------------------------
 SourceFile::SourceFile(string pFilename)
-: onlyInDebugWithComma(ObjCounter("SRCFL"))
+: onlyInDebugWithComma(ObjCounter(onlyWhenTrackingIDs("SRCFILE")))
 filename(pFilename)
 , contents(nullptr)
 , contentsLength(0)
@@ -1528,7 +1528,7 @@ SourceFile::~SourceFile() {
 	delete inclusionListeners;
 }
 CDirective::CDirective()
-onlyInDebug(: ObjCounter("DRCTV")) {
+onlyInDebug(: ObjCounter(onlyWhenTrackingIDs("DIRECTV"))) {
 }
 CDirective::~CDirective() {}
 CDirectiveReplace::CDirectiveReplace(string pToReplace, Array<string>* pInput, AbstractCodeBlock* pReplacement)

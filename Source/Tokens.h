@@ -70,7 +70,7 @@ enum OperatorType: unsigned char {
 
 class Token onlyInDebug(: public ObjCounter) {
 protected:
-	Token(onlyInDebugWithComma(char* pObjType) int pContentPos, int pRow, int pRowStartContentPos);
+	Token(onlyWhenTrackingIDsWithComma(char* pObjType) int pContentPos, int pRow, int pRowStartContentPos);
 public:
 	virtual ~Token();
 
@@ -88,7 +88,7 @@ public:
 //Tokens used in lexing
 class LexToken: public Token {
 protected:
-	LexToken(onlyInDebugWithComma(char* pObjType) int pContentPos, int pRow, int pRowStartContentPos);
+	LexToken(onlyWhenTrackingIDsWithComma(char* pObjType) int pContentPos, int pRow, int pRowStartContentPos);
 public:
 	virtual ~LexToken();
 };

@@ -58,7 +58,7 @@ int max(int a, int b) {
 }
 
 template <class Type> Retainer<Type>::Retainer(Type* pToRetain)
-: onlyInDebugWithComma(ObjCounter("RTNR"))
+: onlyInDebugWithComma(ObjCounter(onlyWhenTrackingIDs("RETAINR")))
 retained(pToRetain) {
 }
 template <class Type> Retainer<Type>::~Retainer() {

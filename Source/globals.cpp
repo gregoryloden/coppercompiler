@@ -45,50 +45,67 @@ template void Memory::deleteArrayAndContents(Array<Token*>* a);
 template void Memory::deleteArrayAndContents(Array<CDirective*>* a);
 template void Memory::deleteArrayAndContents(Array<SourceFile*>* a);
 
-const bool TRACK_OBJ_IDS = false;
 char allPurposeStringBuffer [ALL_PURPOSE_STRING_BUFFER_SIZE];
 
 #ifdef DEBUG
 int ObjCounter::objCount = 0;
-int ObjCounter::nextObjID = 0;
 int ObjCounter::untrackedObjCount;
-bool ObjCounter::objIDs[ObjCounter::OBJ_IDS_COUNT];
-ObjCounter::ObjCounter(char* pObjType)
+int ObjCounter::nextObjID = 0;
+#ifdef TRACK_OBJ_IDS
+ObjCounter* ObjCounter::head = nullptr;
+ObjCounter* ObjCounter::tail = nullptr;
+#endif
+ObjCounter::ObjCounter(onlyWhenTrackingIDs(char* pObjType))
+#ifdef TRACK_OBJ_IDS
 : objType(pObjType)
-, objID(nextObjID) {
-	nextObjID++;
+, objID(nextObjID)
+, prev(tail)
+, next(nullptr)
+#endif
+{
 	objCount++;
-	if (TRACK_OBJ_IDS) {
-		printf("  Added %s\t%d,\tobj count: %d\n", objType, objID, objCount);
-		objIDs[objID] = true;
-	}
+	nextObjID++;
+
+	#ifdef TRACK_OBJ_IDS
+	printf("  Added %s\t%d,\tobj count: %d\n", objType, objID, objCount);
+	if (tail != nullptr)
+		tail->next = this;
+	tail = this;
+	if (head == nullptr)
+		head = this;
+	#endif
 }
 ObjCounter::~ObjCounter() {
 	objCount--;
-	if (TRACK_OBJ_IDS) {
-		printf("Deleted %s\t%d,\tobj count: %d\n", objType, objID, objCount);
-		objIDs[objID] = false;
-	}
+	#ifdef TRACK_OBJ_IDS
+	printf("Deleted %s\t%d,\tobj count: %d\n", objType, objID, objCount);
+	if (next != nullptr)
+		next->prev = prev;
+	if (prev != nullptr)
+		prev->next = next;
+	if (this == head)
+		head = next;
+	if (this == tail)
+		tail = prev;
+	#endif
 }
 //assign the initial object ID to exclude any statically-allocated ObjCounters
 void ObjCounter::start() {
 	untrackedObjCount = nextObjID;
+	#ifdef TRACK_OBJ_IDS
+	//reset the list, it's ok to leave any objects linked
+	head = nullptr;
+	tail = nullptr;
+	#endif
 }
 //check for any non-deallocated objects
 void ObjCounter::end() {
-	if (TRACK_OBJ_IDS) {
-		bool printed = false;
-		for (int i = untrackedObjCount; i < nextObjID; i++) {
-			if (objIDs[i]) {
-				printf("Remaining object %d\n", i);
-				printed = true;
-			}
-		}
-		if (!printed)
-			puts("No remaining objects!");
-	} else
-		printf("Total remaining objects: %d\n", objCount - untrackedObjCount);
-	printf("Total objects used: %d\n", nextObjID);
+	#ifdef TRACK_OBJ_IDS
+	for (; head != nullptr; head = head->next)
+		printf("      Remaining object: %s\t%d\n", head->objType, head->objID);
+	#endif
+	printf("Total remaining objects: %d\n", objCount - untrackedObjCount);
+	printf("Total objects used: %d + %d untracked\n", (nextObjID - untrackedObjCount), untrackedObjCount);
 }
 #endif
 //delete the contents of the array and then delete the array

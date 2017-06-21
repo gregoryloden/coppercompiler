@@ -1,7 +1,7 @@
 #include "Project.h"
 
 BigInt2::BigInt2(int pBase)
-: onlyInDebugWithComma(ObjCounter("BGNT"))
+: onlyInDebugWithComma(ObjCounter(onlyWhenTrackingIDs("BIGINT")))
 base(pBase)
 , innerLength(1)
 , highByte(-1)
@@ -9,7 +9,7 @@ base(pBase)
 }
 //this one is for use right before pSource will be deleted or its inner will be replaced
 BigInt2::BigInt2(BigInt2* pSource)
-: onlyInDebugWithComma(ObjCounter("BGNT"))
+: onlyInDebugWithComma(ObjCounter(onlyWhenTrackingIDs("BIGINT")))
 base(pSource->base)
 , innerLength(pSource->innerLength)
 , highByte(pSource->highByte)

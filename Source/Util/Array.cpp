@@ -14,7 +14,7 @@ template class ArrayIterator<CDirective*>;
 template class ArrayIterator<SourceFile*>;
 
 template <class Type> Array<Type>::Array()
-: onlyInDebugWithComma(ObjCounter("ARRY"))
+: onlyInDebugWithComma(ObjCounter(onlyWhenTrackingIDs("ARRAY")))
 inner(new Type[1])
 , innerLength(1)
 , length(0) {
@@ -97,7 +97,7 @@ template <class Type> Type Array<Type>::pop() {
 	return inner[length];
 }
 template <class Type> ArrayIterator<Type>::ArrayIterator(Array<Type>* a)
-onlyInDebug(: ObjCounter("ARYI")) {
+onlyInDebug(: ObjCounter(onlyWhenTrackingIDs("ARYITR"))) {
 	if (a != NULL) {
 		inner = a->inner;
 		length = a->length;

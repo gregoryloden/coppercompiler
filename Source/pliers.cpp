@@ -1,4 +1,5 @@
 #include "Project.h"
+#include <Windows.h>
 
 /*
 //check if tpos is within the tokens
@@ -44,16 +45,24 @@ void printAbstractCodeBlock(AbstractCodeBlock* codeBlock, int spacesCount) {
 	}
 }
 */
+Array<SourceFile*>* allFiles = nullptr;
+
 int main(int argc, char* argv[]) {
+	puts("Copper Compiler v0.0");
+	//Enable scrolling on the Windows console
+	HANDLE stdHandle = GetStdHandle(STD_INPUT_HANDLE);
+	DWORD consoleMode = 0;
+	if (GetConsoleMode(stdHandle, &consoleMode))
+		SetConsoleMode(stdHandle, consoleMode & ~ENABLE_MOUSE_INPUT);
+	//Start compiling
 	#ifdef DEBUG
 		ObjCounter::start();
 	#endif
-	puts("Copper Compiler v0.0");
 	if (argc < 2) {
 		puts("You need an input file");
 		return -1;
 	}
-	Array<SourceFile*>* allFiles = Include::loadFiles(argv[1]);
+	allFiles = Include::loadFiles(argv[1]);
 puts("Suspended until the rewrite is complete");
 //printAbstractCodeBlock(mainFile->abstractContents, 0);
 	/*

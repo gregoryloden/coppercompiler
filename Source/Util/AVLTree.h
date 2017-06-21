@@ -12,6 +12,8 @@ public:
 	Value remove(Key key);
 private:
 	AVLNode<Key, Value>* root;
+
+	void deleteTree(AVLNode<Key, Value>* node);
 };
 template <class Key, class Value> class AVLNode onlyInDebug(: public ObjCounter) {
 public:
