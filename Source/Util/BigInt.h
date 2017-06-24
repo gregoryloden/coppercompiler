@@ -1,4 +1,4 @@
-#include "globals.h"
+#include "../General/globals.h"
 
 class BigInt2 onlyInDebug(: public ObjCounter) {
 public:
@@ -6,6 +6,13 @@ public:
 	BigInt2(BigInt2* pSource);
 	virtual ~BigInt2();
 
+private:
+	unsigned char base;
+	unsigned char* inner;
+	int innerLength;
+	int highByte;
+
+public:
 	void digit(unsigned char d);
 	void expand();
 	int getInt();
@@ -17,9 +24,4 @@ public:
 	int compare(BigInt2* other);
 	void subtract(BigInt2* other);
 	void rShift(int bits);
-private:
-	unsigned char base;
-	unsigned char* inner;
-	int innerLength;
-	int highByte;
 };

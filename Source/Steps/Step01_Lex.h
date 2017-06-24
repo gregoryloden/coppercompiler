@@ -9,9 +9,6 @@ enum ErrorType: unsigned char;
 //class IntConstant;
 
 class Lex {
-public:
-	static void initializeLexer(SourceFile* newSourceFile);
-	static LexToken* lex();
 private:
 	static thread_local SourceFile* sourceFile;
 	static thread_local char* contents;
@@ -21,6 +18,10 @@ private:
 	static thread_local int rowStartContentPos;
 	static thread_local char c;
 
+public:
+	static void initializeLexer(SourceFile* newSourceFile);
+	static LexToken* lex();
+private:
 	static bool skipWhitespace();
 	static bool skipComment();
 	static LexToken* lexIdentifier();

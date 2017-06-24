@@ -1,9 +1,9 @@
-#include "globals.h"
+#include "../General/globals.h"
 #include "string"
 using namespace std;
 
 class CDirective;
-class Bigint2;
+class BigInt2;
 template <class Type> class Array;
 
 enum SeparatorType: unsigned char {
@@ -75,9 +75,9 @@ protected:
 public:
 	virtual ~Token();
 
-	int contentPos; //readonly
-	int row; //readonly
-	int rowStartContentPos; //readonly
+	int contentPos; //copper: readonly
+	int row; //copper: readonly
+	int rowStartContentPos; //copper: readonly
 };
 //For empty contents (ex. errors, between commas or semicolons, etc.)
 class EmptyToken: public Token {
@@ -98,14 +98,14 @@ public:
 	Identifier(string pName, int pContentPos, int pRow, int pRowStartContentPos);
 	virtual ~Identifier();
 
-	string name; //readonly
+	string name; //copper: readonly
 };
 class IntConstant2: public LexToken {
 public:
 	IntConstant2(int pVal, int pContentPos, int pRow, int pRowStartContentPos);
 	virtual ~IntConstant2();
 
-	int val; //readonly
+	int val; //copper: readonly
 };
 class FloatConstant2: public LexToken {
 public:
@@ -113,39 +113,39 @@ public:
 	virtual ~FloatConstant2();
 
 	static const int FLOAT_TOO_BIG_EXPONENT = 0x100000;
-	BigInt2 mantissa; //readonly
-	int exponent; //readonly
+	BigInt2* mantissa; //copper: readonly
+	int exponent; //copper: readonly
 };
 class StringLiteral: public LexToken {
 public:
 	StringLiteral(string pVal, int pContentPos, int pRow, int pRowStartContentPos);
 	virtual ~StringLiteral();
 
-	string val; //readonly
+	string val; //copper: readonly
 };
 class Separator2: public LexToken {
 public:
 	Separator2(SeparatorType pType, int pContentPos, int pRow, int pRowStartContentPos);
 	virtual ~Separator2();
 
-	SeparatorType type; //readonly
+	SeparatorType type; //copper: readonly
 };
 class Operator: public LexToken {
 public:
 	Operator(OperatorType pType, int pContentPos, int pRow, int pRowStartContentPos);
 	virtual ~Operator();
 
-	OperatorType type; //readonly
-	Token* left; //readonly
-	Token* right; //readonly
+	OperatorType type; //copper: readonly
+	Token* left; //copper: readonly
+	Token* right; //copper: readonly
 };
 class DirectiveTitle: public LexToken {
 public:
 	DirectiveTitle(string pTitle, int pContentPos, int pRow, int pRowStartContentPos);
 	virtual ~DirectiveTitle();
 
-	string title; //readonly
-	CDirective* directive; //readonly
+	string title; //copper: readonly
+	CDirective* directive; //copper: readonly
 };
 
 //Tokens used in parsing
@@ -154,8 +154,8 @@ public:
 	AbstractCodeBlock(Array<Token*>* pTokens, Array<CDirective*>* pDirectives);
 	virtual ~AbstractCodeBlock();
 
-	Array<Token*>* tokens; //readonly
-	Array<CDirective*>* directives; //readonly
+	Array<Token*>* tokens; //copper: readonly
+	Array<CDirective*>* directives; //copper: readonly
 };
 //class IdentifierList: public Token {
 //public:

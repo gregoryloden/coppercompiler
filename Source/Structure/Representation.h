@@ -1,4 +1,4 @@
-#include "globals.h"
+#include "../General/globals.h"
 #include "string"
 using namespace std;
 
@@ -410,12 +410,12 @@ public:
 	SourceFile(string pFilename);
 	virtual ~SourceFile();
 
-	string filename; //readonly
-	char* contents; //readonly
-	int contentsLength; //readonly
-	AbstractCodeBlock* abstractContents;
-	Array<SourceFile*>* includedFiles; //readonly
-	Array<SourceFile*>* inclusionListeners; //readonly
+	string filename; //copper: readonly
+	char* contents; //copper: readonly
+	int contentsLength; //copper: readonly
+	AbstractCodeBlock* abstractContents; //copper: readonly<ParseDirectives>
+	Array<SourceFile*>* includedFiles; //copper: readonly
+	Array<SourceFile*>* inclusionListeners; //copper: readonly
 //	Array<CVariable*>* variables;
 //	Array<CClass*>* classes;
 //	Array<CDirective*>* directives;
@@ -430,15 +430,15 @@ public:
 	CDirectiveReplace(string pToReplace, Array<string>* pInput, AbstractCodeBlock* pReplacement);
 	virtual ~CDirectiveReplace();
 
-	string toReplace; //readonly
-	Array<string>* input; //readonly
-	AbstractCodeBlock* replacement; //readonly
+	string toReplace; //copper: readonly
+	Array<string>* input; //copper: readonly
+	AbstractCodeBlock* replacement; //copper: readonly
 };
 class CDirectiveInclude: public CDirective {
 public:
 	CDirectiveInclude(string pFilename, bool pIncludeAll);
 	virtual ~CDirectiveInclude();
 
-	string filename; //readonly
-	bool includeAll; //readonly
+	string filename; //copper: readonly
+	bool includeAll; //copper: readonly
 };

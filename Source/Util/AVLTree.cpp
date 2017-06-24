@@ -17,6 +17,14 @@ root(nullptr) {
 template <class Key, class Value> AVLTree<Key, Value>::~AVLTree() {
 	deleteTree(root);
 }
+//delete the node and its entire contents
+template <class Key, class Value> void AVLTree<Key, Value>::deleteTree(AVLNode<Key, Value>* node) {
+	if (node != nullptr) {
+		deleteTree(node->left);
+		deleteTree(node->right);
+		delete node;
+	}
+}
 //set a value in the tree
 template <class Key, class Value> Value AVLTree<Key, Value>::set(Key key, Value value) {
 	if (root == nullptr) {
@@ -25,18 +33,6 @@ template <class Key, class Value> Value AVLTree<Key, Value>::set(Key key, Value 
 	} else {
 		root = setAndRebalance(root, key, value);
 		return nextReturnValue;
-	}
-}
-//get a value from the tree
-template <class Key, class Value> Value AVLTree<Key, Value>::get(Key key) {
-	return get(root, key);
-}
-//delete the node and its entire contents
-template <class Key, class Value> void AVLTree<Key, Value>::deleteTree(AVLNode<Key, Value>* node) {
-	if (node != nullptr) {
-		deleteTree(node->left);
-		deleteTree(node->right);
-		delete node;
 	}
 }
 //set a value in the tree as determined by the node, and rebalance if one side is too tall
@@ -100,6 +96,10 @@ template <class Key, class Value> AVLNode<Key, Value>* AVLTree<Key, Value>::setA
 		leftNodeRightChild->height = node->height + 1;
 		return leftNodeRightChild;
 	}
+}
+//get a value from the tree
+template <class Key, class Value> Value AVLTree<Key, Value>::get(Key key) {
+	return get(root, key);
 }
 //get a value from the tree as determined by the given node
 template <class Key, class Value> Value AVLTree<Key, Value>::get(AVLNode<Key, Value>* node, Key key) {

@@ -18,10 +18,12 @@ public:
 	Deleter(Type* pToDelete);
 	virtual ~Deleter();
 
-	Type* release();
-	Type* retrieve();
 private:
 	Type* toDelete;
+
+public:
+	Type* release();
+	Type* retrieve();
 };
 /*
 class BigInt

@@ -1,4 +1,4 @@
-#include "globals.h"
+#include "../General/globals.h"
 
 template <class Key, class Value> class AVLNode;
 
@@ -7,15 +7,19 @@ public:
 	AVLTree();
 	~AVLTree();
 
-	Value set(Key key, Value value);
-	Value get(Key key);
 private:
 	static thread_local Value nextReturnValue;
 	static const Value emptyValue;
 	AVLNode<Key, Value>* root;
 
 	void deleteTree(AVLNode<Key, Value>* node);
+public:
+	Value set(Key key, Value value);
+private:
 	static AVLNode<Key, Value>* setAndRebalance(AVLNode<Key, Value>* node, Key key, Value value);
+public:
+	Value get(Key key);
+private:
 	static Value get(AVLNode<Key, Value>*, Key key);
 };
 template <class Key, class Value> class AVLNode onlyInDebug(: public ObjCounter) {
@@ -23,7 +27,7 @@ public:
 	AVLNode(Key pKey, Value pValue);
 	~AVLNode();
 
-	Key key; //private<AVLTree>
+	Key key; //private<readonly AVLTree>
 	Value value; //private<AVLTree>
 	char height; //private<AVLTree>
 	AVLNode* left; //private<AVLTree>

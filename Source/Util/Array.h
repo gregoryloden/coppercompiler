@@ -1,4 +1,4 @@
-#include "globals.h"
+#include "../General/globals.h"
 
 template <class Type> class Array onlyInDebug(: public ObjCounter) {
 public:
@@ -7,7 +7,10 @@ public:
 
 	Type* inner; //readonly<ArrayIterator>
 	int length; //readonly
+private:
+	int innerLength;
 
+public:
 	void add(Type t, int pos);
 	void add(Type t);
 	void add(Array<Type>* a, int pos, bool deletable);
@@ -19,8 +22,6 @@ public:
 	Type first();
 	Type pop();
 private:
-	int innerLength;
-
 	void resize(int scale);
 };
 template <class Type> class ArrayIterator onlyInDebug(: public ObjCounter) {
@@ -28,11 +29,13 @@ public:
 	ArrayIterator(Array<Type>* a);
 	virtual ~ArrayIterator();
 
-	Type getFirst();
-	Type getNext();
-	bool hasThis();
 private:
 	Type* inner;
 	int length;
 	int index;
+
+public:
+	Type getFirst();
+	Type getNext();
+	bool hasThis();
 };

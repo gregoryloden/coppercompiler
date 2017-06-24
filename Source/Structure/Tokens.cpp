@@ -27,11 +27,13 @@ IntConstant2::IntConstant2(int pVal, int pContentPos, int pRow, int pRowStartCon
 IntConstant2::~IntConstant2() {}
 FloatConstant2::FloatConstant2(BigInt2* pMantissa, int pExponent, int pContentPos, int pRow, int pRowStartContentPos)
 : LexToken(onlyWhenTrackingIDsWithComma("FLTCNST") pContentPos, pRow, pRowStartContentPos)
-, mantissa(pMantissa)
+, mantissa(new BigInt2(pMantissa))
 , exponent(pExponent) {
 	int expbias = 1 == 1 ? 1023/* double */ : 127/* float */;
 }
-FloatConstant2::~FloatConstant2() {}
+FloatConstant2::~FloatConstant2() {
+	delete mantissa;
+}
 StringLiteral::StringLiteral(string pVal, int pContentPos, int pRow, int pRowStartContentPos)
 : LexToken(onlyWhenTrackingIDsWithComma("STRING") pContentPos, pRow, pRowStartContentPos)
 , val(pVal) {

@@ -4,6 +4,8 @@ using namespace std;
 class SourceFile;
 class AbstractCodeBlock;
 class CDirective;
+class CDirectiveReplace;
+class CDirectiveInclude;
 class DirectiveTitle;
 class Identifier;
 class Separator2;
@@ -11,11 +13,12 @@ enum SeparatorType: unsigned char;
 template <class Type> class Array;
 
 class ParseDirectives {
-public:
-	static void parseDirectives(SourceFile* newSourceFile);
 private:
 	static thread_local SourceFile* sourceFile;
 
+public:
+	static void parseDirectives(SourceFile* newSourceFile);
+private:
 	static AbstractCodeBlock* parseAbstractCodeBlock(bool endsWithParenthesis);
 	static CDirective* completeDirective(DirectiveTitle* dt);
 	static CDirectiveReplace* completeDirectiveReplace(bool replaceInput);

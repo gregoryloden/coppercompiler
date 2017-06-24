@@ -81,8 +81,6 @@ enum ErrorType: unsigned char {
 		ObjCounter(onlyWhenTrackingIDs(char* pObjType));
 		~ObjCounter();
 
-		static void start();
-		static void end();
 	private:
 		#ifdef TRACK_OBJ_IDS
 			char* objType;
@@ -95,6 +93,10 @@ enum ErrorType: unsigned char {
 		static int objCount;
 		static int untrackedObjCount;
 		static int nextObjID;
+
+	public:
+		static void start();
+		static void end();
 	};
 #endif
 class Memory {
@@ -104,13 +106,14 @@ public:
 class Error {
 public:
 	static const int SNIPPET_CHARS = 0x41;
-
-	static void makeError(ErrorType type, char* message, SourceFile* sourceFile, Token* token);
 private:
 	static char* snippet;
 	static int errors;
 	static int lastErrorPos;
 
+public:
+	static void makeError(ErrorType type, char* message, SourceFile* sourceFile, Token* token);
+private:
 	static void showSnippet(SourceFile* sourceFile, Token* token);
 };
 /*

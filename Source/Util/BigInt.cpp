@@ -7,7 +7,7 @@ base(pBase)
 , highByte(-1)
 , inner(new unsigned char[1]) {
 }
-//this one is for use right before pSource will be deleted or its inner will be replaced
+//this one is for use right before pSource will be deleted (stack allocated) or its inner will be replaced
 BigInt2::BigInt2(BigInt2* pSource)
 : onlyInDebugWithComma(ObjCounter(onlyWhenTrackingIDs("BIGINT")))
 base(pSource->base)
