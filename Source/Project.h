@@ -1,14 +1,16 @@
+#include "pliers.h"
+
 //general
 #include "globals.h"
 #include "helpers.h"
 
 //util
 #include "Util/Array.h"
-#include "Util/BigInt.h"
 #include "Util/AVLTree.h"
+#include "Util/BigInt.h"
+#include "Util/Trie.h"
 
 //structure
-#include "pliers.h"
 #include "AssemblyInstruction.h"
 #include "Representation.h"
 #include "Tokens.h"

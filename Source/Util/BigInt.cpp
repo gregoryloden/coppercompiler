@@ -71,7 +71,8 @@ void BigInt2::multiply(BigInt2* other) {
 	int oldHighByte = highByte;
 	int otherHighByte = other->highByte;
 	//calculate what the new highByte will be and make a new array to fit it
-	highByte = oldHighByte + otherHighByte + (((short)(oldInner[oldHighByte]) * (short)(otherInner[otherHighByte])) >= 256 ? 1 : 0);
+	highByte = oldHighByte + otherHighByte +
+		(((short)(oldInner[oldHighByte]) * (short)(otherInner[otherHighByte])) >= 256 ? 1 : 0);
 	while (highByte >= innerLength)
 		innerLength *= 2;
 	unsigned char* newInner = new unsigned char[innerLength];

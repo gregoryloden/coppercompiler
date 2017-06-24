@@ -57,7 +57,7 @@ DirectiveTitle::DirectiveTitle(string pTitle, int pContentPos, int pRow, int pRo
 , directive(nullptr) {
 }
 DirectiveTitle::~DirectiveTitle() {
-	//do not delete directive because it will be deleted in the abstract code block directives array
+	delete directive;
 }
 AbstractCodeBlock::AbstractCodeBlock(Array<Token*>* pTokens, Array<CDirective*>* pDirectives)
 : Token(onlyWhenTrackingIDsWithComma("ABCDBLK") 0, 0, 0)
@@ -72,7 +72,7 @@ AbstractCodeBlock::AbstractCodeBlock(Array<Token*>* pTokens, Array<CDirective*>*
 }
 AbstractCodeBlock::~AbstractCodeBlock() {
 	Memory::deleteArrayAndContents(tokens);
-	Memory::deleteArrayAndContents(directives);
+	delete directives; // do not delete the contents as they are owned by the DirectiveTitles
 }
 //IdentifierList::IdentifierList(Identifier* pI1, Identifier* pI2)
 //: Token("IDFRLST", pI1->contentPos)

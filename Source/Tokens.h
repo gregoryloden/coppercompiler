@@ -15,6 +15,7 @@ enum SeparatorType: unsigned char {
 enum OperatorType: unsigned char {
 //	None,
 	Dot,
+	ObjectMemberAccess,
 	Increment,
 	Decrement,
 	VariableLogicalNot,
@@ -112,7 +113,6 @@ public:
 	virtual ~FloatConstant2();
 
 	static const int FLOAT_TOO_BIG_EXPONENT = 0x100000;
-
 	BigInt2 mantissa; //readonly
 	int exponent; //readonly
 };

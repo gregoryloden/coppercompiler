@@ -18,11 +18,11 @@ template class ArrayIterator<MainFunction*>;
 template class ArrayIterator<AssemblySequence*>;
 template class ArrayIterator<ControlFlow*>;
 */
-template class Retainer<Separator2>;
-template class Retainer<DirectiveTitle>;
-template class Retainer<Identifier>;
-template class Retainer<Array<string>>;
-template class Retainer<LexToken>;
+template class Deleter<Separator2>;
+template class Deleter<DirectiveTitle>;
+template class Deleter<Identifier>;
+template class Deleter<Array<string>>;
+template class Deleter<LexToken>;
 
 /*
 string to4bytes(int i) {
@@ -57,21 +57,21 @@ int max(int a, int b) {
 	return a > b ? a : b;
 }
 
-template <class Type> Retainer<Type>::Retainer(Type* pToRetain)
-: onlyInDebugWithComma(ObjCounter(onlyWhenTrackingIDs("RETAINR")))
-retained(pToRetain) {
+template <class Type> Deleter<Type>::Deleter(Type* pToDelete)
+: onlyInDebugWithComma(ObjCounter(onlyWhenTrackingIDs("DELETER")))
+toDelete(pToDelete) {
 }
-template <class Type> Retainer<Type>::~Retainer() {
-	delete retained;
+template <class Type> Deleter<Type>::~Deleter() {
+	delete toDelete;
 }
 //return the held object without releasing it
-template <class Type> Type* Retainer<Type>::retrieve() {
-	return retained;
+template <class Type> Type* Deleter<Type>::retrieve() {
+	return toDelete;
 }
 //return the held object and release it so it won't be deleted
-template <class Type> Type* Retainer<Type>::release() {
-	Type* val = retained;
-	retained = nullptr;
+template <class Type> Type* Deleter<Type>::release() {
+	Type* val = toDelete;
+	toDelete = nullptr;
 	return val;
 }
 /*

@@ -5,6 +5,9 @@ public:
 	Array();
 	virtual ~Array();
 
+	Type* inner; //readonly<ArrayIterator>
+	int length; //readonly
+
 	void add(Type t, int pos);
 	void add(Type t);
 	void add(Array<Type>* a, int pos, bool deletable);
@@ -15,9 +18,6 @@ public:
 	void remove(int pos);
 	Type first();
 	Type pop();
-
-	Type* inner; //readonly<ArrayIterator>
-	int length; //readonly
 private:
 	int innerLength;
 

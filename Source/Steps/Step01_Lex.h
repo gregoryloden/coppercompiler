@@ -13,13 +13,13 @@ public:
 	static void initializeLexer(SourceFile* newSourceFile);
 	static LexToken* lex();
 private:
-	static SourceFile* sourceFile;
-	static char* contents;
-	static int contentsLength;
-	static int pos;
-	static int row;
-	static int rowStartContentPos;
-	static char c;
+	static thread_local SourceFile* sourceFile;
+	static thread_local char* contents;
+	static thread_local int contentsLength;
+	static thread_local int pos;
+	static thread_local int row;
+	static thread_local int rowStartContentPos;
+	static thread_local char c;
 
 	static bool skipWhitespace();
 	static bool skipComment();

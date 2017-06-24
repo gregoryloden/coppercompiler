@@ -48,18 +48,18 @@ template void Memory::deleteArrayAndContents(Array<SourceFile*>* a);
 char allPurposeStringBuffer [ALL_PURPOSE_STRING_BUFFER_SIZE];
 
 #ifdef DEBUG
+	#ifdef TRACK_OBJ_IDS
+		ObjCounter* ObjCounter::headObjCounter = nullptr;
+		ObjCounter* ObjCounter::tailObjCounter = nullptr;
+	#endif
 	int ObjCounter::objCount = 0;
 	int ObjCounter::untrackedObjCount;
 	int ObjCounter::nextObjID = 0;
-	#ifdef TRACK_OBJ_IDS
-		ObjCounter* ObjCounter::head = nullptr;
-		ObjCounter* ObjCounter::tail = nullptr;
-	#endif
 	ObjCounter::ObjCounter(onlyWhenTrackingIDs(char* pObjType))
 	#ifdef TRACK_OBJ_IDS
 		: objType(pObjType)
 		, objID(nextObjID)
-		, prev(tail)
+		, prev(tailObjCounter)
 		, next(nullptr)
 	#endif
 	{
@@ -68,11 +68,11 @@ char allPurposeStringBuffer [ALL_PURPOSE_STRING_BUFFER_SIZE];
 
 		#ifdef TRACK_OBJ_IDS
 			printf("  Added %s\t%d,\tobj count: %d\n", objType, objID, objCount);
-			if (tail != nullptr)
-				tail->next = this;
-			tail = this;
-			if (head == nullptr)
-				head = this;
+			if (tailObjCounter != nullptr)
+				tailObjCounter->next = this;
+			tailObjCounter = this;
+			if (headObjCounter == nullptr)
+				headObjCounter = this;
 		#endif
 	}
 	ObjCounter::~ObjCounter() {
@@ -83,10 +83,10 @@ char allPurposeStringBuffer [ALL_PURPOSE_STRING_BUFFER_SIZE];
 				next->prev = prev;
 			if (prev != nullptr)
 				prev->next = next;
-			if (this == head)
-				head = next;
-			if (this == tail)
-				tail = prev;
+			if (this == headObjCounter)
+				headObjCounter = next;
+			if (this == tailObjCounter)
+				tailObjCounter = prev;
 		#endif
 	}
 	//assign the initial object ID to exclude any statically-allocated ObjCounters
@@ -94,15 +94,15 @@ char allPurposeStringBuffer [ALL_PURPOSE_STRING_BUFFER_SIZE];
 		untrackedObjCount = nextObjID;
 		#ifdef TRACK_OBJ_IDS
 			//reset the list, it's ok to leave any objects linked
-			head = nullptr;
-			tail = nullptr;
+			headObjCounter = nullptr;
+			tailObjCounter = nullptr;
 		#endif
 	}
 	//check for any non-deallocated objects
 	void ObjCounter::end() {
 		#ifdef TRACK_OBJ_IDS
-			for (; head != nullptr; head = head->next)
-				printf("      Remaining object: %s\t%d\n", head->objType, head->objID);
+			for (; headObjCounter != nullptr; headObjCounter = headObjCounter->next)
+				printf("      Remaining object: %s\t%d\n", headObjCounter->objType, headObjCounter->objID);
 		#endif
 		printf("Total remaining objects: %d\n", objCount - untrackedObjCount);
 		printf("Total objects used: %d + %d untracked\n", (nextObjID - untrackedObjCount), untrackedObjCount);
@@ -115,22 +115,22 @@ template <class Type> void Memory::deleteArrayAndContents(Array<Type>* a) {
 		delete t;
 	delete a;
 }
-char* Error::buildSnippet() {
+char* Error::snippet = []() -> char* {
 	char* val = new char[SNIPPET_CHARS * 3 / 2 + 3];
 	val[SNIPPET_CHARS] = '\n';
 	memset(val + SNIPPET_CHARS + 1, ' ', SNIPPET_CHARS / 2);
 	val[SNIPPET_CHARS * 3 / 2 + 1] = '^';
 	val[SNIPPET_CHARS * 3 / 2 + 2] = '\0';
 	return val;
-}
-char* Error::snippet = buildSnippet();
+}();
 int Error::errors = 0;
 int Error::lastErrorPos = -1;
 //print an error and throw
 void Error::makeError(ErrorType type, char* message, SourceFile* sourceFile, Token* token) {
 	if (token->contentPos != lastErrorPos) {
 		lastErrorPos = token->contentPos;
-		printf("Error in \"%s\" at line %d column %d: ", sourceFile->filename.c_str(), token->row, token->contentPos - token->rowStartContentPos);
+		printf("Error in \"%s\" at line %d column %d: ",
+			sourceFile->filename.c_str(), token->row, token->contentPos - token->rowStartContentPos);
 		switch (type) {
 			case General: puts(message); break;
 			case EndOfFileWhileSearching: printf("reached the end of the file while searching for %s\n", message); break;

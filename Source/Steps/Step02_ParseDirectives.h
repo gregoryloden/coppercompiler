@@ -14,7 +14,7 @@ class ParseDirectives {
 public:
 	static void parseDirectives(SourceFile* newSourceFile);
 private:
-	static SourceFile* sourceFile;
+	static thread_local SourceFile* sourceFile;
 
 	static AbstractCodeBlock* parseAbstractCodeBlock(bool endsWithParenthesis);
 	static CDirective* completeDirective(DirectiveTitle* dt);

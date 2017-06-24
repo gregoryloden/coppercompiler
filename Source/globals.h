@@ -8,7 +8,7 @@ template <class Type> class Array;
 #ifdef DEBUG
 	#define onlyInDebug(x) x
 	#define onlyInDebugWithComma(x) x,
-	/*/#define TRACK_OBJ_IDS /**/
+	//*/#define TRACK_OBJ_IDS
 #else
 	#define onlyInDebug(x)
 	#define onlyInDebugWithComma(x)
@@ -80,24 +80,21 @@ enum ErrorType: unsigned char {
 	public:
 		ObjCounter(onlyWhenTrackingIDs(char* pObjType));
 		~ObjCounter();
+
+		static void start();
+		static void end();
 	private:
 		#ifdef TRACK_OBJ_IDS
 			char* objType;
 			int objID;
 			ObjCounter* prev;
 			ObjCounter* next;
+			static ObjCounter* headObjCounter;
+			static ObjCounter* tailObjCounter;
 		#endif
-
 		static int objCount;
 		static int untrackedObjCount;
 		static int nextObjID;
-		#ifdef TRACK_OBJ_IDS
-			static ObjCounter* head;
-			static ObjCounter* tail;
-		#endif
-	public:
-		static void start();
-		static void end();
 	};
 #endif
 class Memory {
@@ -106,10 +103,10 @@ public:
 };
 class Error {
 public:
+	static const int SNIPPET_CHARS = 0x41;
+
 	static void makeError(ErrorType type, char* message, SourceFile* sourceFile, Token* token);
 private:
-	static const int SNIPPET_CHARS = 0x41;
-	static char* buildSnippet();
 	static char* snippet;
 	static int errors;
 	static int lastErrorPos;

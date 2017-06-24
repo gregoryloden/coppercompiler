@@ -7,13 +7,16 @@ public:
 	AVLTree();
 	~AVLTree();
 
-	void set(Key key, Value value);
+	Value set(Key key, Value value);
 	Value get(Key key);
-	Value remove(Key key);
 private:
+	static thread_local Value nextReturnValue;
+	static const Value emptyValue;
 	AVLNode<Key, Value>* root;
 
 	void deleteTree(AVLNode<Key, Value>* node);
+	static AVLNode<Key, Value>* setAndRebalance(AVLNode<Key, Value>* node, Key key, Value value);
+	static Value get(AVLNode<Key, Value>*, Key key);
 };
 template <class Key, class Value> class AVLNode onlyInDebug(: public ObjCounter) {
 public:
@@ -25,4 +28,6 @@ public:
 	char height; //private<AVLTree>
 	AVLNode* left; //private<AVLTree>
 	AVLNode* right; //private<AVLTree>
+
+	static char nodeHeight(AVLNode<Key, Value>* node);
 };

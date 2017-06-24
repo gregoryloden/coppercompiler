@@ -2,7 +2,7 @@
 
 //comletely parses all directives (builds #replace, evaluates #buildSetting, groups code for #if, #enable, etc.)
 
-SourceFile* ParseDirectives::sourceFile;
+thread_local SourceFile* ParseDirectives::sourceFile;
 
 //get the list of tokens and directives
 //parse location: EOF
@@ -28,15 +28,15 @@ AbstractCodeBlock* ParseDirectives::parseAbstractCodeBlock(bool endsWithParenthe
 			DirectiveTitle* dt;
 			Separator2* s;
 			if ((dt = dynamic_cast<DirectiveTitle*>(next)) != nullptr) {
-				Retainer<DirectiveTitle> dtRetainer (dt);
+				Deleter<DirectiveTitle> dtDeleter (dt);
 				directives->add(completeDirective(dt));
-				dtRetainer.release();
+				dtDeleter.release();
 			} else if ((s = dynamic_cast<Separator2*>(next)) != nullptr) {
 				if (s->type == LeftParenthesis) {
 					delete s;
 					next = parseAbstractCodeBlock(true);
 				} else if (s->type == RightParenthesis) {
-					Retainer<Separator2> sRetainer (s); //the retainer will handle the deletion of s
+					Deleter<Separator2> sDeleter (s);
 					if (!endsWithParenthesis)
 						Error::makeError(General, "found a right parenthesis without a matching left parenthesis", sourceFile, s);
 					break;
@@ -48,6 +48,24 @@ AbstractCodeBlock* ParseDirectives::parseAbstractCodeBlock(bool endsWithParenthe
 			tokens->add(next);
 		}
 	} catch (...) {
+		//try to balance parentheses
+		if (endsWithParenthesis) {
+			try {
+				for (int parentheses = 1; parentheses > 0;) {
+					LexToken* next = Lex::lex();
+					Separator2* s;
+					if ((s = dynamic_cast<Separator2*>(next)) != nullptr) {
+						if (s->type == LeftParenthesis)
+							parentheses++;
+						else if (s->type == RightParenthesis)
+							parentheses--;
+					}
+					delete next;
+				}
+			} catch (...) {
+				// well we tried, just return what we've got
+			}
+		}
 	}
 	return new AbstractCodeBlock(tokens, directives);
 }
@@ -71,8 +89,8 @@ CDirective* ParseDirectives::completeDirective(DirectiveTitle* dt) {
 //get the definition of a replace directive
 //parse location: the next token after the replace directive
 CDirectiveReplace* ParseDirectives::completeDirectiveReplace(bool replaceInput) {
-	Retainer<Identifier> toReplace(parseIdentifier());
-	Retainer<Array<string>> input(replaceInput ? parseParenthesizedCommaSeparatedIdentifierList() : nullptr);
+	Deleter<Identifier> toReplace(parseIdentifier());
+	Deleter<Array<string>> input(replaceInput ? parseParenthesizedCommaSeparatedIdentifierList() : nullptr);
 	parseSeparator(LeftParenthesis);
 	//use retrieve() so that toReplace deletes the identifier
 	return new CDirectiveReplace(toReplace.retrieve()->name, input.release(), parseAbstractCodeBlock(true));
@@ -93,7 +111,7 @@ template <class TokenType> TokenType* ParseDirectives::parseToken(char* expected
 		Lex::makeLexError(EndOfFileWhileSearching, expectedTokenTypeName);
 	TokenType* t;
 	if ((t = dynamic_cast<TokenType*>(l)) == nullptr) {
-		Retainer<LexToken> lRetainer(l);
+		Deleter<LexToken> lDeleter (l);
 		makeUnexpectedTokenError(expectedTokenTypeName, l);
 	}
 	return t;
@@ -119,7 +137,7 @@ void ParseDirectives::parseSeparator(SeparatorType type) {
 		default: expectedTokenTypeName = "a comma"; break;
 	}
 	Separator2* s = parseToken<Separator2>(expectedTokenTypeName);
-	Retainer<Separator2> sRetainer (s); //the retainer will handle the deletion of s
+	Deleter<Separator2> sDeleter (s);
 	if (s->type != type)
 		makeUnexpectedTokenError(expectedTokenTypeName, s);
 }
@@ -133,7 +151,7 @@ Array<string>* ParseDirectives::parseParenthesizedCommaSeparatedIdentifierList()
 		names->add(identifier->name);
 		delete identifier;
 		Separator2* s = parseSeparator();
-		Retainer<Separator2> sRetainer (s); //the retainer will handle the deletion of s
+		Deleter<Separator2> sDeleter (s);
 		if (s->type == RightParenthesis)
 			break;
 		else if (s->type != Comma)

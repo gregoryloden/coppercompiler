@@ -4,7 +4,9 @@
 #define inbounds() (pos < contentsLength)
 #define outofbounds() (pos >= contentsLength)
 #define emptyTokenAtPos(name) EmptyToken name (pos, row, rowStartContentPos)
-#define goToOtherNewlineCharacterIfPresentAndIncrementRow() char c2; goToOtherNewlineCharacterIfPresentAndIncrementRowWithCharAndHandling(c2,)
+#define goToOtherNewlineCharacterIfPresentAndIncrementRow() \
+	char c2;\
+	goToOtherNewlineCharacterIfPresentAndIncrementRowWithCharAndHandling(c2,)
 #define goToOtherNewlineCharacterIfPresentAndIncrementRowWithCharAndHandling(c2, handling) \
 	if (pos + 1 < contentsLength && ((c2 = contents[pos + 1]) == '\n' || c2 == '\r') && c2 != c) {\
 		pos++;\
@@ -31,6 +33,9 @@ struct OperatorTypeTrie {
 	OperatorTypeTrie* tries;
 };
 const int baseOperatorTrieCount = 16;
+OperatorTypeTrie dotOperatorTries[] = {
+	{'.', ObjectMemberAccess, 0, nullptr}
+};
 OperatorTypeTrie addOperatorTries[] = {
 	{'+', Increment, 0, nullptr},
 	{'=', AssignAdd, 0, nullptr}
@@ -89,7 +94,7 @@ OperatorTypeTrie assignOperatorTries[] = {
 	{'=', Equal, 0, nullptr}
 };
 OperatorTypeTrie baseOperatorTries[] = {
-	{'.', Dot, 0, nullptr},
+	{'.', Dot, 1, dotOperatorTries},
 	{'+', Add, 2, addOperatorTries},
 	{'-', Subtract, 2, subtractOperatorTries},
 	{'~', BitwiseNot, 3, bitwiseNotOperatorTries},
@@ -107,13 +112,13 @@ OperatorTypeTrie baseOperatorTries[] = {
 	{':', Colon, 0, nullptr}
 };
 
-SourceFile* Lex::sourceFile;
-char* Lex::contents;
-int Lex::contentsLength = 0;
-int Lex::pos = 0;
-int Lex::row;
-int Lex::rowStartContentPos;
-char Lex::c;
+thread_local SourceFile* Lex::sourceFile;
+thread_local char* Lex::contents;
+thread_local int Lex::contentsLength = 0;
+thread_local int Lex::pos = 0;
+thread_local int Lex::row;
+thread_local int Lex::rowStartContentPos;
+thread_local char Lex::c;
 
 //prep lexing with the source file
 void Lex::initializeLexer(SourceFile* newSourceFile) {
