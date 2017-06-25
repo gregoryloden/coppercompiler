@@ -1,14 +1,18 @@
 #include "Project.h"
 
-template class AVLTree<int, int>;
-template class AVLTree<char, char>;
-template class AVLNode<int, int>;
-template class AVLNode<char, char>;
+//template class AVLTree<int, int>;
+//template class AVLTree<char, char>;
+//template class AVLNode<int, int>;
+//template class AVLNode<char, char>;
+template class AVLTree<char, Trie<char, SourceFile*>*>;
+template class AVLNode<char, Trie<char, SourceFile*>*>;
 
-thread_local int AVLTree<int, int>::nextReturnValue = 0;
-thread_local char AVLTree<char, char>::nextReturnValue = '\0';
-const int AVLTree<int, int>::emptyValue = 0;
-const char AVLTree<char, char>::emptyValue = '\0';
+//const int AVLTree<int, int>::emptyValue = 0;
+//const char AVLTree<char, char>::emptyValue = '\0';
+//thread_local int AVLTree<int, int>::oldValue = 0;
+//thread_local char AVLTree<char, char>::oldValue = '\0';
+Trie<char, SourceFile*>* const AVLTree<char, Trie<char, SourceFile*>*>::emptyValue = nullptr;
+thread_local Trie<char, SourceFile*>* AVLTree<char, Trie<char, SourceFile*>*>::oldValue = nullptr;
 
 template <class Key, class Value> AVLTree<Key, Value>::AVLTree()
 : onlyInDebugWithComma(ObjCounter(onlyWhenTrackingIDs("AVLTREE")))
@@ -32,17 +36,17 @@ template <class Key, class Value> Value AVLTree<Key, Value>::set(Key key, Value 
 		return emptyValue;
 	} else {
 		root = setAndRebalance(root, key, value);
-		return nextReturnValue;
+		return oldValue;
 	}
 }
 //set a value in the tree as determined by the node, and rebalance if one side is too tall
 template <class Key, class Value> AVLNode<Key, Value>* AVLTree<Key, Value>::setAndRebalance(
 	AVLNode<Key, Value>* node, Key key, Value value) {
 	if (node == nullptr) {
-		nextReturnValue = emptyValue;
+		oldValue = emptyValue;
 		return new AVLNode<Key, Value>(key, value);
 	} else if (key == node->key) {
-		nextReturnValue = node->value;
+		oldValue = node->value;
 		node->value = value;
 		return node;
 	}
@@ -73,7 +77,7 @@ template <class Key, class Value> AVLNode<Key, Value>* AVLTree<Key, Value>::setA
 	//                X+2: B   C: X    >    X+1: D   A: X+1
 	//                    / \                       / \
 	//              X+1: D   E: X               X: E   C: X
-	} else if (leftAccessor.get(leftNode)->height > AVLNode<Key, Value>::nodeHeight(leftNodeRightChild = rightAccessor.get(leftNode))) {
+	} else if (AVLNode<Key, Value>::nodeHeight(leftAccessor.get(leftNode)) > AVLNode<Key, Value>::nodeHeight(leftNodeRightChild = rightAccessor.get(leftNode))) {
 		leftAccessor.set(node, leftNodeRightChild);
 		node->height = rightNodeHeight + 1;
 		rightAccessor.set(leftNode, node);

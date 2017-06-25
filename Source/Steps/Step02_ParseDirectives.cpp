@@ -81,6 +81,7 @@ CDirective* ParseDirectives::completeDirective(DirectiveTitle* dt) {
 		directive = completeDirectiveInclude(false);
 	else if (dt->title == "include-all")
 		directive = completeDirectiveInclude(true);
+	//other directives may change the lexing mode
 	else
 		Error::makeError(General, "unknown directive type", sourceFile, dt);
 	dt->directive = directive;

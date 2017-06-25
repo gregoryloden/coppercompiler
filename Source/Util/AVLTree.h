@@ -7,9 +7,9 @@ public:
 	AVLTree();
 	~AVLTree();
 
-private:
-	static thread_local Value nextReturnValue;
 	static const Value emptyValue;
+private:
+	static thread_local Value oldValue;
 	AVLNode<Key, Value>* root;
 
 	void deleteTree(AVLNode<Key, Value>* node);
