@@ -25,7 +25,7 @@ template <class Type> Array<Type>::~Array() {
 //resize the array by the given scale
 template <class Type> void Array<Type>::resize(int scale) {
 	Type* newInner = new Type[innerLength * scale];
-	for (int i = 0; i < length; i++)
+	for (int i = length - 1; i >= 0; i--)
 		newInner[i] = inner[i];
 	delete[] inner;
 	inner = newInner;

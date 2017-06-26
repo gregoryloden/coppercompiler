@@ -103,14 +103,11 @@ template <class Key, class Value> AVLNode<Key, Value>* AVLTree<Key, Value>::setA
 }
 //get a value from the tree
 template <class Key, class Value> Value AVLTree<Key, Value>::get(Key key) {
-	return get(root, key);
-}
-//get a value from the tree as determined by the given node
-template <class Key, class Value> Value AVLTree<Key, Value>::get(AVLNode<Key, Value>* node, Key key) {
-	return
-		node == nullptr ? emptyValue :
-		key == node->key ? node->value :
-		get(key < node->key ? node->left : node->right, key);
+	for (AVLNode<Key, Value>* node = root; node != nullptr; node = key < node->key ? node->left : node->right) {
+		if (key == node->key)
+			return node->value;
+	}
+	return emptyValue;
 }
 template <class Key, class Value> AVLNode<Key, Value>::AVLNode(Key pKey, Value pValue)
 : onlyInDebugWithComma(ObjCounter(onlyWhenTrackingIDs("AVLNODE")))
@@ -123,6 +120,7 @@ key(pKey)
 template <class Key, class Value> AVLNode<Key, Value>::~AVLNode() {
 	//don't delete left or right, so that we can delete nodes without deleting their whole trees
 	//deleting whole trees will happen via AVLTree::deleteTree when the AVLTree is deleted
+	delete value;
 }
 template <class Key, class Value> char AVLNode<Key, Value>::nodeHeight(AVLNode<Key, Value>* node) {
 	return node != nullptr ? node->height : 0;

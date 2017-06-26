@@ -19,8 +19,6 @@ private:
 	static AVLNode<Key, Value>* setAndRebalance(AVLNode<Key, Value>* node, Key key, Value value);
 public:
 	Value get(Key key);
-private:
-	static Value get(AVLNode<Key, Value>*, Key key);
 };
 template <class Key, class Value> class AVLNode onlyInDebug(: public ObjCounter) {
 public:

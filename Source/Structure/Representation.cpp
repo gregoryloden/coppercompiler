@@ -1523,7 +1523,7 @@ filename(pFilename)
 SourceFile::~SourceFile() {
 	delete[] contents;
 	delete abstractContents;
-	//these source files will get deleted through the main source file list
+	//don't delete the source files, they will get deleted through the main source file list
 	delete includedFiles;
 	delete inclusionListeners;
 }

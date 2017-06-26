@@ -5,7 +5,7 @@ public:
 	Array();
 	virtual ~Array();
 
-	Type* inner; //readonly<ArrayIterator>
+	Type* inner; //private<readonly ArrayIterator>
 	int length; //readonly
 private:
 	int innerLength;

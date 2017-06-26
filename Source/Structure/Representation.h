@@ -410,19 +410,20 @@ public:
 	SourceFile(string pFilename);
 	virtual ~SourceFile();
 
-	string filename; //copper: readonly
-	char* contents; //copper: readonly
-	int contentsLength; //copper: readonly
-	AbstractCodeBlock* abstractContents; //copper: readonly<ParseDirectives>
-	Array<SourceFile*>* includedFiles; //copper: readonly
-	Array<SourceFile*>* inclusionListeners; //copper: readonly
+	string filename; //copper: private<readonly Include>
+	char* contents; //copper: private<readonly ParseDirectives>
+	int contentsLength; //copper: private<readonly ParseDirectives>
+	AbstractCodeBlock* abstractContents; //copper: private<ParseDirectives>
+	Array<SourceFile*>* includedFiles; //copper: private<readonly Include>
+	Array<SourceFile*>* inclusionListeners; //copper: private<readonly Include>
 //	Array<CVariable*>* variables;
 //	Array<CClass*>* classes;
 //	Array<CDirective*>* directives;
 };
 class CDirective onlyInDebug(: public ObjCounter) {
-public:
+protected:
 	CDirective();
+public:
 	virtual ~CDirective();
 };
 class CDirectiveReplace: public CDirective {
@@ -430,15 +431,15 @@ public:
 	CDirectiveReplace(string pToReplace, Array<string>* pInput, AbstractCodeBlock* pReplacement);
 	virtual ~CDirectiveReplace();
 
-	string toReplace; //copper: readonly
-	Array<string>* input; //copper: readonly
-	AbstractCodeBlock* replacement; //copper: readonly
+	string toReplace; //copper: private<readonly Replace>
+	Array<string>* input; //copper: private<readonly Replace>
+	AbstractCodeBlock* replacement; //copper: private<readonly Replace>
 };
 class CDirectiveInclude: public CDirective {
 public:
 	CDirectiveInclude(string pFilename, bool pIncludeAll);
 	virtual ~CDirectiveInclude();
 
-	string filename; //copper: readonly
-	bool includeAll; //copper: readonly
+	string filename; //copper: private<readonly Include>
+	bool includeAll; //copper: private<readonly Include>
 };
