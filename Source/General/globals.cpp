@@ -41,10 +41,6 @@ Thunk THeapAlloc ("HeapAlloc", 0x1BD);
 Thunk THeapReAlloc ("HeapReAlloc", 0x1C4);
 */
 
-template void Memory::deleteArrayAndContents(Array<Token*>* a);
-template void Memory::deleteArrayAndContents(Array<CDirective*>* a);
-template void Memory::deleteArrayAndContents(Array<SourceFile*>* a);
-
 char allPurposeStringBuffer [ALL_PURPOSE_STRING_BUFFER_SIZE];
 
 #ifdef DEBUG

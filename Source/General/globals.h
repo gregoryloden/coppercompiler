@@ -21,7 +21,6 @@ template <class Type> class Array;
 	#define onlyWhenTrackingIDs(x)
 	#define onlyWhenTrackingIDsWithComma(x)
 #endif
-//#define virtual int dynamicMemorySize() { return sizeof(*this); }
 
 const int ALL_PURPOSE_STRING_BUFFER_SIZE = 0x100;
 
