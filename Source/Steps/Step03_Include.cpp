@@ -1,26 +1,46 @@
 #include "Project.h"
 
-//this will be a closure in copper
-string nextFilename = "";
-SourceFile* generateSourceFile() {
-	return new SourceFile(nextFilename);
-}
 //only loads and links files, does nothing else
-Array<SourceFile*>* Include::loadFiles(char* baseFile) {
-	Trie<char, SourceFile*>* filesByName = new Trie<char, SourceFile*>();
+Array<SourceFile*>* Include::loadFiles(char* baseFileName) {
 	Array<SourceFile*>* allFiles = new Array<SourceFile*>();
-	allFiles->add(new SourceFile(baseFile));
-	nextFilename = allFiles->inner[0]->filename;
-	filesByName->getOrSet(nextFilename.c_str(), nextFilename.length(), generateSourceFile);
+	PrefixTrie<char, SourceFile*>* filesByName = new PrefixTrie<char, SourceFile*>();
+	SourceFile* baseFile = newSourceFile(baseFileName, allFiles, filesByName);
 	for (int i = 0; i < allFiles->length; i++) {
 		SourceFile* nextFile = allFiles->inner[i];
-		//TODO: store by the full file path instead of just the filename string
 		ParseDirectives::parseDirectives(nextFile);
+		forEach(CDirective*, d, nextFile->abstractContents->directives, di) {
+			CDirectiveInclude* i;
+			if ((i = dynamic_cast<CDirectiveInclude*>(d)) == nullptr)
+				continue;
 
-		//TODO: add included files
+			//get the included file
+			string includedName = i->filename;
+			SourceFile* includedFile = filesByName->get(includedName.c_str(), includedName.length());
+			if (includedFile == PrefixTrie<char, SourceFile*>::emptyValue)
+				includedFile = newSourceFile(includedName.c_str(), allFiles, filesByName);
+			nextFile->includedFiles->set(includedFile, true);
+			//if we're including all, add all its included files and add this to its listeners list
+			if (i->includeAll) {
+				nextFile->includedFiles->setAllFrom(includedFile->includedFiles);
+				includedFile->inclusionListeners->add(nextFile);
+			}
+		}
+		//and now notify any of our own inclusion listeners that we included files
+		forEach(SourceFile*, listener, nextFile->inclusionListeners, sfi)
+			listener->includedFiles->setAllFrom(nextFile->includedFiles);
 		//TODO: file paths should be relative to the file, instead of just relative to the working directory
 		//TODO: wildcard includes
 	}
 	delete filesByName;
 	return allFiles;
+}
+//create a new SourceFile, add it to the two collections, and return it
+SourceFile* Include::newSourceFile(
+	const char* fileName, Array<SourceFile*>* allFiles, PrefixTrie<char, SourceFile*>* filesByName)
+{
+	//TODO: store by the full file path instead of just the filename string
+	SourceFile* file = new SourceFile(fileName);
+	allFiles->add(file);
+	filesByName->set(fileName, file->filename.length(), file);
+	return file;
 }

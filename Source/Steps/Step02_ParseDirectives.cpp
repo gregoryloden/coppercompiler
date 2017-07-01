@@ -7,6 +7,7 @@ thread_local SourceFile* ParseDirectives::sourceFile;
 //get the list of tokens and directives
 //parse location: EOF
 void ParseDirectives::parseDirectives(SourceFile* newSourceFile) {
+	printf("Parsing directives for %s...\n", newSourceFile->filename.c_str());
 	sourceFile = newSourceFile;
 	Lex::initializeLexer(newSourceFile);
 	newSourceFile->abstractContents = parseAbstractCodeBlock(false);
@@ -38,7 +39,8 @@ AbstractCodeBlock* ParseDirectives::parseAbstractCodeBlock(bool endsWithParenthe
 				} else if (s->type == RightParenthesis) {
 					Deleter<Separator2> sDeleter (s);
 					if (!endsWithParenthesis)
-						Error::makeError(General, "found a right parenthesis without a matching left parenthesis", sourceFile, s);
+						Error::makeError(
+							General, "found a right parenthesis without a matching left parenthesis", sourceFile, s);
 					break;
 				}
 			}
@@ -107,8 +109,8 @@ CDirectiveInclude* ParseDirectives::completeDirectiveInclude(bool includeAll) {
 //lex a token and make sure that it's the right type
 //parse location: the next token after this one
 template <class TokenType> TokenType* ParseDirectives::parseToken(char* expectedTokenTypeName) {
-	LexToken* l;
-	if ((l = Lex::lex()) == nullptr)
+	LexToken* l = Lex::lex();
+	if (l == nullptr)
 		Lex::makeLexError(EndOfFileWhileSearching, expectedTokenTypeName);
 	TokenType* t;
 	if ((t = dynamic_cast<TokenType*>(l)) == nullptr) {

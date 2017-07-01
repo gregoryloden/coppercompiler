@@ -22,6 +22,14 @@ inner(new Type[1])
 template <class Type> Array<Type>::~Array() {
 	delete[] inner;
 }
+template <> void Array<string>::deleteSelfAndContents() {
+	delete this;
+}
+template <class Type> void Array<Type>::deleteSelfAndContents() {
+	forEach(Type, t, this, ti)
+		delete t;
+	delete this;
+}
 //resize the array by the given scale
 template <class Type> void Array<Type>::resize(int scale) {
 	Type* newInner = new Type[innerLength * scale];

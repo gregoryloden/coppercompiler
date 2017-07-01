@@ -185,7 +185,7 @@ puts("Suspended until the rewrite is complete");
 	}
 	*/
 	#ifdef DEBUG
-		Memory::deleteArrayAndContents(allFiles);//cleanup();
+		allFiles->deleteSelfAndContents();//cleanup();
 		ObjCounter::end();
 	#endif
 while(true) {}

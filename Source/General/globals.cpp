@@ -110,8 +110,7 @@ char allPurposeStringBuffer [ALL_PURPOSE_STRING_BUFFER_SIZE];
 #endif
 //delete the contents of the array and then delete the array
 template <class Type> void Memory::deleteArrayAndContents(Array<Type>* a) {
-	ArrayIterator<Type> ai(a);
-	for (Type t = ai.getFirst(); ai.hasThis(); t = ai.getNext())
+	forEach(Type, t, a, ti)
 		delete t;
 	delete a;
 }

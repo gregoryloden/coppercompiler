@@ -5,6 +5,7 @@ class SourceFile;
 class Token;
 template <class Type> class Array;
 
+#define forEach(Type, t, a, ti) ArrayIterator<Type> ti (a); for (Type t = ti.getFirst(); ti.hasThis(); t = ti.getNext())
 #ifdef DEBUG
 	#define onlyInDebug(x) x
 	#define onlyInDebugWithComma(x) x,
@@ -20,6 +21,7 @@ template <class Type> class Array;
 	#define onlyWhenTrackingIDs(x)
 	#define onlyWhenTrackingIDsWithComma(x)
 #endif
+//#define virtual int dynamicMemorySize() { return sizeof(*this); }
 
 const int ALL_PURPOSE_STRING_BUFFER_SIZE = 0x100;
 

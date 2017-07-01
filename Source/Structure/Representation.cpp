@@ -1504,7 +1504,7 @@ filename(pFilename)
 , contents(nullptr)
 , contentsLength(0)
 , abstractContents(nullptr)
-, includedFiles(new Array<SourceFile*>())
+, includedFiles(new AVLTree<SourceFile*, bool>())
 , inclusionListeners(new Array<SourceFile*>()) {
 	FILE* file = nullptr;
 	fopen_s(&file, filename.c_str(), "rb");

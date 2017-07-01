@@ -73,7 +73,7 @@ AbstractCodeBlock::AbstractCodeBlock(Array<Token*>* pTokens, Array<CDirective*>*
 	}
 }
 AbstractCodeBlock::~AbstractCodeBlock() {
-	Memory::deleteArrayAndContents(tokens);
+	tokens->deleteSelfAndContents();
 	delete directives; // do not delete the contents as they are owned by the DirectiveTitles
 }
 //IdentifierList::IdentifierList(Identifier* pI1, Identifier* pI2)

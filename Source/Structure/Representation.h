@@ -108,6 +108,7 @@ class Expression;
 */
 template <class Type> class Array;
 class AbstractCodeBlock;
+template <class Key, class Value> class AVLTree;
 /*
 
 int divhighreg(int rtype);
@@ -414,7 +415,7 @@ public:
 	char* contents; //copper: private<readonly ParseDirectives>
 	int contentsLength; //copper: private<readonly ParseDirectives>
 	AbstractCodeBlock* abstractContents; //copper: private<ParseDirectives>
-	Array<SourceFile*>* includedFiles; //copper: private<readonly Include>
+	AVLTree<SourceFile*, bool>* includedFiles; //copper: private<readonly Include>
 	Array<SourceFile*>* inclusionListeners; //copper: private<readonly Include>
 //	Array<CVariable*>* variables;
 //	Array<CClass*>* classes;

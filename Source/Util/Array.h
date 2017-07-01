@@ -5,12 +5,13 @@ public:
 	Array();
 	virtual ~Array();
 
-	Type* inner; //private<readonly ArrayIterator>
-	int length; //readonly
+	Type* inner; //copper: private<readonly ArrayIterator>
+	int length; //copper: readonly
 private:
 	int innerLength;
 
 public:
+	void deleteSelfAndContents();
 	void add(Type t, int pos);
 	void add(Type t);
 	void add(Array<Type>* a, int pos, bool deletable);
