@@ -1,6 +1,7 @@
 #include "Project.h"
 
-//only loads and links files, does nothing else
+//loads and links files, does nothing else
+
 Array<SourceFile*>* Include::loadFiles(char* baseFileName) {
 	Array<SourceFile*>* allFiles = new Array<SourceFile*>();
 	PrefixTrie<char, SourceFile*>* filesByName = new PrefixTrie<char, SourceFile*>();
@@ -42,5 +43,7 @@ SourceFile* Include::newSourceFile(
 	SourceFile* file = new SourceFile(fileName);
 	allFiles->add(file);
 	filesByName->set(fileName, file->filename.length(), file);
+	//include itself so that we have one place to look for all directives
+	file->includedFiles->set(file, true);
 	return file;
 }

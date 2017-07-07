@@ -1,6 +1,8 @@
 #include "Project.h"
 
-//check if pos is within the code
+//obtains tokens from the source file
+//lexing mode can change based on which token came previously
+
 #define inbounds() (pos < contentsLength)
 #define outofbounds() (pos >= contentsLength)
 #define emptyTokenAtPos(name) EmptyToken name (pos, row, rowStartContentPos)

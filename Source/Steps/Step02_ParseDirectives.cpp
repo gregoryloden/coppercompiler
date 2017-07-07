@@ -1,6 +1,7 @@
 #include "Project.h"
 
-//comletely parses all directives (builds #replace, evaluates #buildSetting, groups code for #if, #enable, etc.)
+//comletely parses all directives, evaluates some
+//	(builds #replace, evaluates #buildSetting, groups code for #if, #enable, etc.)
 
 thread_local SourceFile* ParseDirectives::sourceFile;
 

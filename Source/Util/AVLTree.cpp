@@ -110,14 +110,6 @@ template <class Key, class Value> AVLNode<Key, Value>* AVLTree<Key, Value>::setA
 		return leftNodeRightChild;
 	}
 }
-//get a value from the tree
-template <class Key, class Value> Value AVLTree<Key, Value>::get(Key key) {
-	for (AVLNode<Key, Value>* node = root; node != nullptr; node = key < node->key ? node->left : node->right) {
-		if (key == node->key)
-			return node->value;
-	}
-	return emptyValue;
-}
 //set all values from the other tree in this tree
 template <class Key, class Value> void AVLTree<Key, Value>::setAllFrom(AVLTree<Key, Value>* other) {
 	return setAllFrom(other->root);
@@ -130,6 +122,14 @@ template <class Key, class Value> void AVLTree<Key, Value>::setAllFrom(AVLNode<K
 	setAllFrom(node->left);
 	setAllFrom(node->right);
 	set(node->key, node->value);
+}
+//get a value from the tree
+template <class Key, class Value> Value AVLTree<Key, Value>::get(Key key) {
+	for (AVLNode<Key, Value>* node = root; node != nullptr; node = key < node->key ? node->left : node->right) {
+		if (key == node->key)
+			return node->value;
+	}
+	return emptyValue;
 }
 template <class Key, class Value> AVLNode<Key, Value>::AVLNode(Key pKey, Value pValue)
 : onlyInDebugWithComma(ObjCounter(onlyWhenTrackingIDs("AVLNODE")))

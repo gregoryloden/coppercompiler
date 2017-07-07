@@ -18,10 +18,11 @@ public:
 private:
 	static AVLNode<Key, Value>* setAndRebalance(AVLNode<Key, Value>* node, Key key, Value value);
 public:
-	Value get(Key key);
 	void setAllFrom(AVLTree<Key, Value>* other);
 private:
 	void setAllFrom(AVLNode<Key, Value>* node);
+public:
+	Value get(Key key);
 };
 template <class Key, class Value> class AVLNode onlyInDebug(: public ObjCounter) {
 public:
