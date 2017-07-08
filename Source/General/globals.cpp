@@ -133,12 +133,6 @@ template <class Type> Type* Deleter<Type>::release() {
 	toDelete = nullptr;
 	return val;
 }
-//delete the contents of the array and then delete the array
-template <class Type> void Memory::deleteArrayAndContents(Array<Type>* a) {
-	forEach(Type, t, a, ti)
-		delete t;
-	delete a;
-}
 char* Error::snippet = []() -> char* {
 	char* val = new char[SNIPPET_CHARS * 3 / 2 + 3];
 	val[SNIPPET_CHARS] = '\n';

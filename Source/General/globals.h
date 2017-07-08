@@ -112,10 +112,6 @@ public:
 	Type* release();
 	Type* retrieve();
 };
-class Memory {
-public:
-	template <class Type> static void deleteArrayAndContents(Array<Type>* a);
-};
 enum ErrorType: unsigned char {
 	General,
 	EndOfFileWhileSearching,
