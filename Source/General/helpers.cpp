@@ -18,11 +18,6 @@ template class ArrayIterator<MainFunction*>;
 template class ArrayIterator<AssemblySequence*>;
 template class ArrayIterator<ControlFlow*>;
 */
-template class Deleter<Separator2>;
-template class Deleter<DirectiveTitle>;
-template class Deleter<Identifier>;
-template class Deleter<Array<string>>;
-template class Deleter<LexToken>;
 
 /*
 string to4bytes(int i) {
@@ -50,30 +45,6 @@ int intval(bool val) {
 	return 0;
 }
 */
-int min(int a, int b) {
-	return a < b ? a : b;
-}
-int max(int a, int b) {
-	return a > b ? a : b;
-}
-
-template <class Type> Deleter<Type>::Deleter(Type* pToDelete)
-: onlyInDebugWithComma(ObjCounter(onlyWhenTrackingIDs("DELETER")))
-toDelete(pToDelete) {
-}
-template <class Type> Deleter<Type>::~Deleter() {
-	delete toDelete;
-}
-//return the held object without releasing it
-template <class Type> Type* Deleter<Type>::retrieve() {
-	return toDelete;
-}
-//return the held object and release it so it won't be deleted
-template <class Type> Type* Deleter<Type>::release() {
-	Type* val = toDelete;
-	toDelete = nullptr;
-	return val;
-}
 /*
 BigInt::BigInt(int b)
 : ObjCounter("BGNT")

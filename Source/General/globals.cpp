@@ -41,8 +41,20 @@ Thunk THeapAlloc ("HeapAlloc", 0x1BD);
 Thunk THeapReAlloc ("HeapReAlloc", 0x1C4);
 */
 
+template class Deleter<Separator2>;
+template class Deleter<DirectiveTitle>;
+template class Deleter<Identifier>;
+template class Deleter<Array<string>>;
+template class Deleter<LexToken>;
+
 char allPurposeStringBuffer [ALL_PURPOSE_STRING_BUFFER_SIZE];
 
+int Math::min(int a, int b) {
+	return a < b ? a : b;
+}
+int Math::max(int a, int b) {
+	return a > b ? a : b;
+}
 #ifdef DEBUG
 	#ifdef TRACK_OBJ_IDS
 		ObjCounter* ObjCounter::headObjCounter = nullptr;
@@ -77,12 +89,12 @@ char allPurposeStringBuffer [ALL_PURPOSE_STRING_BUFFER_SIZE];
 			printf("Deleted %s\t%d,\tobj count: %d\n", objType, objID, objCount);
 			if (next != nullptr)
 				next->prev = prev;
+			else if (this == tailObjCounter)
+				tailObjCounter = prev;
 			if (prev != nullptr)
 				prev->next = next;
-			if (this == headObjCounter)
+			else if (this == headObjCounter)
 				headObjCounter = next;
-			if (this == tailObjCounter)
-				tailObjCounter = prev;
 		#endif
 	}
 	//assign the initial object ID to exclude any statically-allocated ObjCounters
@@ -104,6 +116,23 @@ char allPurposeStringBuffer [ALL_PURPOSE_STRING_BUFFER_SIZE];
 		printf("Total objects used: %d + %d untracked\n", (nextObjID - untrackedObjCount), untrackedObjCount);
 	}
 #endif
+template <class Type> Deleter<Type>::Deleter(Type* pToDelete)
+: onlyInDebugWithComma(ObjCounter(onlyWhenTrackingIDs("DELETER")))
+toDelete(pToDelete) {
+}
+template <class Type> Deleter<Type>::~Deleter() {
+	delete toDelete;
+}
+//return the held object without releasing it
+template <class Type> Type* Deleter<Type>::retrieve() {
+	return toDelete;
+}
+//return the held object and release it so it won't be deleted
+template <class Type> Type* Deleter<Type>::release() {
+	Type* val = toDelete;
+	toDelete = nullptr;
+	return val;
+}
 //delete the contents of the array and then delete the array
 template <class Type> void Memory::deleteArrayAndContents(Array<Type>* a) {
 	forEach(Type, t, a, ti)
@@ -140,8 +169,8 @@ void Error::makeError(ErrorType type, char* message, SourceFile* sourceFile, Tok
 void Error::showSnippet(SourceFile* sourceFile, Token* token) {
 	int targetStart = token->contentPos - SNIPPET_CHARS / 2;
 	int targetEnd = targetStart + SNIPPET_CHARS;
-	int start = max(targetStart, 0);
-	int end = min(targetEnd, sourceFile->contentsLength);
+	int start = Math::max(targetStart, 0);
+	int end = Math::min(targetEnd, sourceFile->contentsLength);
 	memset(snippet, ' ', start - targetStart);
 	memset(snippet + end - targetStart, ' ', targetEnd - end);
 	for (int i = start; i < end; i++) {

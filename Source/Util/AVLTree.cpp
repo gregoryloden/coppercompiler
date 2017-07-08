@@ -77,7 +77,7 @@ template <class Key, class Value> AVLNode<Key, Value>* AVLTree<Key, Value>::setA
 	//                   X+1>=B   C: X
 	if (leftNode->height < rightNodeHeight + 2) {
 		leftAccessor.set(node, leftNode);
-		node->height = max(node->height, leftNode->height + 1);
+		node->height = Math::max(node->height, leftNode->height + 1);
 		return node;
 	//rebalancing needed:    A: X+3                B: X+2
 	//                      / \                   / \

@@ -71,10 +71,10 @@ extern Thunk THeapAlloc;
 extern Thunk THeapReAlloc;
 */
 
-enum ErrorType: unsigned char {
-	General,
-	EndOfFileWhileSearching,
-	EndOfFileWhileReading
+class Math {
+public:
+	static int min(int a, int b);
+	static int max(int a, int b);
 };
 #ifdef DEBUG
 	class ObjCounter {
@@ -100,9 +100,26 @@ enum ErrorType: unsigned char {
 		static void end();
 	};
 #endif
+template <class Type> class Deleter onlyInDebug(: public ObjCounter) {
+public:
+	Deleter(Type* pToDelete);
+	virtual ~Deleter();
+
+private:
+	Type* toDelete;
+
+public:
+	Type* release();
+	Type* retrieve();
+};
 class Memory {
 public:
 	template <class Type> static void deleteArrayAndContents(Array<Type>* a);
+};
+enum ErrorType: unsigned char {
+	General,
+	EndOfFileWhileSearching,
+	EndOfFileWhileReading
 };
 class Error {
 public:

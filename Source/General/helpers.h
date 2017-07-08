@@ -1,9 +1,8 @@
+/*
 #include "globals.h"
 #include "string"
 using namespace std;
 
-int min(int a, int b);
-int max(int a, int b);
 
 /*
 string to4bytes(int i);
@@ -13,18 +12,6 @@ int intval(bool val);
 */
 //used to delete objects during a throw
 //should always be stack allocated
-template <class Type> class Deleter onlyInDebug(: public ObjCounter) {
-public:
-	Deleter(Type* pToDelete);
-	virtual ~Deleter();
-
-private:
-	Type* toDelete;
-
-public:
-	Type* release();
-	Type* retrieve();
-};
 /*
 class BigInt
 : public ObjCounter
