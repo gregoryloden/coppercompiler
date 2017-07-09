@@ -1,5 +1,7 @@
 #include "Project.h"
-#include <Windows.h>
+#ifdef WIN32
+	#include <Windows.h>
+#endif
 
 #define quitIfErrors() if (Error::errorCount > 0) return;
 /*
@@ -133,11 +135,12 @@ int avltreetest = []() {
 */
 int main(int argc, char* argv[]) {
 	puts("Pliers Copper Compiler v0.0");
-	//Enable scrolling on the Windows console
-	HANDLE stdHandle = GetStdHandle(STD_INPUT_HANDLE);
-	DWORD consoleMode = 0;
-	if (GetConsoleMode(stdHandle, &consoleMode))
-		SetConsoleMode(stdHandle, consoleMode & ~ENABLE_MOUSE_INPUT);
+	#ifdef WIN32
+		HANDLE stdHandle = GetStdHandle(STD_INPUT_HANDLE);
+		DWORD consoleMode = 0;
+		if (GetConsoleMode(stdHandle, &consoleMode))
+			SetConsoleMode(stdHandle, consoleMode & ~ENABLE_MOUSE_INPUT);
+	#endif
 	//Start compiling
 	#ifdef DEBUG
 		ObjCounter::start();
