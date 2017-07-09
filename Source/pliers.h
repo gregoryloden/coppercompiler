@@ -1,6 +1,7 @@
 #include "string"
 using namespace std;
 
+void compile(char* filename);
 /*
 class Function;
 class Expression;

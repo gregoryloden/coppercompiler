@@ -134,28 +134,42 @@ template <class Type> Type* Deleter<Type>::release() {
 	return val;
 }
 char* Error::snippet = []() -> char* {
-	char* val = new char[SNIPPET_CHARS * 3 / 2 + 3];
-	val[SNIPPET_CHARS] = '\n';
-	memset(val + SNIPPET_CHARS + 1, ' ', SNIPPET_CHARS / 2);
-	val[SNIPPET_CHARS * 3 / 2 + 1] = '^';
-	val[SNIPPET_CHARS * 3 / 2 + 2] = '\0';
+	char* val = new char[SNIPPET_PREFIX_SPACES + SNIPPET_CHARS + 1 + SNIPPET_PREFIX_SPACES + SNIPPET_CHARS / 2 + 2];
+	memset(val, ' ', SNIPPET_PREFIX_SPACES);
+	val[SNIPPET_PREFIX_SPACES + SNIPPET_CHARS] = '\n';
+	memset(val + SNIPPET_PREFIX_SPACES + SNIPPET_CHARS + 1, ' ', SNIPPET_PREFIX_SPACES + SNIPPET_CHARS / 2);
+	val[SNIPPET_PREFIX_SPACES + SNIPPET_CHARS + 1 + SNIPPET_PREFIX_SPACES + SNIPPET_CHARS / 2] = '^';
+	val[SNIPPET_PREFIX_SPACES + SNIPPET_CHARS + 1 + SNIPPET_PREFIX_SPACES + SNIPPET_CHARS / 2 + 1] = '\0';
 	return val;
 }();
-int Error::errors = 0;
 int Error::lastErrorPos = -1;
+int Error::errorCount = 0;
 //print an error and throw
 void Error::makeError(ErrorType type, char* message, SourceFile* sourceFile, Token* token) {
 	if (token->contentPos != lastErrorPos) {
 		lastErrorPos = token->contentPos;
+		int* rowStarts = sourceFile->rowStarts->inner;
+		//find the right row
+		int rowLo = 0;
+		int rowHi = sourceFile->rowStarts->length;
+		int row = rowHi / 2;
+		while (row > rowLo) {
+			if (lastErrorPos >= rowStarts[row])
+				rowLo = row;
+			else
+				rowHi = row;
+			row = (rowLo + rowHi) / 2;
+		}
+		//print the error
 		printf("Error in \"%s\" at line %d column %d: ",
-			sourceFile->filename.c_str(), token->row, token->contentPos - token->rowStartContentPos);
+			sourceFile->filename.c_str(), row + 1, lastErrorPos - rowStarts[row] + 1);
 		switch (type) {
 			case General: puts(message); break;
 			case EndOfFileWhileSearching: printf("reached the end of the file while searching for %s\n", message); break;
 			case EndOfFileWhileReading: printf("reached the end of the file while reading %s\n", message); break;
 		}
 		showSnippet(sourceFile, token);
-		errors++;
+		errorCount++;
 	}
 	throw 0;
 }
@@ -165,11 +179,12 @@ void Error::showSnippet(SourceFile* sourceFile, Token* token) {
 	int targetEnd = targetStart + SNIPPET_CHARS;
 	int start = Math::max(targetStart, 0);
 	int end = Math::min(targetEnd, sourceFile->contentsLength);
-	memset(snippet, ' ', start - targetStart);
-	memset(snippet + end - targetStart, ' ', targetEnd - end);
+	memset(snippet + SNIPPET_PREFIX_SPACES, ' ', start - targetStart);
+	memset(snippet + SNIPPET_PREFIX_SPACES + end - targetStart, ' ', targetEnd - end);
 	for (int i = start; i < end; i++) {
 		char c = sourceFile->contents[i];
-		snippet[i - targetStart] = (c >= '!' && c <= '~') ? c : ' '; //make sure c is in the printable character range
+		//make sure c is in the printable character range
+		snippet[i - targetStart + SNIPPET_PREFIX_SPACES] = (c >= '!' && c <= '~') ? c : ' ';
 	}
 	puts(snippet);
 }

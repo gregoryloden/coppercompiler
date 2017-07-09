@@ -1504,8 +1504,11 @@ filename(pFilename)
 , contents(nullptr)
 , contentsLength(0)
 , abstractContents(nullptr)
+, rowStarts(new Array<int>())
 , includedFiles(new AVLTree<SourceFile*, bool>())
 , inclusionListeners(new Array<SourceFile*>()) {
+	rowStarts->add(0);
+	//load the file
 	FILE* file = nullptr;
 	fopen_s(&file, filename.c_str(), "rb");
 	if (file == nullptr) {
@@ -1523,6 +1526,7 @@ filename(pFilename)
 SourceFile::~SourceFile() {
 	delete[] contents;
 	delete abstractContents;
+	delete rowStarts;
 	//don't delete the source files, they will get deleted through the main source file list
 	delete includedFiles;
 	delete inclusionListeners;

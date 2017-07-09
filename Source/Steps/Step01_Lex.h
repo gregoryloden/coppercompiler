@@ -6,6 +6,7 @@ class Separator2;
 class Operator;
 class DirectiveTitle;
 enum ErrorType: unsigned char;
+template <class Type> class Array;
 //class IntConstant;
 
 class Lex {
@@ -14,8 +15,7 @@ private:
 	static thread_local char* contents;
 	static thread_local int contentsLength;
 	static thread_local int pos;
-	static thread_local int row;
-	static thread_local int rowStartContentPos;
+	static thread_local Array<int>* rowStarts;
 	static thread_local char c;
 
 public:

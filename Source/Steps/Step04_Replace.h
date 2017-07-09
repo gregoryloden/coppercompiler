@@ -1,4 +1,4 @@
 class Replace {
 public:
-	static void doReplacements(Array<SourceFile*>* files);
+	static void replaceCode(Array<SourceFile*>* files);
 };

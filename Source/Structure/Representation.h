@@ -415,6 +415,7 @@ public:
 	char* contents; //copper: private<readonly ParseDirectives>
 	int contentsLength; //copper: private<readonly ParseDirectives>
 	AbstractCodeBlock* abstractContents; //copper: private<ParseDirectives>
+	Array<int>* rowStarts;
 	AVLTree<SourceFile*, bool>* includedFiles; //copper: private<readonly Include>
 	Array<SourceFile*>* inclusionListeners; //copper: private<readonly Include>
 //	Array<CVariable*>* variables;

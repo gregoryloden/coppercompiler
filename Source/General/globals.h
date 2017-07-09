@@ -119,13 +119,14 @@ enum ErrorType: unsigned char {
 };
 class Error {
 public:
+	static const int SNIPPET_PREFIX_SPACES = 4;
 	static const int SNIPPET_CHARS = 0x41;
 private:
 	static char* snippet;
-	static int errors;
 	static int lastErrorPos;
-
 public:
+	static int errorCount;
+
 	static void makeError(ErrorType type, char* message, SourceFile* sourceFile, Token* token);
 private:
 	static void showSnippet(SourceFile* sourceFile, Token* token);

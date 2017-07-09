@@ -5,7 +5,7 @@ public:
 	Array();
 	virtual ~Array();
 
-	Type* inner; //copper: private<readonly ArrayIterator>
+	Type* inner; //copper: private<readonly ArrayIterator, Error>
 	int length; //copper: readonly
 private:
 	int innerLength;

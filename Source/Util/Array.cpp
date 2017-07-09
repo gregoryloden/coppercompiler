@@ -1,14 +1,16 @@
 #include "Project.h"
 
+template class Array<int>;
 template class Array<string>;
-template class Array<LexToken*>;
 template class Array<Token*>;
+template class Array<LexToken*>;
 template class Array<Identifier*>;
 template class Array<CDirective*>;
 template class Array<SourceFile*>;
+template class ArrayIterator<int>;
 template class ArrayIterator<string>;
-template class ArrayIterator<LexToken*>;
 template class ArrayIterator<Token*>;
+template class ArrayIterator<LexToken*>;
 template class ArrayIterator<Identifier*>;
 template class ArrayIterator<CDirective*>;
 template class ArrayIterator<SourceFile*>;
@@ -21,6 +23,9 @@ inner(new Type[1])
 }
 template <class Type> Array<Type>::~Array() {
 	delete[] inner;
+}
+template <> void Array<int>::deleteSelfAndContents() {
+	delete this;
 }
 template <> void Array<string>::deleteSelfAndContents() {
 	delete this;

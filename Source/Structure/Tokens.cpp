@@ -1,32 +1,30 @@
 #include "Project.h"
 
-Token::Token(onlyWhenTrackingIDsWithComma(char* pObjType) int pContentPos, int pRow, int pRowStartContentPos)
+Token::Token(onlyWhenTrackingIDsWithComma(char* pObjType) int pContentPos)
 : onlyInDebugWithComma(ObjCounter(onlyWhenTrackingIDs(pObjType)))
-contentPos(pContentPos)
-, row(pRow)
-, rowStartContentPos(pRowStartContentPos) {
+contentPos(pContentPos) {
 }
 Token::~Token() {}
-EmptyToken::EmptyToken(int pContentPos, int pRow, int pRowStartContentPos)
-: Token(onlyWhenTrackingIDsWithComma("EMPTTKN") pContentPos, pRow, pRowStartContentPos) {
+EmptyToken::EmptyToken(int pContentPos)
+: Token(onlyWhenTrackingIDsWithComma("EMPTTKN") pContentPos) {
 }
 EmptyToken::~EmptyToken() {}
-LexToken::LexToken(onlyWhenTrackingIDsWithComma(char* pObjType) int pContentPos, int pRow, int pRowStartContentPos)
-: Token(onlyWhenTrackingIDsWithComma(pObjType) pContentPos, pRow, pRowStartContentPos) {
+LexToken::LexToken(onlyWhenTrackingIDsWithComma(char* pObjType) int pContentPos)
+: Token(onlyWhenTrackingIDsWithComma(pObjType) pContentPos) {
 }
 LexToken::~LexToken() {}
-Identifier::Identifier(string pName, int pContentPos, int pRow, int pRowStartContentPos)
-: LexToken(onlyWhenTrackingIDsWithComma("IDNTFR") pContentPos, pRow, pRowStartContentPos)
+Identifier::Identifier(string pName, int pContentPos)
+: LexToken(onlyWhenTrackingIDsWithComma("IDNTFR") pContentPos)
 , name(pName) {
 }
 Identifier::~Identifier() {}
-IntConstant2::IntConstant2(int pVal, int pContentPos, int pRow, int pRowStartContentPos)
-: LexToken(onlyWhenTrackingIDsWithComma("INTCNST") pContentPos, pRow, pRowStartContentPos)
+IntConstant2::IntConstant2(int pVal, int pContentPos)
+: LexToken(onlyWhenTrackingIDsWithComma("INTCNST") pContentPos)
 , val(pVal) {
 }
 IntConstant2::~IntConstant2() {}
-FloatConstant2::FloatConstant2(BigInt2* pMantissa, int pExponent, int pContentPos, int pRow, int pRowStartContentPos)
-: LexToken(onlyWhenTrackingIDsWithComma("FLTCNST") pContentPos, pRow, pRowStartContentPos)
+FloatConstant2::FloatConstant2(BigInt2* pMantissa, int pExponent, int pContentPos)
+: LexToken(onlyWhenTrackingIDsWithComma("FLTCNST") pContentPos)
 , mantissa(new BigInt2(pMantissa))
 , exponent(pExponent) {
 	int expbias = 1 == 1 ? 1023/* double */ : 127/* float */;
@@ -34,18 +32,18 @@ FloatConstant2::FloatConstant2(BigInt2* pMantissa, int pExponent, int pContentPo
 FloatConstant2::~FloatConstant2() {
 	delete mantissa;
 }
-StringLiteral::StringLiteral(string pVal, int pContentPos, int pRow, int pRowStartContentPos)
-: LexToken(onlyWhenTrackingIDsWithComma("STRING") pContentPos, pRow, pRowStartContentPos)
+StringLiteral::StringLiteral(string pVal, int pContentPos)
+: LexToken(onlyWhenTrackingIDsWithComma("STRING") pContentPos)
 , val(pVal) {
 }
 StringLiteral::~StringLiteral() {}
-Separator2::Separator2(SeparatorType pType, int pContentPos, int pRow, int pRowStartContentPos)
-: LexToken(onlyWhenTrackingIDsWithComma("SEPRATR") pContentPos, pRow, pRowStartContentPos)
+Separator2::Separator2(SeparatorType pType, int pContentPos)
+: LexToken(onlyWhenTrackingIDsWithComma("SEPRATR") pContentPos)
 , type(pType) {
 }
 Separator2::~Separator2() {}
-Operator::Operator(OperatorType pType, int pContentPos, int pRow, int pRowStartContentPos)
-: LexToken(onlyWhenTrackingIDsWithComma("OPERATR") pContentPos, pRow, pRowStartContentPos)
+Operator::Operator(OperatorType pType, int pContentPos)
+: LexToken(onlyWhenTrackingIDsWithComma("OPERATR") pContentPos)
 , type(pType)
 , left(nullptr)
 , right(nullptr) {
@@ -53,8 +51,8 @@ Operator::Operator(OperatorType pType, int pContentPos, int pRow, int pRowStartC
 Operator::~Operator() {
 	//do not delete left or right because they are maintained by the abstract code block
 }
-DirectiveTitle::DirectiveTitle(string pTitle, int pContentPos, int pRow, int pRowStartContentPos)
-: LexToken(onlyWhenTrackingIDsWithComma("DCTVTTL") pContentPos, pRow, pRowStartContentPos)
+DirectiveTitle::DirectiveTitle(string pTitle, int pContentPos)
+: LexToken(onlyWhenTrackingIDsWithComma("DCTVTTL") pContentPos)
 , title(pTitle)
 , directive(nullptr) {
 }
@@ -62,14 +60,12 @@ DirectiveTitle::~DirectiveTitle() {
 	delete directive;
 }
 AbstractCodeBlock::AbstractCodeBlock(Array<Token*>* pTokens, Array<CDirective*>* pDirectives)
-: Token(onlyWhenTrackingIDsWithComma("ABCDBLK") 0, 0, 0)
+: Token(onlyWhenTrackingIDsWithComma("ABCDBLK") 0)
 , tokens(pTokens)
 , directives(pDirectives) {
 	if (pTokens->length >= 1) {
 		Token* token = pTokens->first();
 		contentPos = token->contentPos;
-		row = token->row;
-		rowStartContentPos = token->rowStartContentPos;
 	}
 }
 AbstractCodeBlock::~AbstractCodeBlock() {

@@ -1,6 +1,7 @@
 #include "Project.h"
 #include <Windows.h>
 
+#define quitIfErrors() if (Error::errorCount > 0) return;
 /*
 //check if tpos is within the tokens
 #define tinbounds() (tpos < tlength)
@@ -131,7 +132,7 @@ int avltreetest = []() {
 }();
 */
 int main(int argc, char* argv[]) {
-	puts("Copper Compiler v0.0");
+	puts("Pliers Copper Compiler v0.0");
 	//Enable scrolling on the Windows console
 	HANDLE stdHandle = GetStdHandle(STD_INPUT_HANDLE);
 	DWORD consoleMode = 0;
@@ -145,8 +146,7 @@ int main(int argc, char* argv[]) {
 		puts("You need an input file");
 		return -1;
 	}
-	allFiles = Include::loadFiles(argv[1]);
-puts("Suspended until the rewrite is complete");
+	compile(argv[1]);
 //printAbstractCodeBlock(mainFile->abstractContents, 0);
 	/*
 	setRowsAndColumns();
@@ -190,6 +190,16 @@ puts("Suspended until the rewrite is complete");
 	#endif
 while(true) {}
 	return 0;
+}
+//run all the compilation steps
+//if any of them fail, stop
+void compile(char* filename) {
+	allFiles = Include::loadFiles(filename);
+	quitIfErrors();
+
+	Replace::replaceCode(allFiles);
+	quitIfErrors();
+puts("Suspended until the rewrite is complete");
 }
 /*
 //get the contents of a file as a char*

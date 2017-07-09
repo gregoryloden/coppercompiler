@@ -71,45 +71,43 @@ enum OperatorType: unsigned char {
 
 class Token onlyInDebug(: public ObjCounter) {
 protected:
-	Token(onlyWhenTrackingIDsWithComma(char* pObjType) int pContentPos, int pRow, int pRowStartContentPos);
+	Token(onlyWhenTrackingIDsWithComma(char* pObjType) int pContentPos);
 public:
 	virtual ~Token();
 
 	int contentPos; //copper: readonly
-	int row; //copper: readonly
-	int rowStartContentPos; //copper: readonly
 };
 //For empty contents (ex. errors, between commas or semicolons, etc.)
 class EmptyToken: public Token {
 public:
-	EmptyToken(int pContentPos, int pRow, int pRowStartContentPos);
+	EmptyToken(int pContentPos);
 	virtual ~EmptyToken();
 };
 
 //Tokens used in lexing
 class LexToken: public Token {
 protected:
-	LexToken(onlyWhenTrackingIDsWithComma(char* pObjType) int pContentPos, int pRow, int pRowStartContentPos);
+	LexToken(onlyWhenTrackingIDsWithComma(char* pObjType) int pContentPos);
 public:
 	virtual ~LexToken();
 };
 class Identifier: public LexToken {
 public:
-	Identifier(string pName, int pContentPos, int pRow, int pRowStartContentPos);
+	Identifier(string pName, int pContentPos);
 	virtual ~Identifier();
 
 	string name; //copper: readonly
 };
 class IntConstant2: public LexToken {
 public:
-	IntConstant2(int pVal, int pContentPos, int pRow, int pRowStartContentPos);
+	IntConstant2(int pVal, int pContentPos);
 	virtual ~IntConstant2();
 
 	int val; //copper: readonly
 };
 class FloatConstant2: public LexToken {
 public:
-	FloatConstant2(BigInt2* pMantissa, int pExponent, int pContentPos, int pRow, int pRowStartContentPos);
+	FloatConstant2(BigInt2* pMantissa, int pExponent, int pContentPos);
 	virtual ~FloatConstant2();
 
 	static const int FLOAT_TOO_BIG_EXPONENT = 0x100000;
@@ -118,21 +116,21 @@ public:
 };
 class StringLiteral: public LexToken {
 public:
-	StringLiteral(string pVal, int pContentPos, int pRow, int pRowStartContentPos);
+	StringLiteral(string pVal, int pContentPos);
 	virtual ~StringLiteral();
 
 	string val; //copper: readonly
 };
 class Separator2: public LexToken {
 public:
-	Separator2(SeparatorType pType, int pContentPos, int pRow, int pRowStartContentPos);
+	Separator2(SeparatorType pType, int pContentPos);
 	virtual ~Separator2();
 
 	SeparatorType type; //copper: readonly
 };
 class Operator: public LexToken {
 public:
-	Operator(OperatorType pType, int pContentPos, int pRow, int pRowStartContentPos);
+	Operator(OperatorType pType, int pContentPos);
 	virtual ~Operator();
 
 	OperatorType type; //copper: readonly
@@ -141,7 +139,7 @@ public:
 };
 class DirectiveTitle: public LexToken {
 public:
-	DirectiveTitle(string pTitle, int pContentPos, int pRow, int pRowStartContentPos);
+	DirectiveTitle(string pTitle, int pContentPos);
 	virtual ~DirectiveTitle();
 
 	string title; //copper: readonly
