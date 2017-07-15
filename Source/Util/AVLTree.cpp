@@ -27,11 +27,12 @@ template <class Key, class Value> AVLTree<Key, Value>::~AVLTree() {
 }
 //delete the node's entire tree
 template <class Key, class Value> void AVLTree<Key, Value>::deleteTree(AVLNode<Key, Value>* node) {
-	if (node != nullptr) {
-		deleteTree(node->left);
-		deleteTree(node->right);
-		delete node;
-	}
+	if (node == nullptr)
+		return;
+
+	deleteTree(node->left);
+	deleteTree(node->right);
+	delete node;
 }
 //set a value in the tree
 template <class Key, class Value> Value AVLTree<Key, Value>::set(Key key, Value value) {
@@ -130,6 +131,21 @@ template <class Key, class Value> Value AVLTree<Key, Value>::get(Key key) {
 			return node->value;
 	}
 	return emptyValue;
+}
+//get the in-order list of all keys in the tree
+template <class Key, class Value> Array<Key>* AVLTree<Key, Value>::keys() {
+	Array<Key>* keysList = new Array<Key>();
+	addKeys(keysList, root);
+	return keysList;
+}
+//add all keys of the node to the tree
+template <class Key, class Value> void AVLTree<Key, Value>::addKeys(Array<Key>* keysList, AVLNode<Key, Value>* node) {
+	if (node == nullptr)
+		return;
+
+	addKeys(keysList, node->left);
+	keysList->add(node->key);
+	addKeys(keysList, node->right);
 }
 template <class Key, class Value> AVLNode<Key, Value>::AVLNode(Key pKey, Value pValue)
 : onlyInDebugWithComma(ObjCounter(onlyWhenTrackingIDs("AVLNODE")))

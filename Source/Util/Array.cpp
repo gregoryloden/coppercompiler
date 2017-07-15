@@ -1,18 +1,24 @@
 #include "Project.h"
 
+#define deleteSelfButNotContents(type) template <> void Array<type>::deleteSelfAndContents() { delete this; }
+
+template class Array<char>;
 template class Array<int>;
 template class Array<string>;
 template class Array<Token*>;
 template class Array<LexToken*>;
 template class Array<Identifier*>;
 template class Array<CDirective*>;
+template class Array<CDirectiveReplace*>;
 template class Array<SourceFile*>;
+template class ArrayIterator<char>;
 template class ArrayIterator<int>;
 template class ArrayIterator<string>;
 template class ArrayIterator<Token*>;
 template class ArrayIterator<LexToken*>;
 template class ArrayIterator<Identifier*>;
 template class ArrayIterator<CDirective*>;
+template class ArrayIterator<CDirectiveReplace*>;
 template class ArrayIterator<SourceFile*>;
 
 template <class Type> Array<Type>::Array()
@@ -24,12 +30,9 @@ inner(new Type[1])
 template <class Type> Array<Type>::~Array() {
 	delete[] inner;
 }
-template <> void Array<int>::deleteSelfAndContents() {
-	delete this;
-}
-template <> void Array<string>::deleteSelfAndContents() {
-	delete this;
-}
+deleteSelfButNotContents(char)
+deleteSelfButNotContents(int)
+deleteSelfButNotContents(string)
 template <class Type> void Array<Type>::deleteSelfAndContents() {
 	forEach(Type, t, this, ti)
 		delete t;
