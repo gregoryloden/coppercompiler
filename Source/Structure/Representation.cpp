@@ -1503,8 +1503,8 @@ SourceFile::SourceFile(string pFilename)
 filename(pFilename)
 , contents(nullptr)
 , contentsLength(0)
-, abstractContents(nullptr)
 , rowStarts(new Array<int>())
+, abstractContents(nullptr)
 , includedFiles(new AVLTree<SourceFile*, bool>())
 , inclusionListeners(new Array<SourceFile*>()) {
 	rowStarts->add(0);
@@ -1525,8 +1525,8 @@ filename(pFilename)
 }
 SourceFile::~SourceFile() {
 	delete[] contents;
-	delete abstractContents;
 	delete rowStarts;
+	delete abstractContents;
 	//don't delete the source files, they will get deleted through the main source file list
 	delete includedFiles;
 	delete inclusionListeners;

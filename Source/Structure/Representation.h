@@ -412,10 +412,10 @@ public:
 	virtual ~SourceFile();
 
 	string filename; //copper: private<readonly Include>
-	char* contents; //copper: private<readonly ParseDirectives>
-	int contentsLength; //copper: private<readonly ParseDirectives>
-	AbstractCodeBlock* abstractContents; //copper: private<ParseDirectives>
-	Array<int>* rowStarts;
+	char* contents; //copper: private<readonly Lex>
+	int contentsLength; //copper: private<readonly Lex>
+	Array<int>* rowStarts; //copper: private<readonly Lex>
+	AbstractCodeBlock* abstractContents; //copper: private<writeonly ParseDirectives>
 	AVLTree<SourceFile*, bool>* includedFiles; //copper: private<readonly Include>
 	Array<SourceFile*>* inclusionListeners; //copper: private<readonly Include>
 //	Array<CVariable*>* variables;

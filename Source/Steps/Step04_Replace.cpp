@@ -6,6 +6,7 @@ void Replace::replaceCode(Array<SourceFile*>* files) {
 	forEach(SourceFile*, s, files, si) {
 		printf("Replacing code in %s...\n", s->filename.c_str());
 
+		//find all replace directives
 		Array<CDirectiveReplace*> replaces;
 		Array<SourceFile*>* allIncluded = s->includedFiles->keys();
 		forEach(SourceFile*, included, allIncluded, includedi) {
@@ -15,6 +16,7 @@ void Replace::replaceCode(Array<SourceFile*>* files) {
 					replaces.add(r);
 			}
 		}
+
 		delete allIncluded;
 	}
 }
