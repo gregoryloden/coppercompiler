@@ -5,8 +5,10 @@
 //template class AVLNode<int, int>;
 //template class AVLNode<char, char>;
 template class AVLTree<char, PrefixTrie<char, SourceFile*>*>;
+template class AVLTree<char, PrefixTrie<char, CDirectiveReplace*>*>;
 template class AVLTree<SourceFile*, bool>;
 template class AVLNode<char, PrefixTrie<char, SourceFile*>*>;
+template class AVLNode<char, PrefixTrie<char, CDirectiveReplace*>*>;
 template class AVLNode<SourceFile*, bool>;
 
 //const int AVLTree<int, int>::emptyValue = 0;
@@ -15,11 +17,13 @@ template class AVLNode<SourceFile*, bool>;
 //thread_local char AVLTree<char, char>::oldValue = '\0';
 PrefixTrie<char, SourceFile*>* const AVLTree<char, PrefixTrie<char, SourceFile*>*>::emptyValue = nullptr;
 thread_local PrefixTrie<char, SourceFile*>* AVLTree<char, PrefixTrie<char, SourceFile*>*>::oldValue = nullptr;
+PrefixTrie<char, CDirectiveReplace*>* const AVLTree<char, PrefixTrie<char, CDirectiveReplace*>*>::emptyValue = nullptr;
+thread_local PrefixTrie<char, CDirectiveReplace*>* AVLTree<char, PrefixTrie<char, CDirectiveReplace*>*>::oldValue = nullptr;
 bool const AVLTree<SourceFile*, bool>::emptyValue = false;
 thread_local bool AVLTree<SourceFile*, bool>::oldValue = false;
 
 template <class Key, class Value> AVLTree<Key, Value>::AVLTree()
-: onlyInDebugWithComma(ObjCounter(onlyWhenTrackingIDs("AVLTREE")))
+: onlyInDebug(ObjCounter(onlyWhenTrackingIDs("AVLTREE")) COMMA)
 root(nullptr) {
 }
 template <class Key, class Value> AVLTree<Key, Value>::~AVLTree() {
@@ -133,27 +137,32 @@ template <class Key, class Value> Value AVLTree<Key, Value>::get(Key key) {
 	return emptyValue;
 }
 //get the in-order list of all keys in the tree
-template <class Key, class Value> Array<Key>* AVLTree<Key, Value>::keys() {
-	Array<Key>* keysList = new Array<Key>();
-	addKeys(keysList, root);
-	return keysList;
+template <class Key, class Value> Array<AVLNode<Key, Value>*>* AVLTree<Key, Value>::entrySet() {
+	Array<AVLNode<Key, Value>*>* pEntrySet = new Array<AVLNode<Key, Value>*>();
+	addEntries(pEntrySet, root);
+	return pEntrySet;
 }
 //add all keys of the node to the tree
-template <class Key, class Value> void AVLTree<Key, Value>::addKeys(Array<Key>* keysList, AVLNode<Key, Value>* node) {
+template <class Key, class Value> void AVLTree<Key, Value>::addEntries(
+	Array<AVLNode<Key, Value>*>* pEntrySet, AVLNode<Key, Value>* node)
+{
 	if (node == nullptr)
 		return;
 
-	addKeys(keysList, node->left);
-	keysList->add(node->key);
-	addKeys(keysList, node->right);
+	addEntries(pEntrySet, node->left);
+	pEntrySet->add(node);
+	addEntries(pEntrySet, node->right);
 }
 template <class Key, class Value> AVLNode<Key, Value>::AVLNode(Key pKey, Value pValue)
-: onlyInDebugWithComma(ObjCounter(onlyWhenTrackingIDs("AVLNODE")))
+: onlyInDebug(ObjCounter(onlyWhenTrackingIDs("AVLNODE")) COMMA)
 key(pKey)
 , value(pValue)
 , height(1)
 , left(nullptr)
 , right(nullptr) {
+}
+template <> AVLNode<char, PrefixTrie<char, CDirectiveReplace*>*>::~AVLNode() {
+	delete value;
 }
 template <> AVLNode<char, PrefixTrie<char, SourceFile*>*>::~AVLNode() {
 	delete value;

@@ -1,15 +1,17 @@
 #include "Project.h"
 
 template class PrefixTrie<char, SourceFile*>;
+template class PrefixTrie<char, CDirectiveReplace*>;
 
 SourceFile* const PrefixTrie<char, SourceFile*>::emptyValue = nullptr;
+CDirectiveReplace* const PrefixTrie<char, CDirectiveReplace*>::emptyValue = nullptr;
 
 template <class KeyElement, class Value> PrefixTrie<KeyElement, Value>::PrefixTrie(
 	KeyElement* pCommonPrefix,
 	int pCommonPrefixLength,
 	Value pValue,
 	AVLTree<KeyElement, PrefixTrie<KeyElement, Value>*>* pNextTree)
-: onlyInDebugWithComma(ObjCounter(onlyWhenTrackingIDs("PRETRIE")))
+: onlyInDebug(ObjCounter(onlyWhenTrackingIDs("PRETRIE")) COMMA)
 commonPrefix(pCommonPrefix)
 , commonPrefixLength(pCommonPrefixLength)
 , value(pValue)

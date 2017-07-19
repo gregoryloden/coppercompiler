@@ -71,7 +71,7 @@ enum OperatorType: unsigned char {
 
 class Token onlyInDebug(: public ObjCounter) {
 protected:
-	Token(onlyWhenTrackingIDsWithComma(char* pObjType) int pContentPos);
+	Token(onlyWhenTrackingIDs(char* pObjType COMMA) int pContentPos);
 public:
 	virtual ~Token();
 
@@ -87,7 +87,7 @@ public:
 //Tokens used in lexing
 class LexToken: public Token {
 protected:
-	LexToken(onlyWhenTrackingIDsWithComma(char* pObjType) int pContentPos);
+	LexToken(onlyWhenTrackingIDs(char* pObjType COMMA) int pContentPos);
 public:
 	virtual ~LexToken();
 };
@@ -143,7 +143,6 @@ public:
 	virtual ~DirectiveTitle();
 
 	string title; //copper: readonly
-	CDirective* directive; //copper: readonly
 };
 
 //Tokens used in parsing

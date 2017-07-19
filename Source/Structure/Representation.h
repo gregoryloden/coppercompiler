@@ -107,6 +107,7 @@ class AssemblyInstruction;
 class Expression;
 */
 template <class Type> class Array;
+class Identifier;
 class AbstractCodeBlock;
 template <class Key, class Value> class AVLTree;
 /*
@@ -424,18 +425,19 @@ public:
 };
 class CDirective onlyInDebug(: public ObjCounter) {
 protected:
-	CDirective();
+	CDirective(onlyWhenTrackingIDs(char* pObjType));
 public:
 	virtual ~CDirective();
 };
 class CDirectiveReplace: public CDirective {
 public:
-	CDirectiveReplace(string pToReplace, Array<string>* pInput, AbstractCodeBlock* pReplacement);
+	CDirectiveReplace(Identifier* pToReplace, Array<string>* pInput, AbstractCodeBlock* pReplacement);
 	virtual ~CDirectiveReplace();
 
-	string toReplace; //copper: private<readonly Replace>
+	Identifier* toReplace; //copper: private<readonly Replace>
 	Array<string>* input; //copper: private<readonly Replace>
 	AbstractCodeBlock* replacement; //copper: private<readonly Replace>
+	bool inUse; //copper: private<Replace>
 };
 class CDirectiveInclude: public CDirective {
 public:

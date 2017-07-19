@@ -11,6 +11,9 @@ template class Array<Identifier*>;
 template class Array<CDirective*>;
 template class Array<CDirectiveReplace*>;
 template class Array<SourceFile*>;
+template class Array<AVLNode<SourceFile*, bool>*>;
+template class Array<AVLNode<char, PrefixTrie<char, SourceFile*>*>*>;
+template class Array<AVLNode<char, PrefixTrie<char, CDirectiveReplace*>*>*>;
 template class ArrayIterator<char>;
 template class ArrayIterator<int>;
 template class ArrayIterator<string>;
@@ -20,9 +23,12 @@ template class ArrayIterator<Identifier*>;
 template class ArrayIterator<CDirective*>;
 template class ArrayIterator<CDirectiveReplace*>;
 template class ArrayIterator<SourceFile*>;
+template class ArrayIterator<AVLNode<SourceFile*, bool>*>;
+template class ArrayIterator<AVLNode<char, PrefixTrie<char, SourceFile*>*>*>;
+template class ArrayIterator<AVLNode<char, PrefixTrie<char, CDirectiveReplace*>*>*>;
 
 template <class Type> Array<Type>::Array()
-: onlyInDebugWithComma(ObjCounter(onlyWhenTrackingIDs("ARRAY")))
+: onlyInDebug(ObjCounter(onlyWhenTrackingIDs("ARRAY")) COMMA)
 inner(new Type[1])
 , innerLength(1)
 , length(0) {

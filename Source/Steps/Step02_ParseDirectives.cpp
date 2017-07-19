@@ -75,20 +75,18 @@ AbstractCodeBlock* ParseDirectives::parseAbstractCodeBlock(bool endsWithParenthe
 //get the definition of a directive
 //parse location: the next token after the directive
 CDirective* ParseDirectives::completeDirective(DirectiveTitle* dt) {
-	CDirective* directive;
 	if (dt->title == "replace")
-		directive = completeDirectiveReplace(false);
+		return completeDirectiveReplace(false);
 	else if (dt->title == "replace-input")
-		directive = completeDirectiveReplace(true);
+		return completeDirectiveReplace(true);
 	else if (dt->title == "include")
-		directive = completeDirectiveInclude(false);
+		return completeDirectiveInclude(false);
 	else if (dt->title == "include-all")
-		directive = completeDirectiveInclude(true);
+		return completeDirectiveInclude(true);
 	//other directives may change the lexing mode
-	else
-		Error::makeError(General, "unknown directive type", sourceFile, dt);
-	dt->directive = directive;
-	return directive;
+
+	Error::makeError(General, "unknown directive type", sourceFile, dt);
+	return nullptr;
 }
 //get the definition of a replace directive
 //parse location: the next token after the replace directive
@@ -96,8 +94,7 @@ CDirectiveReplace* ParseDirectives::completeDirectiveReplace(bool replaceInput) 
 	Deleter<Identifier> toReplace(parseIdentifier());
 	Deleter<Array<string>> input(replaceInput ? parseParenthesizedCommaSeparatedIdentifierList() : nullptr);
 	parseSeparator(LeftParenthesis);
-	//use retrieve() so that toReplace deletes the identifier
-	return new CDirectiveReplace(toReplace.retrieve()->name, input.release(), parseAbstractCodeBlock(true));
+	return new CDirectiveReplace(toReplace.release(), input.release(), parseAbstractCodeBlock(true));
 }
 //get the definition of an include directive
 //parse location: the next token after the include directive
@@ -165,6 +162,6 @@ Array<string>* ParseDirectives::parseParenthesizedCommaSeparatedIdentifierList()
 }
 //throw an error about an unexpected token
 void ParseDirectives::makeUnexpectedTokenError(char* expectedTokenTypeName, Token* t) {
-	sprintf_s(allPurposeStringBuffer, ALL_PURPOSE_STRING_BUFFER_SIZE, "expected %s", expectedTokenTypeName);
-	Error::makeError(General, allPurposeStringBuffer, sourceFile, t);
+	string message = string("expected ") + expectedTokenTypeName;
+	Error::makeError(General, message.c_str(), sourceFile, t);
 }

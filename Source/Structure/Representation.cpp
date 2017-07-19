@@ -1499,7 +1499,7 @@ MainFunction::~MainFunction() {}
 */
 //-------------------------------------------------------------------------------------------------------------------------------------------------------------
 SourceFile::SourceFile(string pFilename)
-: onlyInDebugWithComma(ObjCounter(onlyWhenTrackingIDs("SRCFILE")))
+: onlyInDebug(ObjCounter(onlyWhenTrackingIDs("SRCFILE")) COMMA)
 filename(pFilename)
 , contents(nullptr)
 , contentsLength(0)
@@ -1531,22 +1531,24 @@ SourceFile::~SourceFile() {
 	delete includedFiles;
 	delete inclusionListeners;
 }
-CDirective::CDirective()
-onlyInDebug(: ObjCounter(onlyWhenTrackingIDs("DIRECTV"))) {
+CDirective::CDirective(onlyWhenTrackingIDs(char* pObjType))
+onlyInDebug(: ObjCounter(onlyWhenTrackingIDs(pObjType))) {
 }
 CDirective::~CDirective() {}
-CDirectiveReplace::CDirectiveReplace(string pToReplace, Array<string>* pInput, AbstractCodeBlock* pReplacement)
-: CDirective()
+CDirectiveReplace::CDirectiveReplace(Identifier* pToReplace, Array<string>* pInput, AbstractCodeBlock* pReplacement)
+: CDirective(onlyWhenTrackingIDs("DTVRPLC"))
 , toReplace(pToReplace)
 , input(pInput)
-, replacement(pReplacement) {
+, replacement(pReplacement)
+, inUse(false) {
 }
 CDirectiveReplace::~CDirectiveReplace() {
+	delete toReplace;
 	delete input;
 	delete replacement;
 }
 CDirectiveInclude::CDirectiveInclude(string pFilename, bool pIncludeAll)
-: CDirective()
+: CDirective(onlyWhenTrackingIDs("DTVINCL"))
 , filename(pFilename)
 , includeAll(pIncludeAll) {
 }

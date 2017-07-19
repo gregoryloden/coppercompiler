@@ -46,8 +46,7 @@ template class Deleter<DirectiveTitle>;
 template class Deleter<Identifier>;
 template class Deleter<Array<string>>;
 template class Deleter<LexToken>;
-
-char allPurposeStringBuffer [ALL_PURPOSE_STRING_BUFFER_SIZE];
+template class Deleter<Array<AVLNode<SourceFile*, bool>*>>;
 
 int Math::min(int a, int b) {
 	return a < b ? a : b;
@@ -117,7 +116,7 @@ int Math::max(int a, int b) {
 	}
 #endif
 template <class Type> Deleter<Type>::Deleter(Type* pToDelete)
-: onlyInDebugWithComma(ObjCounter(onlyWhenTrackingIDs("DELETER")))
+: onlyInDebug(ObjCounter(onlyWhenTrackingIDs("DELETER")) COMMA)
 toDelete(pToDelete) {
 }
 template <class Type> Deleter<Type>::~Deleter() {
@@ -145,7 +144,7 @@ char* Error::snippet = []() -> char* {
 int Error::lastErrorPos = -1;
 int Error::errorCount = 0;
 //print an error and throw
-void Error::makeError(ErrorType type, char* message, SourceFile* sourceFile, Token* token) {
+void Error::makeError(ErrorType type, const char* message, SourceFile* sourceFile, Token* token) {
 	if (token->contentPos != lastErrorPos) {
 		lastErrorPos = token->contentPos;
 		int* rowStarts = sourceFile->rowStarts->inner;

@@ -23,9 +23,9 @@ private:
 	void setAllFrom(AVLNode<Key, Value>* node);
 public:
 	Value get(Key key);
-	Array<Key>* keys();
+	Array<AVLNode<Key, Value>*>* entrySet();
 private:
-	static void addKeys(Array<Key>* keysList, AVLNode<Key, Value>* node);
+	static void addEntries(Array<AVLNode<Key, Value>*>* pEntrySet, AVLNode<Key, Value>* node);
 };
 template <class Key, class Value> class AVLNode onlyInDebug(: public ObjCounter) {
 public:

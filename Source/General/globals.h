@@ -6,23 +6,18 @@ class Token;
 template <class Type> class Array;
 
 #define forEach(Type, t, a, ti) ArrayIterator<Type> ti (a); for (Type t = ti.getFirst(); ti.hasThis(); t = ti.getNext())
+#define COMMA ,
 #ifdef DEBUG
 	#define onlyInDebug(x) x
-	#define onlyInDebugWithComma(x) x,
 	//*/#define TRACK_OBJ_IDS
 #else
 	#define onlyInDebug(x)
-	#define onlyInDebugWithComma(x)
 #endif
 #ifdef TRACK_OBJ_IDS
 	#define onlyWhenTrackingIDs(x) x
-	#define onlyWhenTrackingIDsWithComma(x) x,
 #else
 	#define onlyWhenTrackingIDs(x)
-	#define onlyWhenTrackingIDsWithComma(x)
 #endif
-
-const int ALL_PURPOSE_STRING_BUFFER_SIZE = 0x100;
 
 /*
 #define IMAGEBASE 0x400000
@@ -50,9 +45,6 @@ extern Array<Expression*> tokens;
 extern int tlength;
 extern Array<Function*> functions;
 extern Array<MainFunction*> mainfunctions;
-*/
-extern char allPurposeStringBuffer[];
-/*
 extern bool warnings;
 extern int* rows;
 extern int* cols;
@@ -127,7 +119,7 @@ private:
 public:
 	static int errorCount;
 
-	static void makeError(ErrorType type, char* message, SourceFile* sourceFile, Token* token);
+	static void makeError(ErrorType type, const char* message, SourceFile* sourceFile, Token* token);
 private:
 	static void showSnippet(SourceFile* sourceFile, Token* token);
 };
