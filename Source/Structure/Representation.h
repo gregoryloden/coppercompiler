@@ -431,12 +431,13 @@ public:
 };
 class CDirectiveReplace: public CDirective {
 public:
-	CDirectiveReplace(Identifier* pToReplace, Array<string>* pInput, AbstractCodeBlock* pReplacement);
+	CDirectiveReplace(Identifier* pToReplace, Array<string>* pInput, AbstractCodeBlock* pReplacement, SourceFile* pOwningFile);
 	virtual ~CDirectiveReplace();
 
 	Identifier* toReplace; //copper: private<readonly Replace>
 	Array<string>* input; //copper: private<readonly Replace>
 	AbstractCodeBlock* replacement; //copper: private<readonly Replace>
+	SourceFile* owningFile; //copper: private<readonly Replace>
 	bool inUse; //copper: private<Replace>
 };
 class CDirectiveInclude: public CDirective {

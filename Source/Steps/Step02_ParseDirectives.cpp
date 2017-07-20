@@ -94,7 +94,7 @@ CDirectiveReplace* ParseDirectives::completeDirectiveReplace(bool replaceInput) 
 	Deleter<Identifier> toReplace(parseIdentifier());
 	Deleter<Array<string>> input(replaceInput ? parseParenthesizedCommaSeparatedIdentifierList() : nullptr);
 	parseSeparator(LeftParenthesis);
-	return new CDirectiveReplace(toReplace.release(), input.release(), parseAbstractCodeBlock(true));
+	return new CDirectiveReplace(toReplace.release(), input.release(), parseAbstractCodeBlock(true), sourceFile);
 }
 //get the definition of an include directive
 //parse location: the next token after the include directive

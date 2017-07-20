@@ -4,7 +4,12 @@ class AbstractCodeBlock;
 template <class Type> class Array;
 
 class Replace {
+private:
+	static thread_local PrefixTrie<char, CDirectiveReplace*>* replaces;
+	static thread_local Array<Token*>* resultContents;
+
 public:
-	static void replaceCode(Array<SourceFile*>* files);
-	static void searchContents(PrefixTrie<char, CDirectiveReplace*>* replaces, AbstractCodeBlock* abstractContents);
+	static void replaceCodeInFiles(Array<SourceFile*>* files);
+private:
+	static void replaceCode(AbstractCodeBlock* abstractContents, SourceFile* owningFile);
 };

@@ -2,10 +2,14 @@
 
 //loads and links files, does nothing else
 
+thread_local Array<SourceFile*>* Include::allFiles = nullptr;
+thread_local PrefixTrie<char, SourceFile*>* Include::filesByName = nullptr;
+
+//load the file indicated by the given filename, and the files of the file graph it includes
 Array<SourceFile*>* Include::loadFiles(char* baseFileName) {
-	Array<SourceFile*>* allFiles = new Array<SourceFile*>();
-	PrefixTrie<char, SourceFile*>* filesByName = new PrefixTrie<char, SourceFile*>();
-	SourceFile* baseFile = newSourceFile(baseFileName, allFiles, filesByName);
+	allFiles = new Array<SourceFile*>();
+	filesByName = new PrefixTrie<char, SourceFile*>();
+	SourceFile* baseFile = newSourceFile(baseFileName);
 	for (int i = 0; i < allFiles->length; i++) {
 		SourceFile* nextFile = allFiles->inner[i];
 		ParseDirectives::parseDirectives(nextFile);
@@ -18,7 +22,7 @@ Array<SourceFile*>* Include::loadFiles(char* baseFileName) {
 			string includedName = i->filename;
 			SourceFile* includedFile = filesByName->get(includedName.c_str(), includedName.length());
 			if (includedFile == PrefixTrie<char, SourceFile*>::emptyValue)
-				includedFile = newSourceFile(includedName.c_str(), allFiles, filesByName);
+				includedFile = newSourceFile(includedName.c_str());
 			nextFile->includedFiles->set(includedFile, true);
 			//if we're including all, add all its included files and add this to its listeners list
 			if (i->includeAll) {
@@ -36,9 +40,7 @@ Array<SourceFile*>* Include::loadFiles(char* baseFileName) {
 	return allFiles;
 }
 //create a new SourceFile, add it to the two collections, and return it
-SourceFile* Include::newSourceFile(
-	const char* fileName, Array<SourceFile*>* allFiles, PrefixTrie<char, SourceFile*>* filesByName)
-{
+SourceFile* Include::newSourceFile(const char* fileName) {
 	//TODO: store by the full file path instead of just the filename string
 	SourceFile* file = new SourceFile(fileName);
 	allFiles->add(file);

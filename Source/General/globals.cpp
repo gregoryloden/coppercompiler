@@ -47,6 +47,8 @@ template class Deleter<Identifier>;
 template class Deleter<Array<string>>;
 template class Deleter<LexToken>;
 template class Deleter<Array<AVLNode<SourceFile*, bool>*>>;
+template class Deleter<Array<Token*>>;
+template class Deleter<PrefixTrie<char, CDirectiveReplace*>>;
 
 int Math::min(int a, int b) {
 	return a < b ? a : b;

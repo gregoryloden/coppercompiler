@@ -3,7 +3,7 @@
 	#include <Windows.h>
 #endif
 
-#define quitIfErrors() if (Error::errorCount > 0) return;
+#define returnIfErrors() if (Error::errorCount > 0) return;
 /*
 //check if tpos is within the tokens
 #define tinbounds() (tpos < tlength)
@@ -198,10 +198,10 @@ while(true) {}
 //if any of them fail, stop
 void compile(char* filename) {
 	allFiles = Include::loadFiles(filename);
-	quitIfErrors();
+	returnIfErrors();
 
-	Replace::replaceCode(allFiles);
-	quitIfErrors();
+	Replace::replaceCodeInFiles(allFiles);
+	returnIfErrors();
 puts("Suspended until the rewrite is complete");
 }
 /*
@@ -419,6 +419,7 @@ bool isReservedWord(string s) {
 		s.compare("readonly") == 0 ||
 		s.compare("writeonly") == 0 ||
 		s.compare("local") == 0 ||
+		s.compare("global") == 0 ||
 		s.compare("final") == 0 ||
 		//s.compare("nonnull") == 0 ||
 		//s.compare("nullable") == 0 ||
