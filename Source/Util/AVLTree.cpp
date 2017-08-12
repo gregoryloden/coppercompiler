@@ -108,7 +108,7 @@ template <class Key, class Value> AVLNode<Key, Value>* AVLTree<Key, Value>::setA
 		leftAccessor.set(node, rightAccessor.get(leftNodeRightChild));
 		node->height = rightNodeHeight + 1;
 		rightAccessor.set(leftNode, leftAccessor.get(leftNodeRightChild));
-		leftNode->height = leftAccessor.get(leftNode)->height + 1;
+		leftNode->height = AVLNode<Key, Value>::nodeHeight(leftAccessor.get(leftNode)) + 1;
 		leftAccessor.set(leftNodeRightChild, leftNode);
 		rightAccessor.set(leftNodeRightChild, node);
 		leftNodeRightChild->height = node->height + 1;

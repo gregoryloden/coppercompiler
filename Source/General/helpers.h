@@ -10,8 +10,6 @@ string to2bytes(int i);
 int roundup(int num, int divisor);
 int intval(bool val);
 */
-//used to delete objects during a throw
-//should always be stack allocated
 /*
 class BigInt
 : public ObjCounter

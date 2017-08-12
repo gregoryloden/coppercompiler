@@ -1,9 +1,8 @@
 #ifndef GLOBALS_H
 #define GLOBALS_H
 
-class SourceFile;
 class Token;
-template <class Type> class Array;
+class AbstractCodeBlock;
 
 #define forEach(Type, t, a, ti) ArrayIterator<Type> ti (a); for (Type t = ti.getFirst(); ti.hasThis(); t = ti.getNext())
 #define COMMA ,
@@ -92,6 +91,8 @@ public:
 		static void end();
 	};
 #endif
+//used to delete objects during a throw
+//should always be stack allocated
 template <class Type> class Deleter onlyInDebug(: public ObjCounter) {
 public:
 	Deleter(Type* pToDelete);
@@ -107,7 +108,8 @@ public:
 enum ErrorType: unsigned char {
 	General,
 	EndOfFileWhileSearching,
-	EndOfFileWhileReading
+	EndOfFileWhileReading,
+	Continuation
 };
 class Error {
 public:
@@ -119,10 +121,16 @@ private:
 public:
 	static int errorCount;
 
-	static void makeError(ErrorType type, const char* message, SourceFile* sourceFile, Token* token);
+	static void makeError(ErrorType type, const char* message, Token* token);
 private:
-	static void showSnippet(SourceFile* sourceFile, Token* token);
+	static void showSnippet(Token* token);
 };
+#ifdef DEBUG
+	class Debug {
+	public:
+		static void printAbstractCodeBlock(AbstractCodeBlock* codeBlock, int spacesCount);
+	};
+#endif
 /*
 void makeWarning(int type, char* message, size_t loc);
 void buildMainFunctions(Array<MainFunction*>* mainfunctions);

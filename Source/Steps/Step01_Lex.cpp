@@ -118,6 +118,9 @@ thread_local int Lex::contentsLength = 0;
 thread_local int Lex::pos = 0;
 thread_local Array<int>* Lex::rowStarts;
 thread_local char Lex::c;
+#ifdef DEBUG
+	thread_local Array<int> Lex::debugRowStarts;
+#endif
 
 //prep lexing with the source file
 void Lex::initializeLexer(SourceFile* newSourceFile) {
@@ -153,6 +156,19 @@ LexToken* Lex::lex() {
 	makeLexError(General, "unexpected character");
 	return nullptr;
 }
+#ifdef DEBUG
+	void Lex::printToken(LexToken* t) {
+		initializeLexer(t->owningFile);
+		debugRowStarts.clear();
+		rowStarts = &debugRowStarts;
+		pos = t->contentPos;
+		delete lex();
+		char old = contents[pos];
+		contents[pos] = '\0';
+		printf(contents + t->contentPos);
+		contents[pos] = old;
+	}
+#endif
 /*
 //split the entire file into a bunch of token expressions
 //pos location: clength
@@ -362,7 +378,7 @@ bool Lex::skipComment() {
 		return false;
 
 	bool lineComment = c2 == '/';
-	EmptyToken errorToken (pos);
+	EmptyToken errorToken (pos, sourceFile);
 	pos += 2;
 	for (; inbounds(); pos++) {
 		c = contents[pos];
@@ -399,11 +415,11 @@ LexToken* Lex::lexIdentifier() {
 	string s (contents + begin, pos - begin);
 
 	if (s.compare("true") == 0)
-		return new IntConstant2(1, begin);
+		return new IntConstant2(1, begin, sourceFile);
 	else if (s.compare("false") == 0)
-		return new IntConstant2(0, begin);
+		return new IntConstant2(0, begin, sourceFile);
 	else
-		return new Identifier(s, begin);
+		return new Identifier(s, begin, sourceFile);
 }
 //get a number constant, either int or float
 //lex location: no change | the first character after the number
@@ -411,7 +427,7 @@ LexToken* Lex::lexNumber() {
 	if (!isdigit(c))
 		return nullptr;
 
-	EmptyToken errorToken (pos);
+	EmptyToken errorToken (pos, sourceFile);
 	int begin = pos;
 	int base = 10;
 	//different base
@@ -486,7 +502,7 @@ LexToken* Lex::lexNumber() {
 	//turn it into the appropriate constant
 	//if it's not a float, we're done
 	if (!isFloat)
-		return new IntConstant2(num.getInt(), begin);
+		return new IntConstant2(num.getInt(), begin, sourceFile);
 
 	//it's a float
 	//first, adjust baseExponent
@@ -494,7 +510,7 @@ LexToken* Lex::lexNumber() {
 
 	//if we have no exponent, we're also done
 	if (baseExponent == 0)
-		return new FloatConstant2(&num, num.highBit(), begin);
+		return new FloatConstant2(&num, num.highBit(), begin, sourceFile);
 
 	//it has an exponent- we want to divide or multiply num by base^abs(baseExponent)
 	//we get this with the square-and-multiply trick
@@ -522,7 +538,7 @@ LexToken* Lex::lexNumber() {
 	//if it's positive, just multiply it and that's our number
 	if (baseExponent > 0) {
 		num.multiply(&exponentNum);
-		return new FloatConstant2(&num, num.highBit(), begin);
+		return new FloatConstant2(&num, num.highBit(), begin, sourceFile);
 	//if it's negative, grow num before dividing
 	} else {
 		//provide at least 64 bits of precision
@@ -532,7 +548,7 @@ LexToken* Lex::lexNumber() {
 			num.lShift(toShift);
 		int oldHighBit = num.highBit();
 		num.longDiv(&exponentNum);
-		return new FloatConstant2(&num, startingExponent + num.highBit() - oldHighBit, begin);
+		return new FloatConstant2(&num, startingExponent + num.highBit() - oldHighBit, begin, sourceFile);
 	}
 }
 //convert c from a character to the digit it represents
@@ -559,7 +575,7 @@ StringLiteral* Lex::lexString() {
 		c = contents[pos];
 		if (c == '"') {
 			pos++;
-			return new StringLiteral(val, begin);
+			return new StringLiteral(val, begin, sourceFile);
 		}
 		val += nextStringCharacter();
 		if (c == '\n' || c == '\r') {
@@ -574,7 +590,7 @@ char Lex::nextStringCharacter() {
 	if (c != '\\')
 		return c;
 
-	EmptyToken errorToken (pos);
+	EmptyToken errorToken (pos, sourceFile);
 	pos++;
 	if (outofbounds())
 		makeLexError(EndOfFileWhileReading, "the escape sequence", &errorToken);
@@ -617,7 +633,7 @@ IntConstant2* Lex::lexCharacter() {
 	if (c != '\'')
 		return nullptr;
 
-	EmptyToken errorToken (pos);
+	EmptyToken errorToken (pos, sourceFile);
 	int begin = pos;
 	pos++;
 	if (outofbounds())
@@ -631,17 +647,17 @@ IntConstant2* Lex::lexCharacter() {
 	if (contents[pos] != '\'')
 		makeLexError(General, "expected a close quote");
 	pos++;
-	return new IntConstant2((int)c, begin);
+	return new IntConstant2((int)c, begin, sourceFile);
 }
 //get a separator
 //lex location: no change | the first character after the separator
 Separator2* Lex::lexSeparator() {
 	Separator2* val;
 	switch (c) {
-		case '(': val = new Separator2(LeftParenthesis, pos); break;
-		case ')': val = new Separator2(RightParenthesis, pos); break;
-		case ',': val = new Separator2(Comma, pos); break;
-		case ';': val = new Separator2(Semicolon, pos); break;
+		case '(': val = new Separator2(LeftParenthesis, pos, sourceFile); break;
+		case ')': val = new Separator2(RightParenthesis, pos, sourceFile); break;
+		case ',': val = new Separator2(Comma, pos, sourceFile); break;
+		case ';': val = new Separator2(Semicolon, pos, sourceFile); break;
 		default: return nullptr;
 	}
 
@@ -669,7 +685,7 @@ Operator* Lex::lexOperator() {
 			i = -1;
 		}
 	}
-	return found ? new Operator(type, begin) : nullptr;
+	return found ? new Operator(type, begin, sourceFile) : nullptr;
 }
 //get a directive title
 //returns a token even if the directive title is invalid- ParseDirective will take care of it
@@ -691,16 +707,16 @@ DirectiveTitle* Lex::lexDirectiveTitle() {
 	else if (pos == begin)
 		makeLexError(General, "expected a directive name");
 
-	return new DirectiveTitle(string(contents + begin, pos - begin), begin - 1);
+	return new DirectiveTitle(string(contents + begin, pos - begin), begin - 1, sourceFile);
 }
 //throw an error at the current position
 void Lex::makeLexError(ErrorType type, char* message) {
-	EmptyToken errorToken (pos);
+	EmptyToken errorToken (pos, sourceFile);
 	makeLexError(type, message, &errorToken);
 }
 //throw an error with the provided location information
 void Lex::makeLexError(ErrorType type, char* message, Token* errorToken) {
-	Error::makeError(type, message, sourceFile, errorToken);
+	Error::makeError(type, message, errorToken);
 }
 /*
 //check if the next statement is a Main. function

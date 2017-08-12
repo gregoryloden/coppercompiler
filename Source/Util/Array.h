@@ -22,6 +22,7 @@ public:
 	void remove(int pos);
 	Type first();
 	Type pop();
+	void clear();
 private:
 	void resize(int scale);
 };

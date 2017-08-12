@@ -1,5 +1,9 @@
 #include "Project.h"
 
+//does ???????????????????? parse expressions
+
+//to test retcon parsing: 3 * 4 + 5 * 6 == 3 * 4 + 5 * 6 && 3 * 4 + 5 * 6 == 3 * 4 + 5 * 6
+
 //Token* addToIdentifier(Identifier* base, Token* next);
 
 //this is the meat of parsing

@@ -24,30 +24,6 @@ Expression** initializations = NULL;
 Array<AssemblySequence*> sequences;
 */
 
-/*
-void printAbstractCodeBlock(AbstractCodeBlock* codeBlock, int spacesCount) {
-	ArrayIterator<Token*> ti (codeBlock->tokens);
-	printf(" -- %d directives\n", codeBlock->directives->length);
-	for (Token* t = ti.getFirst(); ti.hasThis(); t = ti.getNext()) {
-		for (int i = 0; i < spacesCount; i++)
-			printf("        ");
-		AbstractCodeBlock* at;
-		if ((at = dynamic_cast<AbstractCodeBlock*>(t)) != nullptr) {
-			printf("\\\\\\\\ (");
-			printAbstractCodeBlock(at, spacesCount + 1);
-			for (int i = 0; i < spacesCount; i++)
-				printf("        ");
-			puts("//// )");
-		} else {
-			pos = t->contentPos;
-			size_t begin = pos;
-			lex();
-			string value (contents + begin, pos - begin);
-			printf("%s\n", value.c_str());
-		}
-	}
-}
-*/
 Array<SourceFile*>* allFiles = nullptr;
 /*
 template <class Key, class Value> void printNode(AVLNode<Key, Value>* node, int spaces) {
@@ -198,9 +174,21 @@ while(true) {}
 //if any of them fail, stop
 void compile(char* filename) {
 	allFiles = Include::loadFiles(filename);
+	#ifdef DEBUG
+		forEach(SourceFile*, s, allFiles, si1) {
+			printf("Initial contents for \"%s\":\n", s->filename.c_str());
+			Debug::printAbstractCodeBlock(s->abstractContents, 1);
+		}
+	#endif
 	returnIfErrors();
 
 	Replace::replaceCodeInFiles(allFiles);
+	#ifdef DEBUG
+		forEach(SourceFile*, s, allFiles, si2) {
+			printf("Replaced contents for \"%s\":\n", s->filename.c_str());
+			Debug::printAbstractCodeBlock(s->abstractContents, 1);
+		}
+	#endif
 	returnIfErrors();
 puts("Suspended until the rewrite is complete");
 }

@@ -40,8 +40,7 @@ AbstractCodeBlock* ParseDirectives::parseAbstractCodeBlock(bool endsWithParenthe
 				} else if (s->type == RightParenthesis) {
 					Deleter<Separator2> sDeleter (s);
 					if (!endsWithParenthesis)
-						Error::makeError(
-							General, "found a right parenthesis without a matching left parenthesis", sourceFile, s);
+						Error::makeError(General, "found a right parenthesis without a matching left parenthesis", s);
 					break;
 				}
 			}
@@ -70,7 +69,7 @@ AbstractCodeBlock* ParseDirectives::parseAbstractCodeBlock(bool endsWithParenthe
 			}
 		}
 	}
-	return new AbstractCodeBlock(tokens, directives);
+	return new AbstractCodeBlock(tokens, directives, sourceFile);
 }
 //get the definition of a directive
 //parse location: the next token after the directive
@@ -85,7 +84,7 @@ CDirective* ParseDirectives::completeDirective(DirectiveTitle* dt) {
 		return completeDirectiveInclude(true);
 	//other directives may change the lexing mode
 
-	Error::makeError(General, "unknown directive type", sourceFile, dt);
+	Error::makeError(General, "unknown directive type", dt);
 	return nullptr;
 }
 //get the definition of a replace directive
@@ -163,5 +162,5 @@ Array<string>* ParseDirectives::parseParenthesizedCommaSeparatedIdentifierList()
 //throw an error about an unexpected token
 void ParseDirectives::makeUnexpectedTokenError(char* expectedTokenTypeName, Token* t) {
 	string message = string("expected ") + expectedTokenTypeName;
-	Error::makeError(General, message.c_str(), sourceFile, t);
+	Error::makeError(General, message.c_str(), t);
 }

@@ -46,9 +46,11 @@ template class Deleter<DirectiveTitle>;
 template class Deleter<Identifier>;
 template class Deleter<Array<string>>;
 template class Deleter<LexToken>;
+template class Deleter<SubstitutedToken>;
 template class Deleter<Array<AVLNode<SourceFile*, bool>*>>;
 template class Deleter<Array<Token*>>;
 template class Deleter<PrefixTrie<char, CDirectiveReplace*>>;
+template class Deleter<PrefixTrieUnion<char, CDirectiveReplace*>>;
 
 int Math::min(int a, int b) {
 	return a < b ? a : b;
@@ -146,13 +148,14 @@ char* Error::snippet = []() -> char* {
 int Error::lastErrorPos = -1;
 int Error::errorCount = 0;
 //print an error and throw
-void Error::makeError(ErrorType type, const char* message, SourceFile* sourceFile, Token* token) {
+void Error::makeError(ErrorType type, const char* message, Token* token) {
 	if (token->contentPos != lastErrorPos) {
 		lastErrorPos = token->contentPos;
-		int* rowStarts = sourceFile->rowStarts->inner;
+		SourceFile* owningFile = token->owningFile;
+		int* rowStarts = owningFile->rowStarts->inner;
 		//find the right row
 		int rowLo = 0;
-		int rowHi = sourceFile->rowStarts->length;
+		int rowHi = owningFile->rowStarts->length;
 		int row = rowHi / 2;
 		while (row > rowLo) {
 			if (lastErrorPos >= rowStarts[row])
@@ -162,33 +165,85 @@ void Error::makeError(ErrorType type, const char* message, SourceFile* sourceFil
 			row = (rowLo + rowHi) / 2;
 		}
 		//print the error
-		printf("Error in \"%s\" at line %d column %d: ",
-			sourceFile->filename.c_str(), row + 1, lastErrorPos - rowStarts[row] + 1);
+		char* errorPrefix;
+		switch (type) {
+			case Continuation: errorPrefix = "----- in \"%s\" at line %d char %d\n"; break;
+			default:           errorPrefix = "Error in \"%s\" at line %d char %d: "; break;
+		}
+		printf(errorPrefix, owningFile->filename.c_str(), row + 1, lastErrorPos - rowStarts[row] + 1);
 		switch (type) {
 			case General: puts(message); break;
 			case EndOfFileWhileSearching: printf("reached the end of the file while searching for %s\n", message); break;
 			case EndOfFileWhileReading: printf("reached the end of the file while reading %s\n", message); break;
+			case Continuation: break;
 		}
-		showSnippet(sourceFile, token);
+		showSnippet(token);
 		errorCount++;
 	}
 	throw 0;
 }
 //show the snippet where the error/warning is
-void Error::showSnippet(SourceFile* sourceFile, Token* token) {
+void Error::showSnippet(Token* token) {
+	SourceFile* owningFile = token->owningFile;
 	int targetStart = token->contentPos - SNIPPET_CHARS / 2;
 	int targetEnd = targetStart + SNIPPET_CHARS;
 	int start = Math::max(targetStart, 0);
-	int end = Math::min(targetEnd, sourceFile->contentsLength);
+	int end = Math::min(targetEnd, owningFile->contentsLength);
 	memset(snippet + SNIPPET_PREFIX_SPACES, ' ', start - targetStart);
 	memset(snippet + SNIPPET_PREFIX_SPACES + end - targetStart, ' ', targetEnd - end);
 	for (int i = start; i < end; i++) {
-		char c = sourceFile->contents[i];
+		char c = owningFile->contents[i];
 		//make sure c is in the printable character range
 		snippet[i - targetStart + SNIPPET_PREFIX_SPACES] = (c >= '!' && c <= '~') ? c : ' ';
 	}
 	puts(snippet);
 }
+#ifdef DEBUG
+	//recursively print the contents of the abstract code block
+	void Debug::printAbstractCodeBlock(AbstractCodeBlock* codeBlock, int spacesCount) {
+		printf(" -- %d directives\n", codeBlock->directives->length);
+		int length = codeBlock->tokens->length;
+		Token** blockInner = codeBlock->tokens->inner;
+		bool printedSpaces = false;
+		for (int i = 0; i < length; i++) {
+			Token* t = blockInner[i];
+			AbstractCodeBlock* a;
+			if ((a = dynamic_cast<AbstractCodeBlock*>(t)) != nullptr) {
+				if (printedSpaces)
+					printf("\n");
+				for (int j = 0; j < spacesCount; j++)
+					printf("    ");
+				printf("(");
+				printAbstractCodeBlock(a, spacesCount + 1);
+				for (int i = 0; i < spacesCount; i++)
+					printf("    ");
+				puts(")");
+				printedSpaces = false;
+			} else {
+				if (printedSpaces)
+					printf(" ");
+				else {
+					for (int j = 0; j < spacesCount; j++)
+						printf("    ");
+					printedSpaces = true;
+				}
+				SubstitutedToken* st;
+				while ((st = dynamic_cast<SubstitutedToken*>(t)) != nullptr)
+					t = st->parent;
+				LexToken* lt;
+				if (t == nullptr)
+					printf("(?)");
+				else if ((lt = dynamic_cast<LexToken*>(t)) == nullptr) {
+					printf("Unexpected token\n");
+					throw (*((char*)nullptr) = 0);
+				} else
+					Lex::printToken(lt);
+			}
+		}
+		if (printedSpaces)
+			printf("\n");
+	}
+#endif
 /*
 //make a warning
 void makeWarning(int type, char* message, size_t loc) {

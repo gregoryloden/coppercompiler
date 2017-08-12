@@ -118,6 +118,10 @@ template <class Type> Type Array<Type>::pop() {
 	length -= 1;
 	return inner[length];
 }
+//"empty" the array
+template <class Type> void Array<Type>::clear() {
+	length = 0;
+}
 template <class Type> ArrayIterator<Type>::ArrayIterator(Array<Type>* a)
 onlyInDebug(: ObjCounter(onlyWhenTrackingIDs("ARYITR"))) {
 	if (a != NULL) {

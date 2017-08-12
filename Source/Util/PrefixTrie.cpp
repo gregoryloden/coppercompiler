@@ -2,6 +2,7 @@
 
 template class PrefixTrie<char, SourceFile*>;
 template class PrefixTrie<char, CDirectiveReplace*>;
+template class PrefixTrieUnion<char, CDirectiveReplace*>;
 
 SourceFile* const PrefixTrie<char, SourceFile*>::emptyValue = nullptr;
 CDirectiveReplace* const PrefixTrie<char, CDirectiveReplace*>::emptyValue = nullptr;
@@ -117,16 +118,35 @@ template <class KeyElement, class Value> Value PrefixTrie<KeyElement, Value>::ge
 				{
 					keyIndex++;
 					break; //break to set the bounds of the next common prefix
-				}
-			//we didn't reach the end but the key elements are the same, keep going
-			} else if (key[keyIndex] == next->commonPrefix[keyIndex - commonPrefixKeyIndexStart]) {
-				keyIndex++;
-				continue;
-			}
+				//there wasn't a next tree that corresponds to the key
+				} else
+					return emptyValue;
+			//we didn't reach the end and we found a differing key element
+			} else if (key[keyIndex] != next->commonPrefix[keyIndex - commonPrefixKeyIndexStart])
+				return emptyValue;
 
-			//we ran out of tries or found a differing key element
-			return emptyValue;
+			//we didn't reach the end and the key elements are the same, keep going
+			keyIndex++;
 		}
 	}
 }
-
+template <class KeyElement, class Value> PrefixTrieUnion<KeyElement, Value>::PrefixTrieUnion(
+	PrefixTrie<KeyElement, Value>* pNext)
+: PrefixTrie()
+, next(pNext) {
+}
+template <class KeyElement, class Value> PrefixTrieUnion<KeyElement, Value>::~PrefixTrieUnion<KeyElement, Value>() {
+	//don't delete next since something else owns it
+}
+//set the value, if this trie had an old value then return it, otherwise return the old value of the previous tree
+template <class KeyElement, class Value> Value PrefixTrieUnion<KeyElement, Value>::set(
+	const KeyElement* key, int keyLength, Value value)
+{
+	Value v = PrefixTrie<KeyElement, Value>::set(key, keyLength, value);
+	return (v != PrefixTrie<KeyElement, Value>::emptyValue) ? v : next->get(key, keyLength);
+}
+//get the value in this trie if it's there, or the other trie if it's not
+template <class KeyElement, class Value> Value PrefixTrieUnion<KeyElement, Value>::get(const KeyElement* key, int keyLength) {
+	Value v = PrefixTrie<KeyElement, Value>::get(key, keyLength);
+	return (v != PrefixTrie<KeyElement, Value>::emptyValue) ? v : next->get(key, keyLength);
+}

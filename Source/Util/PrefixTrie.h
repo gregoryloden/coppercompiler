@@ -16,7 +16,7 @@ public:
 		int pCommonPrefixLength,
 		Value pValue,
 		AVLTree<KeyElement, PrefixTrie<KeyElement, Value>*>* pNextTree);
-	~PrefixTrie();
+	virtual ~PrefixTrie();
 
 	static const Value emptyValue;
 private:
@@ -24,6 +24,18 @@ private:
 	int commonPrefixLength;
 	Value value;
 	AVLTree<KeyElement, PrefixTrie<KeyElement, Value>*>* nextTree;
+
+public:
+	virtual Value set(const KeyElement* key, int keyLength, Value value);
+	virtual Value get(const KeyElement* key, int keyLength);
+};
+template <class KeyElement, class Value> class PrefixTrieUnion: public PrefixTrie<KeyElement, Value> {
+public:
+	PrefixTrieUnion(PrefixTrie<KeyElement, Value>* pNext);
+	~PrefixTrieUnion();
+
+private:
+	PrefixTrie<KeyElement, Value>* next;
 
 public:
 	Value set(const KeyElement* key, int keyLength, Value value);

@@ -2,6 +2,7 @@
 #include "string"
 using namespace std;
 
+class SourceFile;
 class CDirective;
 class BigInt2;
 template <class Type> class Array;
@@ -71,43 +72,44 @@ enum OperatorType: unsigned char {
 
 class Token onlyInDebug(: public ObjCounter) {
 protected:
-	Token(onlyWhenTrackingIDs(char* pObjType COMMA) int pContentPos);
+	Token(onlyWhenTrackingIDs(char* pObjType COMMA) int pContentPos, SourceFile* pOwningFile);
 public:
 	virtual ~Token();
 
 	int contentPos; //copper: readonly
+	SourceFile* owningFile; //copper: readonly
 };
 //For empty contents (ex. errors, between commas or semicolons, etc.)
 class EmptyToken: public Token {
 public:
-	EmptyToken(int pContentPos);
+	EmptyToken(int pContentPos, SourceFile* pOwningFile);
 	virtual ~EmptyToken();
 };
 
 //Tokens used in lexing
 class LexToken: public Token {
 protected:
-	LexToken(onlyWhenTrackingIDs(char* pObjType COMMA) int pContentPos);
+	LexToken(onlyWhenTrackingIDs(char* pObjType COMMA) int pContentPos, SourceFile* pOwningFile);
 public:
 	virtual ~LexToken();
 };
 class Identifier: public LexToken {
 public:
-	Identifier(string pName, int pContentPos);
+	Identifier(string pName, int pContentPos, SourceFile* pOwningFile);
 	virtual ~Identifier();
 
 	string name; //copper: readonly
 };
 class IntConstant2: public LexToken {
 public:
-	IntConstant2(int pVal, int pContentPos);
+	IntConstant2(int pVal, int pContentPos, SourceFile* pOwningFile);
 	virtual ~IntConstant2();
 
 	int val; //copper: readonly
 };
 class FloatConstant2: public LexToken {
 public:
-	FloatConstant2(BigInt2* pMantissa, int pExponent, int pContentPos);
+	FloatConstant2(BigInt2* pMantissa, int pExponent, int pContentPos, SourceFile* pOwningFile);
 	virtual ~FloatConstant2();
 
 	static const int FLOAT_TOO_BIG_EXPONENT = 0x100000;
@@ -116,21 +118,21 @@ public:
 };
 class StringLiteral: public LexToken {
 public:
-	StringLiteral(string pVal, int pContentPos);
+	StringLiteral(string pVal, int pContentPos, SourceFile* pOwningFile);
 	virtual ~StringLiteral();
 
 	string val; //copper: readonly
 };
 class Separator2: public LexToken {
 public:
-	Separator2(SeparatorType pType, int pContentPos);
+	Separator2(SeparatorType pType, int pContentPos, SourceFile* pOwningFile);
 	virtual ~Separator2();
 
 	SeparatorType type; //copper: readonly
 };
 class Operator: public LexToken {
 public:
-	Operator(OperatorType pType, int pContentPos);
+	Operator(OperatorType pType, int pContentPos, SourceFile* pOwningFile);
 	virtual ~Operator();
 
 	OperatorType type; //copper: readonly
@@ -139,7 +141,7 @@ public:
 };
 class DirectiveTitle: public LexToken {
 public:
-	DirectiveTitle(string pTitle, int pContentPos);
+	DirectiveTitle(string pTitle, int pContentPos, SourceFile* pOwningFile);
 	virtual ~DirectiveTitle();
 
 	string title; //copper: readonly
@@ -148,11 +150,21 @@ public:
 //Tokens used in parsing
 class AbstractCodeBlock: public Token {
 public:
-	AbstractCodeBlock(Array<Token*>* pTokens, Array<CDirective*>* pDirectives);
+	AbstractCodeBlock(Array<Token*>* pTokens, Array<CDirective*>* pDirectives, SourceFile* pOwningFile);
 	virtual ~AbstractCodeBlock();
 
 	Array<Token*>* tokens; //copper: readonly
 	Array<CDirective*>* directives; //copper: readonly
+};
+
+//Tokens used in replacing
+class SubstitutedToken: public Token {
+public:
+	SubstitutedToken(Token* pParent, Token* tokenBeingReplaced);
+	virtual ~SubstitutedToken();
+
+	Token* parent; //copper: readonly
+	bool shouldDelete;
 };
 //class IdentifierList: public Token {
 //public:
