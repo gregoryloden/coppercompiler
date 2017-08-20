@@ -152,13 +152,13 @@ void Error::makeError(ErrorType type, const char* message, Token* token) {
 	if (token->contentPos != lastErrorPos) {
 		lastErrorPos = token->contentPos;
 		SourceFile* owningFile = token->owningFile;
-		int* rowStarts = owningFile->rowStarts->inner;
+		Array<int>* rowStarts = owningFile->rowStarts;
 		//find the right row
 		int rowLo = 0;
 		int rowHi = owningFile->rowStarts->length;
 		int row = rowHi / 2;
 		while (row > rowLo) {
-			if (lastErrorPos >= rowStarts[row])
+			if (lastErrorPos >= rowStarts->get(row))
 				rowLo = row;
 			else
 				rowHi = row;
@@ -170,7 +170,7 @@ void Error::makeError(ErrorType type, const char* message, Token* token) {
 			case Continuation: errorPrefix = "----- in \"%s\" at line %d char %d\n"; break;
 			default:           errorPrefix = "Error in \"%s\" at line %d char %d: "; break;
 		}
-		printf(errorPrefix, owningFile->filename.c_str(), row + 1, lastErrorPos - rowStarts[row] + 1);
+		printf(errorPrefix, owningFile->filename.c_str(), row + 1, lastErrorPos - rowStarts->get(row) + 1);
 		switch (type) {
 			case General: puts(message); break;
 			case EndOfFileWhileSearching: printf("reached the end of the file while searching for %s\n", message); break;
@@ -202,11 +202,8 @@ void Error::showSnippet(Token* token) {
 	//recursively print the contents of the abstract code block
 	void Debug::printAbstractCodeBlock(AbstractCodeBlock* codeBlock, int spacesCount) {
 		printf(" -- %d directives\n", codeBlock->directives->length);
-		int length = codeBlock->tokens->length;
-		Token** blockInner = codeBlock->tokens->inner;
 		bool printedSpaces = false;
-		for (int i = 0; i < length; i++) {
-			Token* t = blockInner[i];
+		forEach(Token*, t, codeBlock->tokens, ti) {
 			AbstractCodeBlock* a;
 			if ((a = dynamic_cast<AbstractCodeBlock*>(t)) != nullptr) {
 				if (printedSpaces)
@@ -230,14 +227,18 @@ void Error::showSnippet(Token* token) {
 				SubstitutedToken* st;
 				while ((st = dynamic_cast<SubstitutedToken*>(t)) != nullptr)
 					t = st->parent;
-				LexToken* lt;
 				if (t == nullptr)
 					printf("(?)");
-				else if ((lt = dynamic_cast<LexToken*>(t)) == nullptr) {
+				else if (dynamic_cast<LexToken*>(t) == nullptr) {
 					printf("Unexpected token\n");
 					throw (*((char*)nullptr) = 0);
-				} else
-					Lex::printToken(lt);
+				} else {
+					char* contents = t->owningFile->contents;
+					char old = contents[t->endContentPos];
+					contents[t->endContentPos] = '\0';
+					printf(contents + t->contentPos);
+					contents[t->endContentPos] = old;
+				}
 			}
 		}
 		if (printedSpaces)

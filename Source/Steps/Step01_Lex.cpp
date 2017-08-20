@@ -118,9 +118,6 @@ thread_local int Lex::contentsLength = 0;
 thread_local int Lex::pos = 0;
 thread_local Array<int>* Lex::rowStarts;
 thread_local char Lex::c;
-#ifdef DEBUG
-	thread_local Array<int> Lex::debugRowStarts;
-#endif
 
 //prep lexing with the source file
 void Lex::initializeLexer(SourceFile* newSourceFile) {
@@ -156,19 +153,6 @@ LexToken* Lex::lex() {
 	makeLexError(General, "unexpected character");
 	return nullptr;
 }
-#ifdef DEBUG
-	void Lex::printToken(LexToken* t) {
-		initializeLexer(t->owningFile);
-		debugRowStarts.clear();
-		rowStarts = &debugRowStarts;
-		pos = t->contentPos;
-		delete lex();
-		char old = contents[pos];
-		contents[pos] = '\0';
-		printf(contents + t->contentPos);
-		contents[pos] = old;
-	}
-#endif
 /*
 //split the entire file into a bunch of token expressions
 //pos location: clength

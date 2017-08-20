@@ -11,7 +11,7 @@ Array<SourceFile*>* Include::loadFiles(char* baseFileName) {
 	filesByName = new PrefixTrie<char, SourceFile*>();
 	SourceFile* baseFile = newSourceFile(baseFileName);
 	for (int filei = 0; filei < allFiles->length; filei++) {
-		SourceFile* nextFile = allFiles->inner[filei];
+		SourceFile* nextFile = allFiles->get(filei);
 		ParseDirectives::parseDirectives(nextFile);
 		forEach(CDirective*, d, nextFile->abstractContents->directives, di) {
 			CDirectiveInclude* i;

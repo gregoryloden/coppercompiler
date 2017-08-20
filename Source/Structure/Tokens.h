@@ -77,9 +77,7 @@ public:
 	virtual ~Token();
 
 	int contentPos; //copper: readonly
-	#ifdef DEBUG
-		int endContentPos; //copper: readonly
-	#endif
+	int endContentPos; //copper: readonly
 	SourceFile* owningFile; //copper: readonly
 };
 //For empty contents (ex. errors, between commas or semicolons, etc.)

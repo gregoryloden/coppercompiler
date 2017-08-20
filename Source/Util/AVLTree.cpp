@@ -1,5 +1,7 @@
 #include "Project.h"
 
+#define deletePrefixTrieNodeValueForTypes(t1, t2) template <> AVLNode<t1, PrefixTrie<t1, t2>*>::~AVLNode() { delete value; }
+
 //template class AVLTree<int, int>;
 //template class AVLTree<char, char>;
 //template class AVLNode<int, int>;
@@ -161,12 +163,8 @@ key(pKey)
 , left(nullptr)
 , right(nullptr) {
 }
-template <> AVLNode<char, PrefixTrie<char, CDirectiveReplace*>*>::~AVLNode() {
-	delete value;
-}
-template <> AVLNode<char, PrefixTrie<char, SourceFile*>*>::~AVLNode() {
-	delete value;
-}
+deletePrefixTrieNodeValueForTypes(char, CDirectiveReplace*)
+deletePrefixTrieNodeValueForTypes(char, SourceFile*)
 template <class Key, class Value> AVLNode<Key, Value>::~AVLNode() {
 	//don't delete left or right, so that we can delete nodes without deleting their whole trees
 	//deleting whole trees will happen via AVLTree::deleteTree when the AVLTree is deleted

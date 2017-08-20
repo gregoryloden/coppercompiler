@@ -17,16 +17,10 @@ private:
 	static thread_local int pos;
 	static thread_local Array<int>* rowStarts;
 	static thread_local char c;
-	#ifdef DEBUG
-		static thread_local Array<int> debugRowStarts;
-	#endif
 
 public:
 	static void initializeLexer(SourceFile* newSourceFile);
 	static LexToken* lex();
-	#ifdef DEBUG
-		static void printToken(LexToken* t);
-	#endif
 private:
 	static bool skipWhitespace();
 	static bool skipComment();

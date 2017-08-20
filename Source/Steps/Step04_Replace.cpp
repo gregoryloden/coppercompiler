@@ -48,13 +48,10 @@ void Replace::replaceAbstractContents(AbstractCodeBlock* abstractContents, Prefi
 void Replace::replaceTokens(Array<Token*>* source, Array<Token*>* result, PrefixTrie<char, CDirectiveReplace*>* replaces,
 	SubstitutedToken* substitutions)
 {
-	int length = source->length;
-	Token** sourceInner = source->inner;
-	for (int ti = 0; ti < length; ti++) {
-		Token* t = sourceInner[ti];
+	forEach(Token*, t, source, ti) {
 		//erase entries in the file's source token list so that they aren't deleted twice on an error
 		if (substitutions == nullptr)
-			sourceInner[ti] = nullptr;
+			ti.replaceThis(nullptr);
 		AbstractCodeBlock* a;
 		Identifier* i;
 		CDirectiveReplace* r;

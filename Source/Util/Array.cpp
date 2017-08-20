@@ -53,6 +53,14 @@ template <class Type> void Array<Type>::resize(int scale) {
 	inner = newInner;
 	innerLength *= scale;
 }
+//get an item from the array
+template <class Type> Type Array<Type>::get(int pos) {
+	return inner[pos];
+}
+//set an item in the array at a specified index
+template <class Type> void Array<Type>::set(int pos, Type t) {
+	inner[pos] = t;
+}
 //add an item to the array at the given spot
 template <class Type> void Array<Type>::add(Type t, int pos) {
 	if (length >= innerLength)
@@ -122,31 +130,27 @@ template <class Type> Type Array<Type>::pop() {
 template <class Type> void Array<Type>::clear() {
 	length = 0;
 }
-template <class Type> ArrayIterator<Type>::ArrayIterator(Array<Type>* a)
-onlyInDebug(: ObjCounter(onlyWhenTrackingIDs("ARYITR"))) {
-	if (a != NULL) {
-		inner = a->inner;
-		length = a->length;
-	} else
-		length = 0;
+template <class Type> ArrayIterator<Type>::ArrayIterator(Array<Type>* pA)
+: onlyInDebug(ObjCounter(onlyWhenTrackingIDs("ARYITR")) COMMA)
+a(pA)
+, index(0) {
 }
 template <class Type> ArrayIterator<Type>::~ArrayIterator() {
-	//do not delete inner because it's owned by an array
+	//do not delete the array, something else owns it
 }
 //get the first element of the array
 template <class Type> Type ArrayIterator<Type>::getFirst() {
-	index = 0;
-	if (length < 1)
-		return NULL;
-	return inner[0];
+	return a->get(index = 0);
 }
 //get the next element of the array
 template <class Type> Type ArrayIterator<Type>::getNext() {
-	if ((index += 1) >= length)
-		return NULL;
-	return inner[index];
+	return a->get(index += 1);
 }
 //check if this iterator has the element it just returned via getNext()
 template <class Type> bool ArrayIterator<Type>::hasThis() {
-	return index < length;
+	return index < a->length;
+}
+//set an item in the array at the current index
+template <class Type> void ArrayIterator<Type>::replaceThis(Type t) {
+	a->set(index, t);
 }
