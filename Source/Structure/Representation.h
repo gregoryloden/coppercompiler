@@ -414,7 +414,7 @@ public:
 
 	string filename; //copper: private<readonly Include>
 	char* contents; //copper: private<readonly Lex>
-	int contentsLength; //copper: private<readonly Lex>
+	int contentsLength; //copper: private<readonly Lex, ParseDirectives>
 	Array<int>* rowStarts; //copper: private<readonly Lex>
 	AbstractCodeBlock* abstractContents; //copper: private<writeonly ParseDirectives>
 	AVLTree<SourceFile*, bool>* includedFiles; //copper: private<readonly Include>

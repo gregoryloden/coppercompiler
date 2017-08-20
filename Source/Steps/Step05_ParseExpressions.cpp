@@ -1,4 +1,6 @@
 #include "Project.h"
+//Actually step 5 should be ParseTypes to register class names/other type names, which means that it can be used to discern
+//things like function declaration vs function call or generic type vs lesser/greater comparison
 
 //does ???????????????????? parse expressions
 

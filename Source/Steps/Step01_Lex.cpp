@@ -415,11 +415,11 @@ LexToken* Lex::lexIdentifier() {
 	string s (contents + begin, pos - begin);
 
 	if (s.compare("true") == 0)
-		return new IntConstant2(1, begin, sourceFile);
+		return new IntConstant2(1, begin, pos, sourceFile);
 	else if (s.compare("false") == 0)
-		return new IntConstant2(0, begin, sourceFile);
+		return new IntConstant2(0, begin, pos, sourceFile);
 	else
-		return new Identifier(s, begin, sourceFile);
+		return new Identifier(s, begin, pos, sourceFile);
 }
 //get a number constant, either int or float
 //lex location: no change | the first character after the number
@@ -502,7 +502,7 @@ LexToken* Lex::lexNumber() {
 	//turn it into the appropriate constant
 	//if it's not a float, we're done
 	if (!isFloat)
-		return new IntConstant2(num.getInt(), begin, sourceFile);
+		return new IntConstant2(num.getInt(), begin, pos, sourceFile);
 
 	//it's a float
 	//first, adjust baseExponent
@@ -510,7 +510,7 @@ LexToken* Lex::lexNumber() {
 
 	//if we have no exponent, we're also done
 	if (baseExponent == 0)
-		return new FloatConstant2(&num, num.highBit(), begin, sourceFile);
+		return new FloatConstant2(&num, num.highBit(), begin, pos, sourceFile);
 
 	//it has an exponent- we want to divide or multiply num by base^abs(baseExponent)
 	//we get this with the square-and-multiply trick
@@ -538,7 +538,7 @@ LexToken* Lex::lexNumber() {
 	//if it's positive, just multiply it and that's our number
 	if (baseExponent > 0) {
 		num.multiply(&exponentNum);
-		return new FloatConstant2(&num, num.highBit(), begin, sourceFile);
+		return new FloatConstant2(&num, num.highBit(), begin, pos, sourceFile);
 	//if it's negative, grow num before dividing
 	} else {
 		//provide at least 64 bits of precision
@@ -548,7 +548,7 @@ LexToken* Lex::lexNumber() {
 			num.lShift(toShift);
 		int oldHighBit = num.highBit();
 		num.longDiv(&exponentNum);
-		return new FloatConstant2(&num, startingExponent + num.highBit() - oldHighBit, begin, sourceFile);
+		return new FloatConstant2(&num, startingExponent + num.highBit() - oldHighBit, begin, pos, sourceFile);
 	}
 }
 //convert c from a character to the digit it represents
@@ -575,7 +575,7 @@ StringLiteral* Lex::lexString() {
 		c = contents[pos];
 		if (c == '"') {
 			pos++;
-			return new StringLiteral(val, begin, sourceFile);
+			return new StringLiteral(val, begin, pos, sourceFile);
 		}
 		val += nextStringCharacter();
 		if (c == '\n' || c == '\r') {
@@ -647,17 +647,17 @@ IntConstant2* Lex::lexCharacter() {
 	if (contents[pos] != '\'')
 		makeLexError(General, "expected a close quote");
 	pos++;
-	return new IntConstant2((int)c, begin, sourceFile);
+	return new IntConstant2((int)c, begin, pos, sourceFile);
 }
 //get a separator
 //lex location: no change | the first character after the separator
 Separator2* Lex::lexSeparator() {
 	Separator2* val;
 	switch (c) {
-		case '(': val = new Separator2(LeftParenthesis, pos, sourceFile); break;
-		case ')': val = new Separator2(RightParenthesis, pos, sourceFile); break;
-		case ',': val = new Separator2(Comma, pos, sourceFile); break;
-		case ';': val = new Separator2(Semicolon, pos, sourceFile); break;
+		case '(': val = new Separator2(LeftParenthesis, pos, pos + 1, sourceFile); break;
+		case ')': val = new Separator2(RightParenthesis, pos, pos + 1, sourceFile); break;
+		case ',': val = new Separator2(Comma, pos, pos + 1, sourceFile); break;
+		case ';': val = new Separator2(Semicolon, pos, pos + 1, sourceFile); break;
 		default: return nullptr;
 	}
 
@@ -685,7 +685,7 @@ Operator* Lex::lexOperator() {
 			i = -1;
 		}
 	}
-	return found ? new Operator(type, begin, sourceFile) : nullptr;
+	return found ? new Operator(type, begin, pos, sourceFile) : nullptr;
 }
 //get a directive title
 //returns a token even if the directive title is invalid- ParseDirective will take care of it
@@ -707,7 +707,7 @@ DirectiveTitle* Lex::lexDirectiveTitle() {
 	else if (pos == begin)
 		makeLexError(General, "expected a directive name");
 
-	return new DirectiveTitle(string(contents + begin, pos - begin), begin - 1, sourceFile);
+	return new DirectiveTitle(string(contents + begin, pos - begin), begin - 1, pos, sourceFile);
 }
 //throw an error at the current position
 void Lex::makeLexError(ErrorType type, char* message) {

@@ -11,13 +11,14 @@ void ParseDirectives::parseDirectives(SourceFile* newSourceFile) {
 	printf("Parsing directives for %s...\n", newSourceFile->filename.c_str());
 	sourceFile = newSourceFile;
 	Lex::initializeLexer(newSourceFile);
-	newSourceFile->abstractContents = parseAbstractCodeBlock(false);
+	newSourceFile->abstractContents = parseAbstractCodeBlock(false, 0);
 }
 //get the list of tokens and maybe directives
 //parse location: EOF (endsWithParenthesis == false) | the next token after the right parenthesis (endsWithParenthesis == true)
-AbstractCodeBlock* ParseDirectives::parseAbstractCodeBlock(bool endsWithParenthesis) {
+AbstractCodeBlock* ParseDirectives::parseAbstractCodeBlock(bool endsWithParenthesis, int contentPos) {
 	Array<Token*>* tokens = new Array<Token*>();
 	Array<CDirective*>* directives = new Array<CDirective*>();
+	int endContentPos = sourceFile->contentsLength;
 	try {
 		while (true) {
 			Token* next = Lex::lex();
@@ -36,11 +37,12 @@ AbstractCodeBlock* ParseDirectives::parseAbstractCodeBlock(bool endsWithParenthe
 			} else if ((s = dynamic_cast<Separator2*>(next)) != nullptr) {
 				if (s->type == LeftParenthesis) {
 					delete s;
-					next = parseAbstractCodeBlock(true);
+					next = parseAbstractCodeBlock(true, s->contentPos + 1);
 				} else if (s->type == RightParenthesis) {
 					Deleter<Separator2> sDeleter (s);
 					if (!endsWithParenthesis)
 						Error::makeError(General, "found a right parenthesis without a matching left parenthesis", s);
+					endContentPos = s->contentPos;
 					break;
 				}
 			}
@@ -69,7 +71,7 @@ AbstractCodeBlock* ParseDirectives::parseAbstractCodeBlock(bool endsWithParenthe
 			}
 		}
 	}
-	return new AbstractCodeBlock(tokens, directives, sourceFile);
+	return new AbstractCodeBlock(tokens, directives, contentPos, endContentPos, sourceFile);
 }
 //get the definition of a directive
 //parse location: the next token after the directive
@@ -92,8 +94,9 @@ CDirective* ParseDirectives::completeDirective(DirectiveTitle* dt) {
 CDirectiveReplace* ParseDirectives::completeDirectiveReplace(bool replaceInput) {
 	Deleter<Identifier> toReplace(parseIdentifier());
 	Deleter<Array<string>> input(replaceInput ? parseParenthesizedCommaSeparatedIdentifierList() : nullptr);
-	parseSeparator(LeftParenthesis);
-	return new CDirectiveReplace(toReplace.release(), input.release(), parseAbstractCodeBlock(true), sourceFile);
+	int parenthesisContentPos = parseSeparator(LeftParenthesis);
+	return new CDirectiveReplace(toReplace.release(), input.release(), parseAbstractCodeBlock(true, parenthesisContentPos + 1),
+		sourceFile);
 }
 //get the definition of an include directive
 //parse location: the next token after the include directive
@@ -128,7 +131,7 @@ Separator2* ParseDirectives::parseSeparator() {
 }
 //lex a token and make sure it's a separator of the right type
 //parse location: the next token after the separator
-void ParseDirectives::parseSeparator(SeparatorType type) {
+int ParseDirectives::parseSeparator(SeparatorType type) {
 	char* expectedTokenTypeName;
 	switch (type) {
 		case Semicolon: expectedTokenTypeName = "a semicolon"; break;
@@ -140,6 +143,7 @@ void ParseDirectives::parseSeparator(SeparatorType type) {
 	Deleter<Separator2> sDeleter (s);
 	if (s->type != type)
 		makeUnexpectedTokenError(expectedTokenTypeName, s);
+	return s->contentPos;
 }
 //lex a comma-separated list of identifiers
 //parse location: the next token after the right parenthesis of the list

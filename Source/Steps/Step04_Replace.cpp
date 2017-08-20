@@ -70,7 +70,7 @@ void Replace::replaceTokens(Array<Token*>* source, Array<Token*>* result, Prefix
 			} else {
 				Deleter<Array<Token*>> tokens (new Array<Token*>());
 				replaceTokens(a->tokens, tokens.retrieve(), replaces, substitutions);
-				result->add(new AbstractCodeBlock(tokens.release(), new Array<CDirective*>(), substitutions->owningFile));
+				result->add(new AbstractCodeBlock(tokens.release(), nullptr, a->contentPos, a->endContentPos, a->owningFile));
 			}
 			continue;
 		//if it's not an identifier to replace, add it to the result list
@@ -91,24 +91,21 @@ void Replace::replaceTokens(Array<Token*>* source, Array<Token*>* result, Prefix
 		if (r->inUse)
 			Error::makeError(General, "cannot use replacement in its own body", i);
 		r->inUse = true;
-		bool rethrow = false;
 		//no input, just stick its contents into the result
 		if (r->input == nullptr) {
-			int prevLength = result->length;
 			try {
 				SubstitutedToken newSubstitution (substitutions, i);
 				newSubstitution.shouldDelete = false;
 				replaceTokens(r->replacement->tokens, result, replaces, &newSubstitution);
 			} catch (...) {
-				rethrow = true;
+				r->inUse = false;
+				Error::makeError(Continuation, nullptr, i);
 			}
 		//if it takes input, ???????????????
 		} else {
 
 		}
 		r->inUse = false;
-		if (rethrow)
-			Error::makeError(Continuation, nullptr, i);
 	}
 }
 Token* Replace::cloneSubstitutions(SubstitutedToken* substitutions, Token* token) {
