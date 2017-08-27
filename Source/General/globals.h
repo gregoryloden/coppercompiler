@@ -117,7 +117,6 @@ public:
 	static const int SNIPPET_CHARS = 0x41;
 private:
 	static char* snippet;
-	static int lastErrorPos;
 public:
 	static int errorCount;
 

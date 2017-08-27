@@ -9,6 +9,20 @@ contentPos(pContentPos)
 Token::~Token() {
 	//don't delete owningFile
 }
+int Token::getRow() {
+	Array<int>* rowStarts = owningFile->rowStarts;
+	int rowLo = 0;
+	int rowHi = owningFile->rowStarts->length;
+	int row = rowHi / 2;
+	while (row > rowLo) {
+		if (contentPos >= rowStarts->get(row))
+			rowLo = row;
+		else
+			rowHi = row;
+		row = (rowLo + rowHi) / 2;
+	}
+	return row;
+}
 EmptyToken::EmptyToken(int pContentPos, SourceFile* pOwningFile)
 : Token(onlyWhenTrackingIDs("EMPTTKN" COMMA) pContentPos, pContentPos, pOwningFile) {
 }
@@ -71,17 +85,15 @@ AbstractCodeBlock::~AbstractCodeBlock() {
 	if (directives != nullptr)
 		directives->deleteSelfAndContents();
 }
-SubstitutedToken::SubstitutedToken(Token* pParent, Token* tokenBeingReplaced)
+SubstitutedToken::SubstitutedToken(Token* pResultingToken, bool pShouldDelete, Token* tokenBeingReplaced)
 : Token(onlyWhenTrackingIDs("SBSTKN" COMMA) tokenBeingReplaced->contentPos, tokenBeingReplaced->endContentPos,
 	tokenBeingReplaced->owningFile)
-, parent(pParent)
-//delete any chain of substituted tokens, but not the original token itself
-//store this now in case it's not a substituted token and gets deleted before this
-, shouldDelete(dynamic_cast<SubstitutedToken*>(pParent) != nullptr) {
+, resultingToken(pResultingToken)
+, shouldDelete(pShouldDelete) {
 }
 SubstitutedToken::~SubstitutedToken() {
 	if (shouldDelete)
-		delete parent;
+		delete resultingToken;
 }
 //IdentifierList::IdentifierList(Identifier* pI1, Identifier* pI2)
 //: Token("IDFRLST", pI1->contentPos)

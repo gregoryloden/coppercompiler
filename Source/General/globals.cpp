@@ -145,41 +145,35 @@ char* Error::snippet = []() -> char* {
 	val[SNIPPET_PREFIX_SPACES + SNIPPET_CHARS + 1 + SNIPPET_PREFIX_SPACES + SNIPPET_CHARS / 2 + 1] = '\0';
 	return val;
 }();
-int Error::lastErrorPos = -1;
 int Error::errorCount = 0;
 //print an error and throw
 void Error::makeError(ErrorType type, const char* message, Token* token) {
-	if (token->contentPos != lastErrorPos) {
-		lastErrorPos = token->contentPos;
-		SourceFile* owningFile = token->owningFile;
-		Array<int>* rowStarts = owningFile->rowStarts;
-		//find the right row
-		int rowLo = 0;
-		int rowHi = owningFile->rowStarts->length;
-		int row = rowHi / 2;
-		while (row > rowLo) {
-			if (lastErrorPos >= rowStarts->get(row))
-				rowLo = row;
-			else
-				rowHi = row;
-			row = (rowLo + rowHi) / 2;
+	SubstitutedToken* s;
+	if ((s = dynamic_cast<SubstitutedToken*>(token)) != nullptr) {
+		try {
+			makeError(type, message, s->resultingToken);
+		} catch (...) {
 		}
-		//print the error
-		char* errorPrefix;
-		switch (type) {
-			case Continuation: errorPrefix = "----- in \"%s\" at line %d char %d\n"; break;
-			default:           errorPrefix = "Error in \"%s\" at line %d char %d: "; break;
-		}
-		printf(errorPrefix, owningFile->filename.c_str(), row + 1, lastErrorPos - rowStarts->get(row) + 1);
-		switch (type) {
-			case General: puts(message); break;
-			case EndOfFileWhileSearching: printf("reached the end of the file while searching for %s\n", message); break;
-			case EndOfFileWhileReading: printf("reached the end of the file while reading %s\n", message); break;
-			case Continuation: break;
-		}
-		showSnippet(token);
-		errorCount++;
+		type = Continuation;
+		errorCount--;
 	}
+	SourceFile* owningFile = token->owningFile;
+	int row = token->getRow();
+	//print the error
+	char* errorPrefix;
+	switch (type) {
+		case Continuation: errorPrefix = "  --- in \"%s\" at line %d char %d\n"; break;
+		default:           errorPrefix = "Error in \"%s\" at line %d char %d: "; break;
+	}
+	printf(errorPrefix, owningFile->filename.c_str(), row + 1, token->contentPos - owningFile->rowStarts->get(row) + 1);
+	switch (type) {
+		case General: puts(message); break;
+		case EndOfFileWhileSearching: printf("reached the end of the file while searching for %s\n", message); break;
+		case EndOfFileWhileReading: printf("reached the end of the file while reading %s\n", message); break;
+		case Continuation: break;
+	}
+	showSnippet(token);
+	errorCount++;
 	throw 0;
 }
 //show the snippet where the error/warning is
@@ -201,7 +195,10 @@ void Error::showSnippet(Token* token) {
 #ifdef DEBUG
 	//recursively print the contents of the abstract code block
 	void Debug::printAbstractCodeBlock(AbstractCodeBlock* codeBlock, int spacesCount) {
-		printf(" -- %d directives\n", codeBlock->directives->length);
+		if (codeBlock->directives != nullptr && codeBlock->directives->length > 0)
+			printf(" -- %d directives\n", codeBlock->directives->length);
+		else
+			printf("\n");
 		bool printedSpaces = false;
 		forEach(Token*, t, codeBlock->tokens, ti) {
 			AbstractCodeBlock* a;
@@ -226,19 +223,12 @@ void Error::showSnippet(Token* token) {
 				}
 				SubstitutedToken* st;
 				while ((st = dynamic_cast<SubstitutedToken*>(t)) != nullptr)
-					t = st->parent;
-				if (t == nullptr)
-					printf("(?)");
-				else if (dynamic_cast<LexToken*>(t) == nullptr) {
-					printf("Unexpected token\n");
-					throw (*((char*)nullptr) = 0);
-				} else {
-					char* contents = t->owningFile->contents;
-					char old = contents[t->endContentPos];
-					contents[t->endContentPos] = '\0';
-					printf(contents + t->contentPos);
-					contents[t->endContentPos] = old;
-				}
+					t = st->resultingToken;
+				char* contents = t->owningFile->contents;
+				char old = contents[t->endContentPos];
+				contents[t->endContentPos] = '\0';
+				printf(contents + t->contentPos);
+				contents[t->endContentPos] = old;
 			}
 		}
 		if (printedSpaces)

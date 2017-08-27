@@ -33,10 +33,7 @@ private:
 	static Separator2* lexSeparator();
 	static Operator* lexOperator();
 	static DirectiveTitle* lexDirectiveTitle();
-public:
 	static void makeLexError(ErrorType type, char* message);
-private:
-	static void makeLexError(ErrorType type, char* message, Token* errorToken);
 };
 //void buildTokens();
 //void castConstant(IntConstant* c, int context);

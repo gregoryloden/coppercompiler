@@ -17,14 +17,14 @@ void ParseDirectives::parseDirectives(SourceFile* newSourceFile) {
 //parse location: EOF (endsWithParenthesis == false) | the next token after the right parenthesis (endsWithParenthesis == true)
 AbstractCodeBlock* ParseDirectives::parseAbstractCodeBlock(bool endsWithParenthesis, int contentPos) {
 	Array<Token*>* tokens = new Array<Token*>();
-	Array<CDirective*>* directives = new Array<CDirective*>();
+	Array<CDirective*>* directives = nullptr;
 	int endContentPos = sourceFile->contentsLength;
 	try {
 		while (true) {
 			Token* next = Lex::lex();
 			if (next == nullptr) {
 				if (endsWithParenthesis)
-					Lex::makeLexError(EndOfFileWhileSearching, "a right parenthesis");
+					makeEndOfFileWhileSearchingError("a right parenthesis");
 				break;
 			}
 
@@ -32,6 +32,8 @@ AbstractCodeBlock* ParseDirectives::parseAbstractCodeBlock(bool endsWithParenthe
 			Separator2* s;
 			if ((dt = dynamic_cast<DirectiveTitle*>(next)) != nullptr) {
 				Deleter<DirectiveTitle> dtDeleter (dt);
+				if (directives == nullptr)
+					directives = new Array<CDirective*>();
 				directives->add(completeDirective(dt));
 				dtDeleter.release();
 			} else if ((s = dynamic_cast<Separator2*>(next)) != nullptr) {
@@ -111,7 +113,7 @@ CDirectiveInclude* ParseDirectives::completeDirectiveInclude(bool includeAll) {
 template <class TokenType> TokenType* ParseDirectives::parseToken(char* expectedTokenTypeName) {
 	LexToken* l = Lex::lex();
 	if (l == nullptr)
-		Lex::makeLexError(EndOfFileWhileSearching, expectedTokenTypeName);
+		makeEndOfFileWhileSearchingError(expectedTokenTypeName);
 	TokenType* t;
 	if ((t = dynamic_cast<TokenType*>(l)) == nullptr) {
 		Deleter<LexToken> lDeleter (l);
@@ -167,4 +169,9 @@ Array<string>* ParseDirectives::parseParenthesizedCommaSeparatedIdentifierList()
 void ParseDirectives::makeUnexpectedTokenError(char* expectedTokenTypeName, Token* t) {
 	string message = string("expected ") + expectedTokenTypeName;
 	Error::makeError(General, message.c_str(), t);
+}
+//throw an error about an unexpected end-of-file
+void ParseDirectives::makeEndOfFileWhileSearchingError(char* message) {
+	EmptyToken errorToken (sourceFile->contentsLength, sourceFile);
+	Error::makeError(EndOfFileWhileSearching, message, &errorToken);
 }

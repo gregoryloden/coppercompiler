@@ -1507,7 +1507,6 @@ filename(pFilename)
 , abstractContents(nullptr)
 , includedFiles(new AVLTree<SourceFile*, bool>())
 , inclusionListeners(new Array<SourceFile*>()) {
-	rowStarts->add(0);
 	//load the file
 	FILE* file = nullptr;
 	fopen_s(&file, filename.c_str(), "rb");

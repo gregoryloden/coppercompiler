@@ -126,6 +126,7 @@ void Lex::initializeLexer(SourceFile* newSourceFile) {
 	contentsLength = sourceFile->contentsLength;
 	pos = 0;
 	rowStarts = sourceFile->rowStarts;
+	rowStarts->add(0);
 }
 //retrieve the next token from contents
 //lex location: the first character after the next token | EOF
@@ -150,7 +151,9 @@ LexToken* Lex::lex() {
 //contents[pos] = cp;
 		return t;
 //}
-	makeLexError(General, "unexpected character");
+	EmptyToken errorToken (pos, sourceFile);
+	pos++;
+	Error::makeError(General, "unexpected character", &errorToken);
 	return nullptr;
 }
 /*
@@ -379,7 +382,7 @@ bool Lex::skipComment() {
 	}
 	//reached the end of the file before the comment terminator, that's ok for a line comment but not a block comment
 	if (!lineComment)
-		makeLexError(EndOfFileWhileSearching, "the end of the block comment", &errorToken);
+		Error::makeError(EndOfFileWhileSearching, "the end of the block comment", &errorToken);
 	return true;
 }
 //get a variable name, type, or keyword
@@ -423,7 +426,7 @@ LexToken* Lex::lexNumber() {
 			case 'b': base = 2; pos += 2; break;
 		}
 		if (outofbounds())
-			makeLexError(EndOfFileWhileReading, "the number definition", &errorToken);
+			Error::makeError(EndOfFileWhileReading, "the number definition", &errorToken);
 		c = contents[pos];
 	}
 
@@ -577,7 +580,7 @@ char Lex::nextStringCharacter() {
 	EmptyToken errorToken (pos, sourceFile);
 	pos++;
 	if (outofbounds())
-		makeLexError(EndOfFileWhileReading, "the escape sequence", &errorToken);
+		Error::makeError(EndOfFileWhileReading, "the escape sequence", &errorToken);
 	c = contents[pos];
 	switch (c) {
 		case 'n': return '\n';
@@ -588,7 +591,7 @@ char Lex::nextStringCharacter() {
 		//2-digit hex escape sequence
 		case 'x': {
 			if (pos + 2 >= contentsLength)
-				makeLexError(EndOfFileWhileReading, "the hex digit escape sequence", &errorToken);
+				Error::makeError(EndOfFileWhileReading, "the hex digit escape sequence", &errorToken);
 			char c2 = 0;
 			for (int max = pos + 2; pos < max;) {
 				pos++;
@@ -621,13 +624,13 @@ IntConstant2* Lex::lexCharacter() {
 	int begin = pos;
 	pos++;
 	if (outofbounds())
-		makeLexError(EndOfFileWhileReading, "the character definition", &errorToken);
+		Error::makeError(EndOfFileWhileReading, "the character definition", &errorToken);
 
 	c = contents[pos];
 	c = nextStringCharacter();
 	pos++;
 	if (outofbounds())
-		makeLexError(EndOfFileWhileReading, "the character definition", &errorToken);
+		Error::makeError(EndOfFileWhileReading, "the character definition", &errorToken);
 	if (contents[pos] != '\'')
 		makeLexError(General, "expected a close quote");
 	pos++;
@@ -696,11 +699,7 @@ DirectiveTitle* Lex::lexDirectiveTitle() {
 //throw an error at the current position
 void Lex::makeLexError(ErrorType type, char* message) {
 	EmptyToken errorToken (pos, sourceFile);
-	makeLexError(type, message, &errorToken);
-}
-//throw an error with the provided location information
-void Lex::makeLexError(ErrorType type, char* message, Token* errorToken) {
-	Error::makeError(type, message, errorToken);
+	Error::makeError(type, message, &errorToken);
 }
 /*
 //check if the next statement is a Main. function

@@ -126,6 +126,8 @@ int main(int argc, char* argv[]) {
 		return -1;
 	}
 	compile(argv[1]);
+	if (Error::errorCount > 0)
+		printf("Quit with %d errors\n", Error::errorCount);
 //printAbstractCodeBlock(mainFile->abstractContents, 0);
 	/*
 	setRowsAndColumns();

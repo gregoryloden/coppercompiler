@@ -79,6 +79,8 @@ public:
 	int contentPos; //copper: readonly
 	int endContentPos; //copper: readonly
 	SourceFile* owningFile; //copper: readonly
+
+	int getRow();
 };
 //For empty contents (ex. errors, between commas or semicolons, etc.)
 class EmptyToken: public Token {
@@ -162,10 +164,10 @@ public:
 //Tokens used in replacing
 class SubstitutedToken: public Token {
 public:
-	SubstitutedToken(Token* pParent, Token* tokenBeingReplaced);
+	SubstitutedToken(Token* pResultingToken, bool pShouldDelete, Token* tokenBeingReplaced);
 	virtual ~SubstitutedToken();
 
-	Token* parent; //copper: readonly
+	Token* resultingToken; //copper: readonly
 	bool shouldDelete;
 };
 //class IdentifierList: public Token {

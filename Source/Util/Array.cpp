@@ -11,6 +11,7 @@ template class Array<Identifier*>;
 template class Array<CDirective*>;
 template class Array<CDirectiveReplace*>;
 template class Array<SourceFile*>;
+template class Array<Array<Token*>*>;
 template class Array<AVLNode<SourceFile*, bool>*>;
 template class Array<AVLNode<char, PrefixTrie<char, SourceFile*>*>*>;
 template class Array<AVLNode<char, PrefixTrie<char, CDirectiveReplace*>*>*>;
@@ -23,6 +24,7 @@ template class ArrayIterator<Identifier*>;
 template class ArrayIterator<CDirective*>;
 template class ArrayIterator<CDirectiveReplace*>;
 template class ArrayIterator<SourceFile*>;
+template class ArrayIterator<Array<Token*>*>;
 template class ArrayIterator<AVLNode<SourceFile*, bool>*>;
 template class ArrayIterator<AVLNode<char, PrefixTrie<char, SourceFile*>*>*>;
 template class ArrayIterator<AVLNode<char, PrefixTrie<char, CDirectiveReplace*>*>*>;
@@ -53,6 +55,18 @@ template <class Type> void Array<Type>::resize(int scale) {
 	inner = newInner;
 	innerLength *= scale;
 }
+//shift the elements from [pos] to the end of the array, towards the end of the array, shifting them [shift] slots
+//used when inserting/overwriting the old spaces
+template <class Type> void Array<Type>::shiftBack(int pos, int shift) {
+	if (length + shift > innerLength) {
+		int scale = 2;
+		while (length + shift > innerLength * scale)
+			scale *= 2;
+		resize(scale);
+	}
+	for (int i = length - 1; i >= pos; i--)
+		inner[i + shift] = inner[i];
+}
 //get an item from the array
 template <class Type> Type Array<Type>::get(int pos) {
 	return inner[pos];
@@ -63,10 +77,7 @@ template <class Type> void Array<Type>::set(int pos, Type t) {
 }
 //add an item to the array at the given spot
 template <class Type> void Array<Type>::add(Type t, int pos) {
-	if (length >= innerLength)
-		resize(2);
-	for (int i = length; i > pos; i--)
-		inner[i] = inner[i - 1];
+	shiftBack(pos, 1);
 	inner[pos] = t;
 	length++;
 }
@@ -80,15 +91,8 @@ template <class Type> void Array<Type>::add(Type t) {
 //add another array's items to this array at the given spot, deleting the array if indicated
 template <class Type> void Array<Type>::add(Array<Type>* a, int pos, bool deletable) {
 	int shift = a->length;
+	shiftBack(pos, shift);
 	Type* otherInner = a->inner;
-	if (shift + length > innerLength) {
-		int scale = 2;
-		while (shift + length > innerLength * scale)
-			scale *= 2;
-		resize(scale);
-	}
-	for (int i = length - 1; i >= pos; i--)
-		inner[i + shift] = inner[i];
 	for (int i = shift - 1; i >= 0; i--)
 		inner[i + pos] = otherInner[i];
 	length += shift;
@@ -116,6 +120,16 @@ template <class Type> void Array<Type>::remove(int pos, int num) {
 //remove the item at the given spot
 template <class Type> void Array<Type>::remove(int pos) {
 	remove(pos, 1);
+}
+//replace the elements in the given range with the contents of the other array
+template <class Type> void Array<Type>::replace(int pos, int count, Array<Type>* a) {
+	if (count > a->length)
+		remove(pos + a->length, count - a->length);
+	else if (count < a->length)
+		shiftBack(pos + count, a->length - count);
+	Type* otherInner = a->inner;
+	for (int i = a->length - 1; i >= 0; i--)
+		inner[i + pos] = otherInner[i];
 }
 //return the first item
 template <class Type> Type Array<Type>::first() {

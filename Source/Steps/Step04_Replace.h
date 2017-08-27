@@ -11,9 +11,8 @@ class Replace {
 public:
 	static void replaceCodeInFiles(Array<SourceFile*>* files);
 private:
-	static void replaceAbstractContents(AbstractCodeBlock* abstractContents, PrefixTrie<char, CDirectiveReplace*>* replaces);
 	static void addReplacesToTrie(AbstractCodeBlock* abstractContents, PrefixTrie<char, CDirectiveReplace*>* replaces);
-	static void replaceTokens(Array<Token*>* source, Array<Token*>* result, PrefixTrie<char, CDirectiveReplace*>* replaces,
-		SubstitutedToken* substitutions);
-	static Token* cloneSubstitutions(SubstitutedToken* substitutions, Token* token);
+	static void replaceTokens(Array<Token*>* tokens, PrefixTrie<char, CDirectiveReplace*>* replaces);
+	static Array<Token*>* simpleReplace(AbstractCodeBlock* abstractContents, Token* tokenBeingReplaced);
+	static SubstitutedToken* substituteTokens(Token* tokenBeingReplaced, Token* resultingToken);
 };

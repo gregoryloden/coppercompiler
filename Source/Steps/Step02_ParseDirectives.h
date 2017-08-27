@@ -29,4 +29,5 @@ private:
 	static int parseSeparator(SeparatorType type);
 	static Array<string>* parseParenthesizedCommaSeparatedIdentifierList();
 	static void makeUnexpectedTokenError(char* expectedTokenTypeName, Token* t);
+	static void makeEndOfFileWhileSearchingError(char* message);
 };

@@ -14,6 +14,7 @@ public:
 	void deleteSelfAndContents();
 private:
 	void resize(int scale);
+	void shiftBack(int pos, int shift);
 public:
 	Type get(int pos);
 	void set(int pos, Type t);
@@ -25,6 +26,7 @@ public:
 	void add(Array<Type>* a);
 	void remove(int pos, int num);
 	void remove(int pos);
+	void replace(int pos, int count, Array<Type>* a);
 	Type first();
 	Type pop();
 	void clear();
