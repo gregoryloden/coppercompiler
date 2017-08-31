@@ -148,6 +148,7 @@ public:
 	virtual ~DirectiveTitle();
 
 	string title; //copper: readonly
+	CDirective* directive; //copper: readonly<ParseDirectives>
 };
 
 //Tokens used in parsing

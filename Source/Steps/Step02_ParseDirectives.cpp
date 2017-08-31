@@ -34,7 +34,7 @@ AbstractCodeBlock* ParseDirectives::parseAbstractCodeBlock(bool endsWithParenthe
 				Deleter<DirectiveTitle> dtDeleter (dt);
 				if (directives == nullptr)
 					directives = new Array<CDirective*>();
-				directives->add(completeDirective(dt));
+				directives->add(dt->directive = completeDirective(dt));
 				dtDeleter.release();
 			} else if ((s = dynamic_cast<Separator2*>(next)) != nullptr) {
 				if (s->type == LeftParenthesis) {
@@ -50,7 +50,7 @@ AbstractCodeBlock* ParseDirectives::parseAbstractCodeBlock(bool endsWithParenthe
 			}
 
 			//whatever it was, put it in tokens to make sure it's semantically okay to be where it is
-			//if it's a directive, tokens were parsed until after the semicolon
+			//if it's a directive, tokens were parsed to complete it
 			tokens->add(next);
 		}
 	} catch (...) {

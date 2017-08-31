@@ -1506,7 +1506,8 @@ filename(pFilename)
 , rowStarts(new Array<int>())
 , abstractContents(nullptr)
 , includedFiles(new AVLTree<SourceFile*, bool>())
-, inclusionListeners(new Array<SourceFile*>()) {
+, inclusionListeners(new Array<SourceFile*>())
+, replacedArguments(new Array<AbstractCodeBlock*>()) {
 	//load the file
 	FILE* file = nullptr;
 	fopen_s(&file, filename.c_str(), "rb");
@@ -1529,6 +1530,7 @@ SourceFile::~SourceFile() {
 	//don't delete the source files, they will get deleted through the main source file list
 	delete includedFiles;
 	delete inclusionListeners;
+	replacedArguments->deleteSelfAndContents();
 }
 CDirective::CDirective(onlyWhenTrackingIDs(char* pObjType))
 onlyInDebug(: ObjCounter(onlyWhenTrackingIDs(pObjType))) {

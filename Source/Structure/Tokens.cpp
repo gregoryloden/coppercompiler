@@ -71,9 +71,12 @@ Operator::~Operator() {
 }
 DirectiveTitle::DirectiveTitle(string pTitle, int pContentPos, int pEndContentPos, SourceFile* pOwningFile)
 : LexToken(onlyWhenTrackingIDs("DCTVTTL" COMMA) pContentPos, pEndContentPos, pOwningFile)
-, title(pTitle) {
+, title(pTitle)
+, directive(nullptr) {
 }
-DirectiveTitle::~DirectiveTitle() {}
+DirectiveTitle::~DirectiveTitle() {
+	//don't delete the directive, the SourceFile owns it
+}
 AbstractCodeBlock::AbstractCodeBlock(
 	Array<Token*>* pTokens, Array<CDirective*>* pDirectives, int pContentPos, int pEndContentPos, SourceFile* pOwningFile)
 : Token(onlyWhenTrackingIDs("ABCDBLK" COMMA) pContentPos, pEndContentPos, pOwningFile)

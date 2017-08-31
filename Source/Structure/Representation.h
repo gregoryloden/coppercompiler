@@ -419,6 +419,7 @@ public:
 	AbstractCodeBlock* abstractContents; //copper: private<writeonly ParseDirectives>
 	AVLTree<SourceFile*, bool>* includedFiles; //copper: private<readonly Include>
 	Array<SourceFile*>* inclusionListeners; //copper: private<readonly Include>
+	Array<AbstractCodeBlock*>* replacedArguments;
 //	Array<CVariable*>* variables;
 //	Array<CClass*>* classes;
 //	Array<CDirective*>* directives;

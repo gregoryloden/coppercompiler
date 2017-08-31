@@ -201,26 +201,25 @@ void Error::showSnippet(Token* token) {
 			printf("\n");
 		bool printedSpaces = false;
 		forEach(Token*, t, codeBlock->tokens, ti) {
-			AbstractCodeBlock* a;
-			if ((a = dynamic_cast<AbstractCodeBlock*>(t)) != nullptr) {
-				if (printedSpaces)
-					printf("\n");
+			if (printedSpaces)
+				printf(" ");
+			else {
 				for (int j = 0; j < spacesCount; j++)
 					printf("    ");
-				printf("(");
-				printAbstractCodeBlock(a, spacesCount + 1);
-				for (int i = 0; i < spacesCount; i++)
-					printf("    ");
-				puts(")");
-				printedSpaces = false;
-			} else {
-				if (printedSpaces)
-					printf(" ");
-				else {
-					for (int j = 0; j < spacesCount; j++)
+				printedSpaces = true;
+			}
+			AbstractCodeBlock* a;
+			if ((a = dynamic_cast<AbstractCodeBlock*>(t)) != nullptr) {
+				if (a->tokens->length == 0) {
+					printf("()");
+				} else {
+					printf("(");
+					printAbstractCodeBlock(a, spacesCount + 1);
+					for (int i = 0; i < spacesCount; i++)
 						printf("    ");
-					printedSpaces = true;
+					printf(")");
 				}
+			} else {
 				SubstitutedToken* st;
 				while ((st = dynamic_cast<SubstitutedToken*>(t)) != nullptr)
 					t = st->resultingToken;
@@ -231,8 +230,7 @@ void Error::showSnippet(Token* token) {
 				contents[t->endContentPos] = old;
 			}
 		}
-		if (printedSpaces)
-			printf("\n");
+		printf("\n");
 	}
 #endif
 /*

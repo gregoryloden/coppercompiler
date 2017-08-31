@@ -62,64 +62,60 @@ void Replace::replaceTokens(Array<Token*>* tokens, PrefixTrie<char, CDirectiveRe
 		//if the replace is already in use, that's an error
 		if (r->inUse)
 			Error::makeError(General, "cannot use replacement in its own body", fullToken);
-		r->inUse = true;
-		//no input, just stick its contents into the result
-		if (r->input == nullptr) {
-			//get the tokens we need
-			Array<Token*>* tokensToInsert = simpleReplace(r->replacement, fullToken);
-			try {
-				replaceTokens(tokensToInsert, replaces);
-			} catch (...) {
-				tokensToInsert->deleteSelfAndContents();
-				r->inUse = false;
-				throw;
-			}
-			//insert them into the array, preserving the index relative to the end
-			int offsetFromEnd = tokens->length - ti;
-			tokens->replace(ti, 1, tokensToInsert);
-			ti = tokens->length - offsetFromEnd;
-			delete fullToken;
-			delete tokensToInsert;
+		Array<Token*>* tokensToInsert;
+		if (r->input == nullptr)
+			tokensToInsert = simpleReplace(r->replacement, fullToken);
 		//if it takes input, ???????????????
-		} else {
+		else {
 			//start by collecting the arguments
-			try {
-				//make sure we have an argument list
-				ti++;
-				if (ti >= tokens->length)
-					Error::makeError(General, "expected an input list to follow", fullToken);
-				t = tokens->get(ti);
-				if ((a = dynamic_cast<AbstractCodeBlock*>(t)) == nullptr)
-					Error::makeError(General, "expected an input list", t);
-				//split up the arguments around the commas
-				Array<Token*>* nextTokens = nullptr;
-				Array<Array<Token*>*>* arguments = new Array<Array<Token*>*>();
-				forEach(Token*, at, a->tokens, ati) {
-					Separator2* s;
-					if ((s = dynamic_cast<Separator2*>(at)) != nullptr && s->type == Comma) {
-						delete s;
-						arguments->add(nextTokens);
-						nextTokens = nullptr;
-					} else {
-						if (nextTokens == nullptr)
-							nextTokens = new Array<Token*>();
-						nextTokens->add(at);
-					}
-				}
-				if (nextTokens != nullptr)
+			ti++;
+			if (ti >= tokens->length)
+				Error::makeError(General, "expected an input list to follow", fullToken);
+			t = tokens->get(ti);
+			if ((a = dynamic_cast<AbstractCodeBlock*>(t)) == nullptr)
+				Error::makeError(General, "expected an input list", t);
+			//split up the arguments around the commas
+			Array<Token*>* nextTokens = nullptr;
+			Array<Array<Token*>*>* arguments = new Array<Array<Token*>*>();
+			forEach(Token*, at, a->tokens, ati) {
+				Separator2* s;
+				if ((s = dynamic_cast<Separator2*>(at)) != nullptr && s->type == Comma) {
+					delete s;
+					ati.replaceThis(nullptr);
 					arguments->add(nextTokens);
-				a->tokens->clear();
-				delete a;
-				//?????????????????????
-				//behavior:
-				//identifiers: normal replace, concat after removing leading and trailing whitespace
-				//strings: full replace including whitespace and comments
-			} catch (...) {
-				r->inUse = false;
-				throw;
+					nextTokens = nullptr;
+				} else {
+					if (nextTokens == nullptr)
+						nextTokens = new Array<Token*>();
+					nextTokens->add(at);
+				}
 			}
-			//?????????????????????
+			if (nextTokens != nullptr)
+				arguments->add(nextTokens);
+			if (arguments->length != r->input->length) {
+				int argumentsLength = arguments->length;
+				arguments->deleteSelfAndContents();
+				string message = "expected " + to_string(r->input->length) + " arguments but got " + to_string(argumentsLength);
+				Error::makeError(General, message.c_str(), t);
+			}
+			a->owningFile->replacedArguments->add(a);
+			tokensToInsert = replaceWithInput(r->replacement, fullToken, arguments, r->input);
+			arguments->deleteSelfAndContents();
 		}
+		r->inUse = true;
+		try {
+			replaceTokens(tokensToInsert, replaces);
+		} catch (...) {
+			tokensToInsert->deleteSelfAndContents();
+			r->inUse = false;
+			throw;
+		}
+		//insert them into the array, preserving the index relative to the end
+		int offsetFromEnd = tokens->length - ti;
+		tokens->replace(ti, r->input == nullptr ? 1 : 2, tokensToInsert);
+		ti = tokens->length - offsetFromEnd;
+		delete fullToken;
+		delete tokensToInsert;
 		r->inUse = false;
 	}
 }
@@ -143,4 +139,15 @@ SubstitutedToken* Replace::substituteTokens(Token* tokenBeingReplaced, Token* re
 		return new SubstitutedToken(substituteTokens(s->resultingToken, resultingToken), true, s);
 	else
 		return new SubstitutedToken(resultingToken, false, tokenBeingReplaced);
+}
+//recursively clone the abstract code block, and substitute any other tokens using the parent token
+//if a string or identifier matches one of the arguments, replace it
+Array<Token*>* Replace::replaceWithInput(
+	AbstractCodeBlock* abstractContents, Token* tokenBeingReplaced, Array<Array<Token*>*>* arguments, Array<string>* input)
+{
+	//?????????????????????
+	//behavior:
+	//identifiers: normal replace, concat after removing leading and trailing whitespace
+	//strings: full replace including whitespace and comments
+	return nullptr;
 }
