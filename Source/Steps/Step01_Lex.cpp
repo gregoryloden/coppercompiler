@@ -417,6 +417,7 @@ LexToken* Lex::lexNumber() {
 	EmptyToken errorToken (pos, sourceFile);
 	int begin = pos;
 	int base = 10;
+	bool digitExpected = false;
 	//different base
 	char c2;
 	if (c == '0' && pos + 1 < contentsLength && !isdigit(c2 = contents[pos + 1])) {
@@ -426,14 +427,15 @@ LexToken* Lex::lexNumber() {
 			case 'b': base = 2; pos += 2; break;
 		}
 		if (outofbounds())
-			Error::makeError(EndOfFileWhileReading, "the number definition", &errorToken);
+			makeLexError(EndOfFileWhileReading, "the number definition");
 		c = contents[pos];
+		digitExpected = true;
 	}
 
-	BigInt2 num (base);
+	BigInt2* num = new BigInt2(base);
+	Deleter<BigInt2> numDeleter (num);
 	bool lexingExponent = false;
 	bool isFloat = false;
-	bool digitExpected = false;
 	int fractionDigits = 0;
 	int baseExponent = 0;
 	bool negativeExponent = false;
@@ -442,7 +444,7 @@ LexToken* Lex::lexNumber() {
 		if (c == '_')
 			; //underscores can appear anywhere in the number definition after the first character
 		else if (c == '.') {
-			if (!isFloat) {
+			if (!isFloat && !digitExpected) {
 				isFloat = true;
 				digitExpected = true;
 			} else
@@ -463,10 +465,10 @@ LexToken* Lex::lexNumber() {
 			if (digit == -1 || digit > base)
 				break;
 			if (lexingExponent) {
-				if (baseExponent < FloatConstant2::FLOAT_TOO_BIG_EXPONENT)
+//				if (baseExponent < FloatConstant2::FLOAT_TOO_BIG_EXPONENT)
 					baseExponent = baseExponent * base + digit;
 			} else {
-				num.digit(digit);
+				num->digit(digit);
 				if (isFloat)
 					fractionDigits++;
 			}
@@ -485,12 +487,13 @@ LexToken* Lex::lexNumber() {
 			makeLexError(General, "expected digit");
 	}
 
-	//we've now finished reading the number
-	//turn it into the appropriate constant
-	//if it's not a float, we're done
+	//we've now finished reading the number, turn it into the appropriate constant
 	if (!isFloat)
-		return new IntConstant2(num.getInt(), begin, pos, sourceFile);
-
+		return new IntConstant2(num->getInt(), begin, pos, sourceFile);
+	else
+		return new FloatConstant2(
+			numDeleter.release(), (negativeExponent ? -baseExponent : baseExponent) - fractionDigits, begin, pos, sourceFile);
+/*
 	//it's a float
 	//first, adjust baseExponent
 	baseExponent = (negativeExponent ? -baseExponent : baseExponent) - fractionDigits;
@@ -537,6 +540,7 @@ LexToken* Lex::lexNumber() {
 		num.longDiv(&exponentNum);
 		return new FloatConstant2(&num, startingExponent + num.highBit() - oldHighBit, begin, pos, sourceFile);
 	}
+	*/
 }
 //convert c from a character to the digit it represents
 char Lex::cToDigit() {

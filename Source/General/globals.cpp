@@ -41,6 +41,7 @@ Thunk THeapAlloc ("HeapAlloc", 0x1BD);
 Thunk THeapReAlloc ("HeapReAlloc", 0x1C4);
 */
 
+template class Deleter<BigInt2>;
 template class Deleter<Separator2>;
 template class Deleter<DirectiveTitle>;
 template class Deleter<Identifier>;

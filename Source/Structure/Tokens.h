@@ -112,11 +112,11 @@ public:
 };
 class FloatConstant2: public LexToken {
 public:
-	FloatConstant2(BigInt2* pMantissa, int pExponent, int pContentPos, int pEndContentPos, SourceFile* pOwningFile);
+	FloatConstant2(BigInt2* pSignificand, int pExponent, int pContentPos, int pEndContentPos, SourceFile* pOwningFile);
 	virtual ~FloatConstant2();
 
-	static const int FLOAT_TOO_BIG_EXPONENT = 0x100000;
-	BigInt2* mantissa; //copper: readonly
+//	static const int FLOAT_TOO_BIG_EXPONENT = 0x100000;
+	BigInt2* significand; //copper: readonly
 	int exponent; //copper: readonly
 };
 class StringLiteral: public LexToken {

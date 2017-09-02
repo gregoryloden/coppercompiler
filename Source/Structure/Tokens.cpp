@@ -41,14 +41,14 @@ IntConstant2::IntConstant2(int pVal, int pContentPos, int pEndContentPos, Source
 , val(pVal) {
 }
 IntConstant2::~IntConstant2() {}
-FloatConstant2::FloatConstant2(BigInt2* pMantissa, int pExponent, int pContentPos, int pEndContentPos, SourceFile* pOwningFile)
+FloatConstant2::FloatConstant2(BigInt2* pSignificand, int pExponent, int pContentPos, int pEndContentPos, SourceFile* pOwningFile)
 : LexToken(onlyWhenTrackingIDs("FLTCNST" COMMA) pContentPos, pEndContentPos, pOwningFile)
-, mantissa(new BigInt2(pMantissa))
+, significand(pSignificand)
 , exponent(pExponent) {
 	int expbias = 1 == 1 ? 1023/* double */ : 127/* float */;
 }
 FloatConstant2::~FloatConstant2() {
-	delete mantissa;
+	delete significand;
 }
 StringLiteral::StringLiteral(string pVal, int pContentPos, int pEndContentPos, SourceFile* pOwningFile)
 : LexToken(onlyWhenTrackingIDs("STRING" COMMA) pContentPos, pEndContentPos, pOwningFile)
