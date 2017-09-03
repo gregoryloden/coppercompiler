@@ -81,6 +81,7 @@ public:
 	SourceFile* owningFile; //copper: readonly
 
 	int getRow();
+	static Token* getResultingToken(Token* t);
 };
 //For empty contents (ex. errors, between commas or semicolons, etc.)
 class EmptyToken: public Token {

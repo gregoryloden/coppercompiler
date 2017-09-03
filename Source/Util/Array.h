@@ -28,6 +28,7 @@ public:
 	void remove(int pos);
 	void replace(int pos, int count, Array<Type>* a);
 	Type first();
+	Type last();
 	Type pop();
 	void clear();
 };

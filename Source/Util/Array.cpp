@@ -68,6 +68,7 @@ template <class Type> void Array<Type>::shiftBack(int pos, int shift) {
 	}
 	for (int i = length - 1; i >= pos; i--)
 		inner[i + shift] = inner[i];
+	length += shift;
 }
 //get an item from the array
 template <class Type> Type Array<Type>::get(int pos) {
@@ -81,7 +82,6 @@ template <class Type> void Array<Type>::set(int pos, Type t) {
 template <class Type> void Array<Type>::add(Type t, int pos) {
 	shiftBack(pos, 1);
 	inner[pos] = t;
-	length++;
 }
 //add an item to the array
 template <class Type> void Array<Type>::add(Type t) {
@@ -97,7 +97,6 @@ template <class Type> void Array<Type>::add(Array<Type>* a, int pos, bool deleta
 	Type* otherInner = a->inner;
 	for (int i = shift - 1; i >= 0; i--)
 		inner[i + pos] = otherInner[i];
-	length += shift;
 	if (deletable)
 		delete a;
 }
@@ -137,10 +136,13 @@ template <class Type> void Array<Type>::replace(int pos, int count, Array<Type>*
 template <class Type> Type Array<Type>::first() {
 	return inner[0];
 }
+//return the last item
+template <class Type> Type Array<Type>::last() {
+	return inner[length - 1];
+}
 //pop off the last item
 template <class Type> Type Array<Type>::pop() {
-	length -= 1;
-	return inner[length];
+	return inner[length -= 1];
 }
 //"empty" the array
 template <class Type> void Array<Type>::clear() {

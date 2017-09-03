@@ -23,6 +23,12 @@ int Token::getRow() {
 	}
 	return row;
 }
+Token* Token::getResultingToken(Token* t) {
+	SubstitutedToken* s;
+	while ((s = dynamic_cast<SubstitutedToken*>(t)) != nullptr)
+		t = s->resultingToken;
+	return t;
+}
 EmptyToken::EmptyToken(int pContentPos, SourceFile* pOwningFile)
 : Token(onlyWhenTrackingIDs("EMPTTKN" COMMA) pContentPos, pContentPos, pOwningFile) {
 }
@@ -41,7 +47,8 @@ IntConstant2::IntConstant2(int pVal, int pContentPos, int pEndContentPos, Source
 , val(pVal) {
 }
 IntConstant2::~IntConstant2() {}
-FloatConstant2::FloatConstant2(BigInt2* pSignificand, int pExponent, int pContentPos, int pEndContentPos, SourceFile* pOwningFile)
+FloatConstant2::FloatConstant2(
+	BigInt2* pSignificand, int pExponent, int pContentPos, int pEndContentPos, SourceFile* pOwningFile)
 : LexToken(onlyWhenTrackingIDs("FLTCNST" COMMA) pContentPos, pEndContentPos, pOwningFile)
 , significand(pSignificand)
 , exponent(pExponent) {

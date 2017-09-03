@@ -202,6 +202,11 @@ void Error::showSnippet(Token* token) {
 			printf("\n");
 		bool printedSpaces = false;
 		forEach(Token*, t, codeBlock->tokens, ti) {
+			DirectiveTitle* dt;
+			if ((dt = dynamic_cast<DirectiveTitle*>(t)) != nullptr && printedSpaces) {
+				printf("\n");
+				printedSpaces = false;
+			}
 			if (printedSpaces)
 				printf(" ");
 			else {
@@ -221,17 +226,33 @@ void Error::showSnippet(Token* token) {
 					printf(")");
 				}
 			} else {
-				SubstitutedToken* st;
-				while ((st = dynamic_cast<SubstitutedToken*>(t)) != nullptr)
-					t = st->resultingToken;
-				char* contents = t->owningFile->contents;
-				char old = contents[t->endContentPos];
-				contents[t->endContentPos] = '\0';
-				printf(contents + t->contentPos);
-				contents[t->endContentPos] = old;
+				t = Token::getResultingToken(t);
+				Identifier* i;
+				StringLiteral* s;
+				if ((i = dynamic_cast<Identifier*>(t)) != nullptr)
+					printf(i->name.c_str());
+				else if ((s = dynamic_cast<StringLiteral*>(t)) != nullptr)
+					printf("\"%s\"", s->val.c_str());
+				else {
+					char* contents = t->owningFile->contents;
+					char old = contents[t->endContentPos];
+					contents[t->endContentPos] = '\0';
+					printf(contents + t->contentPos);
+					contents[t->endContentPos] = old;
+					Separator2* separator;
+					if ((separator = dynamic_cast<Separator2*>(t)) != nullptr && separator->type == Semicolon) {
+						printf("\n");
+						printedSpaces = false;
+					}
+				}
+			}
+			if (dt != nullptr) {
+				printf("\n");
+				printedSpaces = false;
 			}
 		}
-		printf("\n");
+		if (printedSpaces)
+			printf("\n");
 	}
 #endif
 /*
