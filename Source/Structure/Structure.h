@@ -1,3 +1,5 @@
 #include "AssemblyInstruction.h"
+#include "Directives.h"
 #include "Representation.h"
 #include "Tokens.h"
+#include "Types.h"

@@ -32,7 +32,7 @@ public:
 template <class KeyElement, class Value> class PrefixTrieUnion: public PrefixTrie<KeyElement, Value> {
 public:
 	PrefixTrieUnion(PrefixTrie<KeyElement, Value>* pNext);
-	~PrefixTrieUnion();
+	virtual ~PrefixTrieUnion();
 
 private:
 	PrefixTrie<KeyElement, Value>* next;

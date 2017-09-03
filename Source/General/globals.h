@@ -71,7 +71,7 @@ public:
 	class ObjCounter {
 	public:
 		ObjCounter(onlyWhenTrackingIDs(char* pObjType));
-		~ObjCounter();
+		virtual ~ObjCounter();
 
 	private:
 		#ifdef TRACK_OBJ_IDS

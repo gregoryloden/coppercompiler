@@ -42,13 +42,13 @@ Thunk THeapReAlloc ("HeapReAlloc", 0x1C4);
 */
 
 template class Deleter<BigInt2>;
-template class Deleter<Separator2>;
 template class Deleter<DirectiveTitle>;
 template class Deleter<Identifier>;
-template class Deleter<Array<string>>;
 template class Deleter<LexToken>;
+template class Deleter<Separator2>;
 template class Deleter<SubstitutedToken>;
 template class Deleter<Array<AVLNode<SourceFile*, bool>*>>;
+template class Deleter<Array<string>>;
 template class Deleter<Array<Token*>>;
 template class Deleter<PrefixTrie<char, CDirectiveReplace*>>;
 template class Deleter<PrefixTrieUnion<char, CDirectiveReplace*>>;

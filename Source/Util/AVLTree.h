@@ -5,7 +5,7 @@ template <class Key, class Value> class AVLNode;
 template <class Key, class Value> class AVLTree onlyInDebug(: public ObjCounter) {
 public:
 	AVLTree();
-	~AVLTree();
+	virtual ~AVLTree();
 
 	static const Value emptyValue;
 private:
@@ -30,7 +30,7 @@ private:
 template <class Key, class Value> class AVLNode onlyInDebug(: public ObjCounter) {
 public:
 	AVLNode(Key pKey, Value pValue);
-	~AVLNode();
+	virtual ~AVLNode();
 
 	Key key; //copper: private<readonly AVLTree>
 	Value value; //copper: private<AVLTree>

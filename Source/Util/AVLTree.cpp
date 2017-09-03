@@ -6,21 +6,25 @@
 //template class AVLTree<char, char>;
 //template class AVLNode<int, int>;
 //template class AVLNode<char, char>;
-template class AVLTree<char, PrefixTrie<char, SourceFile*>*>;
-template class AVLTree<char, PrefixTrie<char, CDirectiveReplace*>*>;
-template class AVLTree<SourceFile*, bool>;
-template class AVLNode<char, PrefixTrie<char, SourceFile*>*>;
 template class AVLNode<char, PrefixTrie<char, CDirectiveReplace*>*>;
+template class AVLNode<char, PrefixTrie<char, CType*>*>;
+template class AVLNode<char, PrefixTrie<char, SourceFile*>*>;
 template class AVLNode<SourceFile*, bool>;
+template class AVLTree<char, PrefixTrie<char, CDirectiveReplace*>*>;
+template class AVLTree<char, PrefixTrie<char, CType*>*>;
+template class AVLTree<char, PrefixTrie<char, SourceFile*>*>;
+template class AVLTree<SourceFile*, bool>;
 
 //const int AVLTree<int, int>::emptyValue = 0;
 //const char AVLTree<char, char>::emptyValue = '\0';
 //thread_local int AVLTree<int, int>::oldValue = 0;
 //thread_local char AVLTree<char, char>::oldValue = '\0';
-PrefixTrie<char, SourceFile*>* const AVLTree<char, PrefixTrie<char, SourceFile*>*>::emptyValue = nullptr;
-thread_local PrefixTrie<char, SourceFile*>* AVLTree<char, PrefixTrie<char, SourceFile*>*>::oldValue = nullptr;
 PrefixTrie<char, CDirectiveReplace*>* const AVLTree<char, PrefixTrie<char, CDirectiveReplace*>*>::emptyValue = nullptr;
 thread_local PrefixTrie<char, CDirectiveReplace*>* AVLTree<char, PrefixTrie<char, CDirectiveReplace*>*>::oldValue = nullptr;
+PrefixTrie<char, CType*>* const AVLTree<char, PrefixTrie<char, CType*>*>::emptyValue = nullptr;
+thread_local PrefixTrie<char, CType*>* AVLTree<char, PrefixTrie<char, CType*>*>::oldValue = nullptr;
+PrefixTrie<char, SourceFile*>* const AVLTree<char, PrefixTrie<char, SourceFile*>*>::emptyValue = nullptr;
+thread_local PrefixTrie<char, SourceFile*>* AVLTree<char, PrefixTrie<char, SourceFile*>*>::oldValue = nullptr;
 bool const AVLTree<SourceFile*, bool>::emptyValue = false;
 thread_local bool AVLTree<SourceFile*, bool>::oldValue = false;
 
