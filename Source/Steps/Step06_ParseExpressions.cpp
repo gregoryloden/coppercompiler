@@ -1,8 +1,49 @@
 #include "Project.h"
-//Actually step 5 should be ParseTypes to register class names/other type names, which means that it can be used to discern
-//things like function declaration vs function call or generic type vs lesser/greater comparison
 
-//does ???????????????????? parse expressions
+//converts abstract sequences of tokens into structured trees
+//provides each source file with a list of global variable definitions and type definitions
+
+//parse all expressions in all files
+void ParseExpressions::parseExpressions(Array<SourceFile*>* files) {
+	forEach(SourceFile*, s, files, si) {
+		try {
+			printf("Parsing expressions for %s...\n", s->filename.c_str());
+			parseGlobalDefinitions(s->abstractContents);
+			//TODO: parse expressions
+		} catch (...) {
+		}
+	}
+}
+void ParseExpressions::parseGlobalDefinitions(AbstractCodeBlock* a) {
+	forEach(Token*, t, a->tokens, ti) {
+		Token* fullToken = t;
+		//if it's a substituted token, find the resulting token and its parent in addition to the full token
+		SubstitutedToken* parentS;
+		if ((parentS = dynamic_cast<SubstitutedToken*>(t)) != nullptr) {
+			SubstitutedToken* s2 = parentS;
+			while ((s2 = dynamic_cast<SubstitutedToken*>(parentS->resultingToken)) != nullptr)
+				parentS = s2;
+			t = parentS->resultingToken;
+			//if we can't delete it then we can't mutate it either- clone or replace it if we need to
+			if (!parentS->shouldDelete) {
+				Token* oldResultingToken = parentS->resultingToken;
+				Operator* o;
+				if ((o = dynamic_cast<Operator*>(oldResultingToken)) != nullptr)
+					parentS->resultingToken = new Operator(o->type, o->contentPos, o->endContentPos, o->owningFile);
+				if (oldResultingToken != parentS->resultingToken)
+					parentS->shouldDelete = true;
+			}
+		}
+		//????????????????????
+	}
+}
+
+
+
+
+
+
+
 
 //to test retcon parsing: 3 * 4 + 5 * 6 == 3 * 4 + 5 * 6 && 3 * 4 + 5 * 6 == 3 * 4 + 5 * 6
 

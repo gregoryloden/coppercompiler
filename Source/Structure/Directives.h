@@ -1,3 +1,5 @@
+#include "../General/globals.h"
+
 class CDirective onlyInDebug(: public ObjCounter) {
 protected:
 	CDirective(onlyWhenTrackingIDs(char* pObjType));

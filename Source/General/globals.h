@@ -8,9 +8,11 @@ class AbstractCodeBlock;
 #define COMMA ,
 #ifdef DEBUG
 	#define onlyInDebug(x) x
-	//*/#define TRACK_OBJ_IDS
+	#define assert(x) if (!(x)) { Debug::crashProgram(); }
+	//**/#define TRACK_OBJ_IDS
 #else
 	#define onlyInDebug(x)
+	#define assert(x)
 #endif
 #ifdef TRACK_OBJ_IDS
 	#define onlyWhenTrackingIDs(x) x
@@ -128,6 +130,7 @@ private:
 	class Debug {
 	public:
 		static void printAbstractCodeBlock(AbstractCodeBlock* codeBlock, int spacesCount);
+		static void crashProgram();
 	};
 #endif
 /*

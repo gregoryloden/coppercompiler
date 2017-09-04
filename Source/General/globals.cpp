@@ -254,6 +254,10 @@ void Error::showSnippet(Token* token) {
 		if (printedSpaces)
 			printf("\n");
 	}
+	void Debug::crashProgram() {
+		*((char*)(nullptr)) = 0;
+		std::exit(0);
+	}
 #endif
 /*
 //make a warning

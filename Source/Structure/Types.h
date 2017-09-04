@@ -1,3 +1,7 @@
+#include "../General/globals.h"
+#include "string"
+using namespace std;
+
 template <class Key, class Value> class PrefixTrie;
 
 class CType onlyInDebug(: public ObjCounter) {
@@ -38,8 +42,10 @@ public:
 };
 class CClass: public CType {
 public:
-	CClass();
+	CClass(string pName);
 	virtual ~CClass();
+
+	string name;
 };
 /*
 class CEnum: public CType {

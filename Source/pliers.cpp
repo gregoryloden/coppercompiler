@@ -192,6 +192,12 @@ void compile(char* filename) {
 		}
 	#endif
 	returnIfErrors();
+
+	ParseTypes::parseTypes(allFiles);
+	returnIfErrors();
+
+	ParseExpressions::parseExpressions(allFiles);
+	returnIfErrors();
 puts("Suspended until the rewrite is complete");
 }
 /*

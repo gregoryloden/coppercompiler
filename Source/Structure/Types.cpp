@@ -8,7 +8,7 @@ PrefixTrie<char, CType*>* CType::globalTypes = []() -> PrefixTrie<char, CType*>*
 	val->set("short", 5, new CIntegerPrimitive(16));
 	val->set("int", 3, new CIntegerPrimitive(32));
 	val->set("Function", 8, new CFunctionType());
-	val->set("String", 6, new CClass());
+	val->set("String", 6, new CClass("String"));
 	return val;
 }();
 CType::CType(onlyWhenTrackingIDs(char* pObjType COMMA))
@@ -36,7 +36,8 @@ CFunctionType::CFunctionType()
 : CType(onlyWhenTrackingIDs("FUNCTYP")) {
 }
 CFunctionType::~CFunctionType() {}
-CClass::CClass()
-: CType(onlyWhenTrackingIDs("CLSSTYP")) {
+CClass::CClass(string pName)
+: CType(onlyWhenTrackingIDs("CLSSTYP"))
+, name(pName) {
 }
 CClass::~CClass() {}

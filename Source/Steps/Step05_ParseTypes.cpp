@@ -8,6 +8,7 @@
 void ParseTypes::parseTypes(Array<SourceFile*>* files) {
 	forEach(SourceFile*, s, files, si) {
 		try {
+			printf("Parsing types for %s...\n", s->filename.c_str());
 			//TODO: parse types
 		} catch (...) {
 		}

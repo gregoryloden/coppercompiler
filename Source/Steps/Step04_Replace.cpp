@@ -103,7 +103,6 @@ void Replace::replaceTokens(Array<Token*>* tokens, PrefixTrie<char, CDirectiveRe
 			tokensToInsert = buildReplacement(nullptr, r->replacement, arguments, r->input, fullToken);
 			//cleanup the tokens
 			deleteArguments();
-			a->owningFile->replacedArguments->add(a);
 		}
 		r->inUse = true;
 		try {
@@ -113,6 +112,9 @@ void Replace::replaceTokens(Array<Token*>* tokens, PrefixTrie<char, CDirectiveRe
 			r->inUse = false;
 			throw;
 		}
+		//if we had arguments, save them away
+		if (a != nullptr)
+			a->owningFile->replacedArguments->add(a);
 		//insert them into the array, preserving the index relative to the end
 		int offsetFromEnd = tokens->length - ti;
 		if (r->input == nullptr)
@@ -127,6 +129,7 @@ void Replace::replaceTokens(Array<Token*>* tokens, PrefixTrie<char, CDirectiveRe
 }
 //create a chain of substituted tokens above the original token, based on the parent token being replaced
 SubstitutedToken* Replace::substituteTokens(Token* tokenBeingReplaced, Token* resultingToken, bool deleteResultingToken) {
+	assert(dynamic_cast<LexToken*>(resultingToken) != nullptr);
 	SubstitutedToken* s;
 	if ((s = dynamic_cast<SubstitutedToken*>(tokenBeingReplaced)) != nullptr)
 		return new SubstitutedToken(substituteTokens(s->resultingToken, resultingToken, deleteResultingToken), true, s);
