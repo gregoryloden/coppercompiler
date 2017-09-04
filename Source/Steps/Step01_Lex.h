@@ -1,8 +1,8 @@
 class SourceFile;
 class LexToken;
 class StringLiteral;
-class IntConstant2;
-class Separator2;
+class IntConstant;
+class Separator;
 class Operator;
 class DirectiveTitle;
 enum ErrorType: unsigned char;
@@ -29,8 +29,8 @@ private:
 	static char cToDigit();
 	static StringLiteral* lexString();
 	static char nextStringCharacter();
-	static IntConstant2* lexCharacter();
-	static Separator2* lexSeparator();
+	static IntConstant* lexCharacter();
+	static Separator* lexSeparator();
 	static Operator* lexOperator();
 	static DirectiveTitle* lexDirectiveTitle();
 	static void makeLexError(ErrorType type, char* message);

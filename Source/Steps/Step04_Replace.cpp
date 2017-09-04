@@ -78,8 +78,8 @@ void Replace::replaceTokens(Array<Token*>* tokens, PrefixTrie<char, CDirectiveRe
 			Array<AbstractCodeBlock*>* arguments = new Array<AbstractCodeBlock*>();
 			int nextArgumentStartPos = a->contentPos;
 			forEach(Token*, at, a->tokens, ati) {
-				Separator2* s;
-				if ((s = dynamic_cast<Separator2*>(Token::getResultingToken(at))) != nullptr && s->type == Comma) {
+				Separator* s;
+				if ((s = dynamic_cast<Separator*>(Token::getResultingToken(at))) != nullptr && s->type == Comma) {
 					arguments->add(
 						new AbstractCodeBlock(nextTokens, nullptr, nextArgumentStartPos, s->contentPos, a->owningFile));
 					nextArgumentStartPos = s->contentPos + 1;

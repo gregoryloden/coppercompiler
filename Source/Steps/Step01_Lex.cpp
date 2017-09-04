@@ -402,9 +402,9 @@ LexToken* Lex::lexIdentifier() {
 	string s (contents + begin, pos - begin);
 
 	if (s.compare("true") == 0)
-		return new IntConstant2(1, begin, pos, sourceFile);
+		return new IntConstant(1, begin, pos, sourceFile);
 	else if (s.compare("false") == 0)
-		return new IntConstant2(0, begin, pos, sourceFile);
+		return new IntConstant(0, begin, pos, sourceFile);
 	else
 		return new Identifier(s, begin, pos, sourceFile);
 }
@@ -432,8 +432,8 @@ LexToken* Lex::lexNumber() {
 		digitExpected = true;
 	}
 
-	BigInt2* num = new BigInt2(base);
-	Deleter<BigInt2> numDeleter (num);
+	BigInt* num = new BigInt(base);
+	Deleter<BigInt> numDeleter (num);
 	bool lexingExponent = false;
 	bool isFloat = false;
 	int fractionDigits = 0;
@@ -465,7 +465,7 @@ LexToken* Lex::lexNumber() {
 			if (digit == -1 || digit > base)
 				break;
 			if (lexingExponent) {
-//				if (baseExponent < FloatConstant2::FLOAT_TOO_BIG_EXPONENT)
+//				if (baseExponent < FloatConstant::FLOAT_TOO_BIG_EXPONENT)
 					baseExponent = baseExponent * base + digit;
 			} else {
 				num->digit(digit);
@@ -489,9 +489,9 @@ LexToken* Lex::lexNumber() {
 
 	//we've now finished reading the number, turn it into the appropriate constant
 	if (!isFloat)
-		return new IntConstant2(num->getInt(), begin, pos, sourceFile);
+		return new IntConstant(num->getInt(), begin, pos, sourceFile);
 	else
-		return new FloatConstant2(
+		return new FloatConstant(
 			numDeleter.release(), (negativeExponent ? -baseExponent : baseExponent) - fractionDigits, begin, pos, sourceFile);
 /*
 	//it's a float
@@ -500,7 +500,7 @@ LexToken* Lex::lexNumber() {
 
 	//if we have no exponent, we're also done
 	if (baseExponent == 0)
-		return new FloatConstant2(&num, num.highBit(), begin, pos, sourceFile);
+		return new FloatConstant(&num, num.highBit(), begin, pos, sourceFile);
 
 	//it has an exponent- we want to divide or multiply num by base^abs(baseExponent)
 	//we get this with the square-and-multiply trick
@@ -511,13 +511,13 @@ LexToken* Lex::lexNumber() {
 
 	//TODO: reduce precision to only the necessary bits and track how many bits were taken
 	//next, square-and-multiply to get base^abs(baseExponent)
-	BigInt2 exponentNum (base);
+	BigInt exponentNum (base);
 	//since baseExponent is not 0, the top bit is always set so we can stick two digits there
 	exponentNum.digit(1);
 	exponentNum.digit(0);
 	//for any remaining bits, square before possibly multiplying
 	for (nextBaseExponentBit >>= 1;
-			nextBaseExponentBit > 0 && exponentNum.highBit() < FloatConstant2::FLOAT_TOO_BIG_EXPONENT;
+			nextBaseExponentBit > 0 && exponentNum.highBit() < FloatConstant::FLOAT_TOO_BIG_EXPONENT;
 			nextBaseExponentBit >>= 1) {
 		exponentNum.square();
 		if ((nextBaseExponentBit & baseExponent) != 0)
@@ -528,7 +528,7 @@ LexToken* Lex::lexNumber() {
 	//if it's positive, just multiply it and that's our number
 	if (baseExponent > 0) {
 		num.multiply(&exponentNum);
-		return new FloatConstant2(&num, num.highBit(), begin, pos, sourceFile);
+		return new FloatConstant(&num, num.highBit(), begin, pos, sourceFile);
 	//if it's negative, grow num before dividing
 	} else {
 		//provide at least 64 bits of precision
@@ -538,7 +538,7 @@ LexToken* Lex::lexNumber() {
 			num.lShift(toShift);
 		int oldHighBit = num.highBit();
 		num.longDiv(&exponentNum);
-		return new FloatConstant2(&num, startingExponent + num.highBit() - oldHighBit, begin, pos, sourceFile);
+		return new FloatConstant(&num, startingExponent + num.highBit() - oldHighBit, begin, pos, sourceFile);
 	}
 	*/
 }
@@ -620,7 +620,7 @@ char Lex::nextStringCharacter() {
 }
 //get a character
 //lex location: no change | the first character after the character
-IntConstant2* Lex::lexCharacter() {
+IntConstant* Lex::lexCharacter() {
 	if (c != '\'')
 		return nullptr;
 
@@ -638,17 +638,17 @@ IntConstant2* Lex::lexCharacter() {
 	if (contents[pos] != '\'')
 		makeLexError(General, "expected a close quote");
 	pos++;
-	return new IntConstant2((int)c, begin, pos, sourceFile);
+	return new IntConstant((int)c, begin, pos, sourceFile);
 }
 //get a separator
 //lex location: no change | the first character after the separator
-Separator2* Lex::lexSeparator() {
-	Separator2* val;
+Separator* Lex::lexSeparator() {
+	Separator* val;
 	switch (c) {
-		case '(': val = new Separator2(LeftParenthesis, pos, pos + 1, sourceFile); break;
-		case ')': val = new Separator2(RightParenthesis, pos, pos + 1, sourceFile); break;
-		case ',': val = new Separator2(Comma, pos, pos + 1, sourceFile); break;
-		case ';': val = new Separator2(Semicolon, pos, pos + 1, sourceFile); break;
+		case '(': val = new Separator(LeftParenthesis, pos, pos + 1, sourceFile); break;
+		case ')': val = new Separator(RightParenthesis, pos, pos + 1, sourceFile); break;
+		case ',': val = new Separator(Comma, pos, pos + 1, sourceFile); break;
+		case ';': val = new Separator(Semicolon, pos, pos + 1, sourceFile); break;
 		default: return nullptr;
 	}
 

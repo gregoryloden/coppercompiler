@@ -8,7 +8,7 @@ class CDirectiveReplace;
 class CDirectiveInclude;
 class DirectiveTitle;
 class Identifier;
-class Separator2;
+class Separator;
 enum SeparatorType: unsigned char;
 template <class Type> class Array;
 
@@ -25,7 +25,7 @@ private:
 	static CDirectiveInclude* completeDirectiveInclude(bool includeAll);
 	template <class TokenType> static TokenType* parseToken(char* expectedTokenTypeName);
 	static Identifier* parseIdentifier();
-	static Separator2* parseSeparator();
+	static Separator* parseSeparator();
 	static int parseSeparator(SeparatorType type);
 	static Array<string>* parseParenthesizedCommaSeparatedIdentifierList();
 	static void makeUnexpectedTokenError(char* expectedTokenTypeName, Token* t);

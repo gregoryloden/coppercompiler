@@ -42,19 +42,19 @@ Identifier::Identifier(string pName, int pContentPos, int pEndContentPos, Source
 , name(pName) {
 }
 Identifier::~Identifier() {}
-IntConstant2::IntConstant2(int pVal, int pContentPos, int pEndContentPos, SourceFile* pOwningFile)
+IntConstant::IntConstant(int pVal, int pContentPos, int pEndContentPos, SourceFile* pOwningFile)
 : LexToken(onlyWhenTrackingIDs("INTCNST" COMMA) pContentPos, pEndContentPos, pOwningFile)
 , val(pVal) {
 }
-IntConstant2::~IntConstant2() {}
-FloatConstant2::FloatConstant2(
-	BigInt2* pSignificand, int pExponent, int pContentPos, int pEndContentPos, SourceFile* pOwningFile)
+IntConstant::~IntConstant() {}
+FloatConstant::FloatConstant(
+	BigInt* pSignificand, int pExponent, int pContentPos, int pEndContentPos, SourceFile* pOwningFile)
 : LexToken(onlyWhenTrackingIDs("FLTCNST" COMMA) pContentPos, pEndContentPos, pOwningFile)
 , significand(pSignificand)
 , exponent(pExponent) {
 	int expbias = 1 == 1 ? 1023/* double */ : 127/* float */;
 }
-FloatConstant2::~FloatConstant2() {
+FloatConstant::~FloatConstant() {
 	delete significand;
 }
 StringLiteral::StringLiteral(string pVal, int pContentPos, int pEndContentPos, SourceFile* pOwningFile)
@@ -62,11 +62,11 @@ StringLiteral::StringLiteral(string pVal, int pContentPos, int pEndContentPos, S
 , val(pVal) {
 }
 StringLiteral::~StringLiteral() {}
-Separator2::Separator2(SeparatorType pType, int pContentPos, int pEndContentPos, SourceFile* pOwningFile)
+Separator::Separator(SeparatorType pType, int pContentPos, int pEndContentPos, SourceFile* pOwningFile)
 : LexToken(onlyWhenTrackingIDs("SEPRATR" COMMA) pContentPos, pEndContentPos, pOwningFile)
 , type(pType) {
 }
-Separator2::~Separator2() {}
+Separator::~Separator() {}
 Operator::Operator(OperatorType pType, int pContentPos, int pEndContentPos, SourceFile* pOwningFile)
 : LexToken(onlyWhenTrackingIDs("OPERATR" COMMA) pContentPos, pEndContentPos, pOwningFile)
 , type(pType)

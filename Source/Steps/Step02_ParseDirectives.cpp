@@ -29,19 +29,19 @@ AbstractCodeBlock* ParseDirectives::parseAbstractCodeBlock(bool endsWithParenthe
 			}
 
 			DirectiveTitle* dt;
-			Separator2* s;
+			Separator* s;
 			if ((dt = dynamic_cast<DirectiveTitle*>(next)) != nullptr) {
 				Deleter<DirectiveTitle> dtDeleter (dt);
 				if (directives == nullptr)
 					directives = new Array<CDirective*>();
 				directives->add(dt->directive = completeDirective(dt));
 				dtDeleter.release();
-			} else if ((s = dynamic_cast<Separator2*>(next)) != nullptr) {
+			} else if ((s = dynamic_cast<Separator*>(next)) != nullptr) {
 				if (s->type == LeftParenthesis) {
 					next = parseAbstractCodeBlock(true, s->contentPos + 1);
 					delete s;
 				} else if (s->type == RightParenthesis) {
-					Deleter<Separator2> sDeleter (s);
+					Deleter<Separator> sDeleter (s);
 					if (!endsWithParenthesis)
 						Error::makeError(General, "found a right parenthesis without a matching left parenthesis", s);
 					endContentPos = s->contentPos;
@@ -59,8 +59,8 @@ AbstractCodeBlock* ParseDirectives::parseAbstractCodeBlock(bool endsWithParenthe
 			try {
 				for (int parentheses = 1; parentheses > 0;) {
 					LexToken* next = Lex::lex();
-					Separator2* s;
-					if ((s = dynamic_cast<Separator2*>(next)) != nullptr) {
+					Separator* s;
+					if ((s = dynamic_cast<Separator*>(next)) != nullptr) {
 						if (s->type == LeftParenthesis)
 							parentheses++;
 						else if (s->type == RightParenthesis)
@@ -128,8 +128,8 @@ Identifier* ParseDirectives::parseIdentifier() {
 }
 //lex a token and make sure it's a separator
 //parse location: the next token after the separator
-Separator2* ParseDirectives::parseSeparator() {
-	return parseToken<Separator2>("a separator");
+Separator* ParseDirectives::parseSeparator() {
+	return parseToken<Separator>("a separator");
 }
 //lex a token and make sure it's a separator of the right type
 //parse location: the next token after the separator
@@ -141,8 +141,8 @@ int ParseDirectives::parseSeparator(SeparatorType type) {
 		case RightParenthesis: expectedTokenTypeName = "a right parenthesis"; break;
 		default: expectedTokenTypeName = "a comma"; break;
 	}
-	Separator2* s = parseToken<Separator2>(expectedTokenTypeName);
-	Deleter<Separator2> sDeleter (s);
+	Separator* s = parseToken<Separator>(expectedTokenTypeName);
+	Deleter<Separator> sDeleter (s);
 	if (s->type != type)
 		makeUnexpectedTokenError(expectedTokenTypeName, s);
 	return s->contentPos;
@@ -158,8 +158,8 @@ Array<string>* ParseDirectives::parseParenthesizedCommaSeparatedIdentifierList()
 		makeEndOfFileWhileSearchingError("the replace-input parameters");
 	Identifier* identifier;
 	if ((identifier = dynamic_cast<Identifier*>(initial)) == nullptr) {
-		Separator2* s;
-		if ((s = dynamic_cast<Separator2*>(initial)) == nullptr || s->type != RightParenthesis) {
+		Separator* s;
+		if ((s = dynamic_cast<Separator*>(initial)) == nullptr || s->type != RightParenthesis) {
 			Deleter<LexToken> initialDeleter (initial);
 			makeUnexpectedTokenError("an identifier or right parenthesis", initial);
 		}
@@ -169,8 +169,8 @@ Array<string>* ParseDirectives::parseParenthesizedCommaSeparatedIdentifierList()
 	while (true) {
 		names->add(identifier->name);
 		delete identifier;
-		Separator2* s = parseSeparator();
-		Deleter<Separator2> sDeleter (s);
+		Separator* s = parseSeparator();
+		Deleter<Separator> sDeleter (s);
 		if (s->type == RightParenthesis)
 			return namesDeleter.release();
 		else if (s->type != Comma)

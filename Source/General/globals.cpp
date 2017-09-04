@@ -41,11 +41,11 @@ Thunk THeapAlloc ("HeapAlloc", 0x1BD);
 Thunk THeapReAlloc ("HeapReAlloc", 0x1C4);
 */
 
-template class Deleter<BigInt2>;
+template class Deleter<BigInt>;
 template class Deleter<DirectiveTitle>;
 template class Deleter<Identifier>;
 template class Deleter<LexToken>;
-template class Deleter<Separator2>;
+template class Deleter<Separator>;
 template class Deleter<SubstitutedToken>;
 template class Deleter<Array<AVLNode<SourceFile*, bool>*>>;
 template class Deleter<Array<string>>;
@@ -239,8 +239,8 @@ void Error::showSnippet(Token* token) {
 					contents[t->endContentPos] = '\0';
 					printf(contents + t->contentPos);
 					contents[t->endContentPos] = old;
-					Separator2* separator;
-					if ((separator = dynamic_cast<Separator2*>(t)) != nullptr && separator->type == Semicolon) {
+					Separator* separator;
+					if ((separator = dynamic_cast<Separator*>(t)) != nullptr && separator->type == Semicolon) {
 						printf("\n");
 						printedSpaces = false;
 					}

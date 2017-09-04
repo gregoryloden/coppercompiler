@@ -1,6 +1,6 @@
 #include "Project.h"
 
-BigInt2::BigInt2(int pBase)
+BigInt::BigInt(int pBase)
 : onlyInDebug(ObjCounter(onlyWhenTrackingIDs("BIGINT")) COMMA)
 base(pBase)
 , innerLength(1)
@@ -8,7 +8,7 @@ base(pBase)
 , inner(new unsigned char[1]) {
 }
 //this one is for use right before pSource will be deleted (stack allocated) or its inner will be replaced
-BigInt2::BigInt2(BigInt2* pSource)
+BigInt::BigInt(BigInt* pSource)
 : onlyInDebug(ObjCounter(onlyWhenTrackingIDs("BIGINT")) COMMA)
 base(pSource->base)
 , innerLength(pSource->innerLength)
@@ -16,11 +16,11 @@ base(pSource->base)
 , inner(pSource->inner) {
 	pSource->inner = nullptr;
 }
-BigInt2::~BigInt2() {
+BigInt::~BigInt() {
 	delete[] inner;
 }
 //add a digit of this BigInt's base
-void BigInt2::digit(unsigned char c) {
+void BigInt::digit(unsigned char c) {
 	short carry = (short)(c) << 8;
 	for (int i = 0; i <= highByte; i++) {
 		carry = (short)(inner[i]) * (short)(base)+(carry >> 8);
@@ -34,7 +34,7 @@ void BigInt2::digit(unsigned char c) {
 	}
 }
 //double the length of the inner array
-void BigInt2::expand() {
+void BigInt::expand() {
 	innerLength *= 2;
 	unsigned char* newInner = new unsigned char[innerLength];
 	for (int i = highByte; i >= 0; i--)
@@ -43,14 +43,14 @@ void BigInt2::expand() {
 	inner = newInner;
 }
 //get this BigInt as an int
-int BigInt2::getInt() {
+int BigInt::getInt() {
 	int val = 0;
 	for (int i = highByte; i >= 0; i--)
 		val = val << 8 | (int)(inner[i]);
 	return val;
 }
 //get the index of the highest set bit
-int BigInt2::highBit() {
+int BigInt::highBit() {
 	if (highByte == -1)
 		return -1;
 	int num = highByte * 8;
@@ -59,12 +59,12 @@ int BigInt2::highBit() {
 	return num - 1;
 }
 //square this BigInt
-void BigInt2::square() {
+void BigInt::square() {
 	multiply(this);
 }
 //multiply this BigInt by the other
 //assumes neither are 0
-void BigInt2::multiply(BigInt2* other) {
+void BigInt::multiply(BigInt* other) {
 	//cache some information
 	unsigned char* oldInner = inner;
 	unsigned char* otherInner = other->inner;
@@ -96,7 +96,7 @@ void BigInt2::multiply(BigInt2* other) {
 	inner = newInner;
 }
 //left shift the BigInt by the given amount
-void BigInt2::lShift(int bits) {
+void BigInt::lShift(int bits) {
 	//no bits so nothing to do
 	if (highByte == -1)
 		return;
@@ -135,12 +135,12 @@ void BigInt2::lShift(int bits) {
 //destroys the contents of other
 //assumes that this > other > 0
 //rounds to-nearest half-to-even
-void BigInt2::longDiv(BigInt2* other) {
+void BigInt::longDiv(BigInt* other) {
 	//stop if we're dividing by 1
 	if (other->highBit() == 0)
 		return;
 
-	BigInt2 original(this);
+	BigInt original(this);
 	int shifted = original.highBit() - other->highBit();
 	other->lShift(shifted);
 	//size our new array to make sure it can handle a quotient rounded up and a half bit
@@ -176,7 +176,7 @@ void BigInt2::longDiv(BigInt2* other) {
 }
 //compare this BigInt to the other
 //positive if greater, negative if less, 0 if equal
-int BigInt2::compare(BigInt2* other) {
+int BigInt::compare(BigInt* other) {
 	if (highByte != other->highByte)
 		return highByte - other->highByte;
 	for (int i = highByte; i >= 0; i--) {
@@ -188,7 +188,7 @@ int BigInt2::compare(BigInt2* other) {
 }
 //subtract the other BigInt from this one
 //assumes this BigInt is greater than the other
-void BigInt2::subtract(BigInt2* other) {
+void BigInt::subtract(BigInt* other) {
 	short carry = 0;
 	int i = 0;
 	for (; i <= other->highByte; i++) {
@@ -204,7 +204,7 @@ void BigInt2::subtract(BigInt2* other) {
 		highByte--;
 }
 //right shift the BigInt by the given amount
-void BigInt2::rShift(int bits) {
+void BigInt::rShift(int bits) {
 	char bitShift = bits & 7;
 	int byteShift = bits >> 3;
 	//no inter-byte shifting is easy

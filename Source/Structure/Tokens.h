@@ -4,7 +4,7 @@ using namespace std;
 
 class SourceFile;
 class CDirective;
-class BigInt2;
+class BigInt;
 template <class Type> class Array;
 
 enum SeparatorType: unsigned char {
@@ -104,20 +104,20 @@ public:
 
 	string name; //copper: readonly
 };
-class IntConstant2: public LexToken {
+class IntConstant: public LexToken {
 public:
-	IntConstant2(int pVal, int pContentPos, int pEndContentPos, SourceFile* pOwningFile);
-	virtual ~IntConstant2();
+	IntConstant(int pVal, int pContentPos, int pEndContentPos, SourceFile* pOwningFile);
+	virtual ~IntConstant();
 
 	int val; //copper: readonly
 };
-class FloatConstant2: public LexToken {
+class FloatConstant: public LexToken {
 public:
-	FloatConstant2(BigInt2* pSignificand, int pExponent, int pContentPos, int pEndContentPos, SourceFile* pOwningFile);
-	virtual ~FloatConstant2();
+	FloatConstant(BigInt* pSignificand, int pExponent, int pContentPos, int pEndContentPos, SourceFile* pOwningFile);
+	virtual ~FloatConstant();
 
 //	static const int FLOAT_TOO_BIG_EXPONENT = 0x100000;
-	BigInt2* significand; //copper: readonly
+	BigInt* significand; //copper: readonly
 	int exponent; //copper: readonly
 };
 class StringLiteral: public LexToken {
@@ -127,10 +127,10 @@ public:
 
 	string val; //copper: readonly
 };
-class Separator2: public LexToken {
+class Separator: public LexToken {
 public:
-	Separator2(SeparatorType pType, int pContentPos, int pEndContentPos, SourceFile* pOwningFile);
-	virtual ~Separator2();
+	Separator(SeparatorType pType, int pContentPos, int pEndContentPos, SourceFile* pOwningFile);
+	virtual ~Separator();
 
 	SeparatorType type; //copper: readonly
 };

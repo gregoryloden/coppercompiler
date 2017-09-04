@@ -1,10 +1,10 @@
 #include "../General/globals.h"
 
-class BigInt2 onlyInDebug(: public ObjCounter) {
+class BigInt onlyInDebug(: public ObjCounter) {
 public:
-	BigInt2(int pBase);
-	BigInt2(BigInt2* pSource);
-	virtual ~BigInt2();
+	BigInt(int pBase);
+	BigInt(BigInt* pSource);
+	virtual ~BigInt();
 
 private:
 	unsigned char base;
@@ -18,10 +18,10 @@ public:
 	int getInt();
 	int highBit();
 	void square();
-	void multiply(BigInt2* other);
+	void multiply(BigInt* other);
 	void lShift(int bits);
-	void longDiv(BigInt2* other);
-	int compare(BigInt2* other);
-	void subtract(BigInt2* other);
+	void longDiv(BigInt* other);
+	int compare(BigInt* other);
+	void subtract(BigInt* other);
 	void rShift(int bits);
 };
