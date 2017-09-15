@@ -64,7 +64,6 @@ void Replace::replaceTokens(Array<Token*>* tokens, PrefixTrie<char, CDirectiveRe
 		Array<Token*>* tokensToInsert;
 		if (r->input == nullptr)
 			tokensToInsert = buildReplacement(nullptr, r->replacement, nullptr, nullptr, fullToken);
-		//if it takes input, ???????????????
 		else {
 			//start by collecting the arguments
 			ti++;
@@ -129,12 +128,12 @@ void Replace::replaceTokens(Array<Token*>* tokens, PrefixTrie<char, CDirectiveRe
 }
 //create a chain of substituted tokens above the original token, based on the parent token being replaced
 SubstitutedToken* Replace::substituteTokens(Token* tokenBeingReplaced, Token* resultingToken, bool deleteResultingToken) {
-	assert(dynamic_cast<LexToken*>(resultingToken) != nullptr);
 	SubstitutedToken* s;
 	if ((s = dynamic_cast<SubstitutedToken*>(tokenBeingReplaced)) != nullptr)
 		return new SubstitutedToken(substituteTokens(s->resultingToken, resultingToken, deleteResultingToken), true, s);
-	else
-		return new SubstitutedToken(resultingToken, deleteResultingToken, tokenBeingReplaced);
+
+	assert(dynamic_cast<LexToken*>(resultingToken) != nullptr);
+	return new SubstitutedToken(resultingToken, deleteResultingToken, tokenBeingReplaced);
 }
 //recursively clone the abstract code block, and substitute any other tokens using the parent token
 //if there is input and a string or identifier matches one of the parameters, replace it

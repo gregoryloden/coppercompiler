@@ -67,11 +67,86 @@ Separator::Separator(SeparatorType pType, int pContentPos, int pEndContentPos, S
 , type(pType) {
 }
 Separator::~Separator() {}
+string Separator::separatorName(SeparatorType s) {
+	switch (s) {
+		case Semicolon: return "semicolon";
+		case LeftParenthesis: return "left parenthesis";
+		case RightParenthesis: return "right parenthesis";
+		default: return "comma";
+	}
+}
 Operator::Operator(OperatorType pType, int pContentPos, int pEndContentPos, SourceFile* pOwningFile)
 : LexToken(onlyWhenTrackingIDs("OPERATR" COMMA) pContentPos, pEndContentPos, pOwningFile)
 , type(pType)
 , left(nullptr)
 , right(nullptr) {
+	switch (pType) {
+//		case None:
+		case Dot:
+		case ObjectMemberAccess:
+			precedence = PrecedenceObjectMember;
+		case Increment:
+		case Decrement:
+		case VariableLogicalNot:
+		case VariableBitwiseNot:
+		case VariableNegate:
+			precedence = PrecedencePostfix;
+		case LogicalNot:
+		case BitwiseNot:
+		case Negate:
+			precedence = PrecedencePrefix;
+		case Multiply:
+		case Divide:
+		case Modulus:
+			precedence = PrecedenceMultiplication;
+		case Add:
+		case Subtract:
+			precedence = PrecedenceAddition;
+		case ShiftLeft:
+		case ShiftRight:
+		case ShiftArithmeticRight:
+//		case RotateLeft:
+//		case RotateRight:
+			precedence = PrecedenceBitShift;
+		case BitwiseAnd:
+			precedence = PrecedenceBitwiseAnd;
+		case BitwiseXor:
+			precedence = PrecedenceBitwiseXor;
+		case BitwiseOr:
+			precedence = PrecedenceBitwiseOr;
+		case Equal:
+		case NotEqual:
+		case LessOrEqual:
+		case GreaterOrEqual:
+		case LessThan:
+		case GreaterThan:
+			precedence = PrecedenceComparison;
+		case BooleanAnd:
+			precedence = PrecedenceBooleanAnd;
+		case BooleanOr:
+			precedence = PrecedenceBooleanOr;
+		case Colon:
+			precedence = PrecedenceTernaryColon;
+		case QuestionMark:
+			precedence = PrecedenceTernaryQuestionMark;
+		case Assign:
+		case AssignAdd:
+		case AssignSubtract:
+		case AssignMultiply:
+		case AssignDivide:
+		case AssignModulus:
+		case AssignShiftLeft:
+		case AssignShiftRight:
+		case AssignShiftArithmeticRight:
+//		case AssignRotateLeft:
+//		case AssignRotateRight:
+		case AssignBitwiseAnd:
+		case AssignBitwiseXor:
+		case AssignBitwiseOr:
+//		case AssignBooleanAnd:
+//		case AssignBooleanOr:
+			precedence = PrecedenceAssignment;
+	}
 }
 Operator::~Operator() {
 	//do not delete left or right because they are maintained by the abstract code block
@@ -104,6 +179,15 @@ SubstitutedToken::SubstitutedToken(Token* pResultingToken, bool pShouldDelete, T
 SubstitutedToken::~SubstitutedToken() {
 	if (shouldDelete)
 		delete resultingToken;
+}
+ParenthesizedExpression::ParenthesizedExpression(Token* pExpression, AbstractCodeBlock* pSource)
+: Token(onlyWhenTrackingIDs("PNTHEXP" COMMA) pSource->contentPos, pSource->endContentPos, pSource->owningFile)
+, expression(pExpression)
+, source(pSource) {
+}
+ParenthesizedExpression::~ParenthesizedExpression() {
+	//don't delete the expression since all the tokens are in the source code block
+	delete source;
 }
 //IdentifierList::IdentifierList(Identifier* pI1, Identifier* pI2)
 //: Token("IDFRLST", pI1->contentPos)

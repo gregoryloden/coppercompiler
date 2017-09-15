@@ -23,11 +23,11 @@ private:
 	static CDirective* completeDirective(DirectiveTitle* dt);
 	static CDirectiveReplace* completeDirectiveReplace(bool replaceInput);
 	static CDirectiveInclude* completeDirectiveInclude(bool includeAll);
-	template <class TokenType> static TokenType* parseToken(char* expectedTokenTypeName);
+	template <class TokenType> static TokenType* parseToken(const char* expectedTokenTypeName);
 	static Identifier* parseIdentifier();
 	static Separator* parseSeparator();
 	static int parseSeparator(SeparatorType type);
 	static Array<string>* parseParenthesizedCommaSeparatedIdentifierList();
-	static void makeUnexpectedTokenError(char* expectedTokenTypeName, Token* t);
-	static void makeEndOfFileWhileSearchingError(char* message);
+	static void makeUnexpectedTokenError(const char* expectedTokenTypeName, Token* t);
+	static void makeEndOfFileWhileSearchingError(const char* message);
 };

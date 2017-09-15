@@ -8,10 +8,10 @@ class BigInt;
 template <class Type> class Array;
 
 enum SeparatorType: unsigned char {
-	LeftParenthesis,
-	RightParenthesis,
-	Comma,
-	Semicolon
+	LeftParenthesis = 0x1,
+	RightParenthesis = 0x2,
+	Comma = 0x4,
+	Semicolon = 0x8
 };
 enum OperatorType: unsigned char {
 //	None,
@@ -45,10 +45,9 @@ enum OperatorType: unsigned char {
 	LessThan,
 	GreaterThan,
 	BooleanAnd,
-//	BooleanXor,
 	BooleanOr,
-	QuestionMark,
 	Colon,
+	QuestionMark,
 	Assign,
 	AssignAdd,
 	AssignSubtract,
@@ -64,8 +63,24 @@ enum OperatorType: unsigned char {
 	AssignBitwiseXor,
 	AssignBitwiseOr,
 //	AssignBooleanAnd,
-//	AssignBooleanXor,
 //	AssignBooleanOr
+};
+enum OperatorTypePrecedence: unsigned char {
+	PrecedenceObjectMember = 15,
+	PrecedencePostfix = 14,
+	PrecedencePrefix = 13,
+	PrecedenceMultiplication = 12,
+	PrecedenceAddition = 11,
+	PrecedenceBitShift = 10,
+	PrecedenceBitwiseAnd = 9,
+	PrecedenceBitwiseXor = 8,
+	PrecedenceBitwiseOr = 7,
+	PrecedenceComparison = 6,
+	PrecedenceBooleanAnd = 5,
+	PrecedenceBooleanOr = 4,
+	PrecedenceTernaryColon = 3,
+	PrecedenceTernaryQuestionMark = 2,
+	PrecedenceAssignment = 1
 };
 
 //Booleans, etc. group on the right; additions, etc. groups on the left
@@ -133,6 +148,8 @@ public:
 	virtual ~Separator();
 
 	SeparatorType type; //copper: readonly
+
+	static string separatorName(SeparatorType s);
 };
 class Operator: public LexToken {
 public:
@@ -140,6 +157,7 @@ public:
 	virtual ~Operator();
 
 	OperatorType type; //copper: readonly
+	OperatorTypePrecedence precedence; //copper: readonly
 	Token* left; //copper: readonly
 	Token* right; //copper: readonly
 };
@@ -171,6 +189,16 @@ public:
 
 	Token* resultingToken; //copper: readonly
 	bool shouldDelete;
+};
+
+//Tokens used in expressions
+class ParenthesizedExpression: public Token {
+public:
+	ParenthesizedExpression(Token* pExpression, AbstractCodeBlock* pSource);
+	~ParenthesizedExpression();
+
+	Token* expression;
+	AbstractCodeBlock* source;
 };
 //class IdentifierList: public Token {
 //public:

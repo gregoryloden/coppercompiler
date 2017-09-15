@@ -257,6 +257,7 @@ void Error::showSnippet(Token* token) {
 	void Debug::crashProgram() {
 		*((char*)(nullptr)) = 0;
 		std::exit(0);
+		while (true) {}
 	}
 #endif
 /*

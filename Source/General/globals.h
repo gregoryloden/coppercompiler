@@ -5,10 +5,11 @@ class Token;
 class AbstractCodeBlock;
 
 #define forEach(Type, t, a, ti) ArrayIterator<Type> ti (a); for (Type t = ti.getFirst(); ti.hasThis(); t = ti.getNext())
+#define forEachContinued(Type, t, ti) for (Type t = ti->getNext(); ti->hasThis(); t = ti->getNext())
 #define COMMA ,
 #ifdef DEBUG
 	#define onlyInDebug(x) x
-	#define assert(x) if (!(x)) { Debug::crashProgram(); }
+	#define assert(x) if (!(x)) { printf("Error: Assertion failure\n"); Debug::crashProgram(); }
 	//**/#define TRACK_OBJ_IDS
 #else
 	#define onlyInDebug(x)

@@ -196,7 +196,7 @@ void compile(char* filename) {
 	ParseTypes::parseTypes(allFiles);
 	returnIfErrors();
 
-	ParseExpressions::parseExpressions(allFiles);
+	ParseExpressions::parseExpressionsInFiles(allFiles);
 	returnIfErrors();
 puts("Suspended until the rewrite is complete");
 }

@@ -44,6 +44,11 @@ private:
 public:
 	Type getFirst();
 	Type getNext();
+	//Type getThis();
+	Type getPrevious();
+	//Type getLast();
+	//bool hasNext();
 	bool hasThis();
+	//bool hasPrevious();
 	void replaceThis(Type t);
 };

@@ -110,7 +110,7 @@ CDirectiveInclude* ParseDirectives::completeDirectiveInclude(bool includeAll) {
 }
 //lex a token and make sure that it's the right type
 //parse location: the next token after this one
-template <class TokenType> TokenType* ParseDirectives::parseToken(char* expectedTokenTypeName) {
+template <class TokenType> TokenType* ParseDirectives::parseToken(const char* expectedTokenTypeName) {
 	LexToken* l = Lex::lex();
 	if (l == nullptr)
 		makeEndOfFileWhileSearchingError(expectedTokenTypeName);
@@ -134,17 +134,11 @@ Separator* ParseDirectives::parseSeparator() {
 //lex a token and make sure it's a separator of the right type
 //parse location: the next token after the separator
 int ParseDirectives::parseSeparator(SeparatorType type) {
-	char* expectedTokenTypeName;
-	switch (type) {
-		case Semicolon: expectedTokenTypeName = "a semicolon"; break;
-		case LeftParenthesis: expectedTokenTypeName = "a left parenthesis"; break;
-		case RightParenthesis: expectedTokenTypeName = "a right parenthesis"; break;
-		default: expectedTokenTypeName = "a comma"; break;
-	}
-	Separator* s = parseToken<Separator>(expectedTokenTypeName);
+	string expectedTokenTypeName = "a " + Separator::separatorName(type);
+	Separator* s = parseToken<Separator>(expectedTokenTypeName.c_str());
 	Deleter<Separator> sDeleter (s);
 	if (s->type != type)
-		makeUnexpectedTokenError(expectedTokenTypeName, s);
+		makeUnexpectedTokenError(expectedTokenTypeName.c_str(), s);
 	return s->contentPos;
 }
 //lex a comma-separated list of identifiers
@@ -179,12 +173,12 @@ Array<string>* ParseDirectives::parseParenthesizedCommaSeparatedIdentifierList()
 	}
 }
 //throw an error about an unexpected token
-void ParseDirectives::makeUnexpectedTokenError(char* expectedTokenTypeName, Token* t) {
+void ParseDirectives::makeUnexpectedTokenError(const char* expectedTokenTypeName, Token* t) {
 	string message = string("expected ") + expectedTokenTypeName;
 	Error::makeError(General, message.c_str(), t);
 }
 //throw an error about an unexpected end-of-file
-void ParseDirectives::makeEndOfFileWhileSearchingError(char* message) {
+void ParseDirectives::makeEndOfFileWhileSearchingError(const char* message) {
 	EmptyToken errorToken (sourceFile->contentsLength, sourceFile);
 	Error::makeError(EndOfFileWhileSearching, message, &errorToken);
 }

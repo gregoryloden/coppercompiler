@@ -108,8 +108,8 @@ OperatorTypeTrie baseOperatorTries[] = {
 	{'^', BitwiseXor, 1, bitwiseXorOperatorTries},
 	{'|', BitwiseOr, 1, bitwiseOrOperatorTries},
 	{'=', Assign, 1, assignOperatorTries},
-	{'?', QuestionMark, 0, nullptr},
-	{':', Colon, 0, nullptr}
+	{':', Colon, 0, nullptr},
+	{'?', QuestionMark, 0, nullptr}
 };
 
 thread_local SourceFile* Lex::sourceFile;
