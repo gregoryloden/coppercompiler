@@ -32,7 +32,7 @@ void Replace::addReplacesToTrie(AbstractCodeBlock* abstractContents, PrefixTrie<
 
 		if (replaces->set(r->toReplace->name.c_str(), r->toReplace->name.length(), r) !=
 				PrefixTrie<char, CDirectiveReplace*>::emptyValue)
-			Error::makeError(General, "replacement has already been defined", r->toReplace);
+			Error::makeError(ErrorType::General, "replacement has already been defined", r->toReplace);
 	}
 }
 //search through all of the tokens in the file to look for ones to replace
@@ -63,7 +63,7 @@ void Replace::replaceTokens(Array<Token*>* tokens, PrefixTrie<char, CDirectiveRe
 
 		//if the replace is already in use, that's an error
 		if (r->inUse)
-			Error::makeError(General, "cannot use replacement in its own body", fullToken);
+			Error::makeError(ErrorType::General, "cannot use replacement in its own body", fullToken);
 		Array<Token*>* tokensToInsert;
 		if (r->input == nullptr)
 			tokensToInsert = buildReplacement(nullptr, r->replacement, nullptr, nullptr, fullToken);
@@ -71,17 +71,17 @@ void Replace::replaceTokens(Array<Token*>* tokens, PrefixTrie<char, CDirectiveRe
 			//start by collecting the arguments
 			ti++;
 			if (ti >= tokens->length)
-				Error::makeError(General, "expected an input list to follow", fullToken);
+				Error::makeError(ErrorType::General, "expected an input list to follow", fullToken);
 			t = tokens->get(ti);
 			if ((a = dynamic_cast<AbstractCodeBlock*>(t)) == nullptr)
-				Error::makeError(General, "expected an input list", t);
+				Error::makeError(ErrorType::General, "expected an input list", t);
 			//split up the arguments around the commas
 			Array<Token*>* nextTokens = new Array<Token*>();
 			Array<AbstractCodeBlock*>* arguments = new Array<AbstractCodeBlock*>();
 			int nextArgumentStartPos = a->contentPos;
 			forEach(Token*, at, a->tokens, ati) {
 				Separator* s;
-				if ((s = dynamic_cast<Separator*>(Token::getResultingToken(at))) != nullptr && s->type == Comma) {
+				if ((s = dynamic_cast<Separator*>(Token::getResultingToken(at))) != nullptr && s->type == SeparatorType::Comma) {
 					arguments->add(
 						new AbstractCodeBlock(nextTokens, nullptr, nextArgumentStartPos, s->contentPos, a->owningFile));
 					nextArgumentStartPos = s->contentPos + 1;
@@ -100,7 +100,7 @@ void Replace::replaceTokens(Array<Token*>* tokens, PrefixTrie<char, CDirectiveRe
 					"expected " + to_string(r->input->length) + " arguments but got " + to_string(arguments->length);
 				//cleanup the tokens
 				deleteArguments(arguments);
-				Error::makeError(General, message.c_str(), fullToken);
+				Error::makeError(ErrorType::General, message.c_str(), fullToken);
 			}
 			//replace
 			tokensToInsert = buildReplacement(nullptr, r->replacement, arguments, r->input, fullToken);

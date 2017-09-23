@@ -40,7 +40,7 @@ void ParseExpressions::parseGlobalDefinitions(SourceFile* sf) {
 				completeVariableDefinition(ct, fullToken, &ti);
 			else
 				//TODO: handle type definitions
-				Error::makeError(General, "expected a type or variable definition", fullToken);
+				Error::makeError(ErrorType::General, "expected a type or variable definition", fullToken);
 		} catch (...) {
 		}
 	}
@@ -50,7 +50,7 @@ void ParseExpressions::parseGlobalDefinitions(SourceFile* sf) {
 //TODO: ????????????????? save it where?
 //may throw
 void ParseExpressions::completeVariableDefinition(CType* type, Token* typeToken, ArrayIterator<Token*>* ti) {
-	Token* assignment = parseExpression(ti, SeparatorType::Semicolon, "expected a variable assignment to follow", typeToken);
+	Token* assignment = parseExpression(ti, (unsigned char)SeparatorType::Semicolon, "expected a variable assignment to follow", typeToken);
 	//TODO: ????????????? what do we do with our completed variable definition?
 }
 //this is the main loop of parsing
@@ -70,10 +70,10 @@ Token* ParseExpressions::parseExpression(ArrayIterator<Token*>* ti, unsigned cha
 			Separator* s;
 			//before we do anything, see if we're done parsing
 			if ((s = dynamic_cast<Separator*>(t)) != nullptr) {
-				if ((s->type & endingSeparatorTypes) != 0)
+				if (((unsigned char)(s->type) & endingSeparatorTypes) != 0)
 					return activeExpression;
 				string errorMessage = "unexpected " + Separator::separatorName(s->type);
-				Error::makeError(General, errorMessage.c_str(), fullToken);
+				Error::makeError(ErrorType::General, errorMessage.c_str(), fullToken);
 			}
 			AbstractCodeBlock* a;
 			Operator* o;
@@ -93,12 +93,12 @@ Token* ParseExpressions::parseExpression(ArrayIterator<Token*>* ti, unsigned cha
 			} else if (activeExpression == nullptr)
 				activeExpression = getValueExpression(t, fullToken, ti);
 			else
-				Error::makeError(General, "expected an operator or end of expression", fullToken);
+				Error::makeError(ErrorType::General, "expected an operator or end of expression", fullToken);
 			fullTokenDeleter.release();
 		}
 		if (activeExpression == nullptr)
-			Error::makeError(General, emptyExpressionErrorMessage, emptyExpressionErrorToken);
-		else if ((endingSeparatorTypes & SeparatorType::RightParenthesis) == 0) {
+			Error::makeError(ErrorType::General, emptyExpressionErrorMessage, emptyExpressionErrorToken);
+		else if ((endingSeparatorTypes & (unsigned char)SeparatorType::RightParenthesis) == 0) {
 			//find the last token to use as the error token
 			Token* lastToken = activeExpression;
 			ParenthesizedExpression* p = nullptr;
@@ -114,10 +114,10 @@ Token* ParseExpressions::parseExpression(ArrayIterator<Token*>* ti, unsigned cha
 			}
 			//if it was a parenthesized expression, use the end content pos instead of the regular content pos
 			EmptyToken errorToken (p == nullptr ? lastToken->contentPos : p->endContentPos, lastToken->owningFile);
-			if (endingSeparatorTypes == SeparatorType::Semicolon)
-				Error::makeError(General, "expected a semicolon to follow", &errorToken);
+			if (endingSeparatorTypes == (unsigned char)SeparatorType::Semicolon)
+				Error::makeError(ErrorType::General, "expected a semicolon to follow", &errorToken);
 			else
-				Error::makeError(General, "unexpected end of expression", &errorToken);
+				Error::makeError(ErrorType::General, "unexpected end of expression", &errorToken);
 		}
 	} catch (...) {
 		delete activeExpression;
@@ -141,7 +141,7 @@ Token* ParseExpressions::getValueExpression(Token* t, Token* fullToken, ArrayIte
 	else if ((a = dynamic_cast<AbstractCodeBlock*>(t)) != nullptr) {
 		ArrayIterator<Token*> ai (a->tokens);
 		ParenthesizedExpression* value = new ParenthesizedExpression(
-			parseExpression(&ai, SeparatorType::RightParenthesis, "expected an expression", a), a);
+			parseExpression(&ai, (unsigned char)SeparatorType::RightParenthesis, "expected an expression", a), a);
 		assert(fullToken == a);
 		delete fullToken; //any deleters in calling functions will not delete this so we have to delete it here
 		return value;
@@ -155,7 +155,7 @@ Token* ParseExpressions::getValueExpression(Token* t, Token* fullToken, ArrayIte
 			dynamic_cast<StringLiteral*>(t) != nullptr)
 		return fullToken;
 	assert(dynamic_cast<ParenthesizedExpression*>(t) == nullptr);
-	Error::makeError(General, "expected a value", fullToken);
+	Error::makeError(ErrorType::General, "expected a value", fullToken);
 	return nullptr;
 }
 //this is the meat of parsing, where retcon parsing happens
@@ -163,16 +163,16 @@ Token* ParseExpressions::getValueExpression(Token* t, Token* fullToken, ArrayIte
 //may throw
 Token* ParseExpressions::addToOperator(Token* fullToken, Operator* o, Token* activeExpression, ArrayIterator<Token*>* ti) {
 	//if we parsed a subtraction sign but there's no active expression, it's a negative sign
-	if (activeExpression == nullptr && o->type == Subtract) {
-		o->type = Negate;
-		o->precedence = PrecedencePrefix;
+	if (activeExpression == nullptr && o->type == OperatorType::Subtract) {
+		o->type = OperatorType::Negate;
+		o->precedence = OperatorTypePrecedence::Prefix;
 	}
 
 	//whatever the operator is, if it's not postfix then we expect a value to follow
-	if (o->precedence != PrecedencePostfix) {
+	if (o->precedence != OperatorTypePrecedence::Postfix) {
 		Token* t = ti->getNext();
 		if (!ti->hasThis())
-			Error::makeError(General, "expected a value to follow", fullToken);
+			Error::makeError(ErrorType::General, "expected a value to follow", fullToken);
 		ti->replaceThis(nullptr);
 		Deleter<Token> tDeleter (t);
 		o->right = getValueExpression(Token::getResultingToken(t), t, ti);
@@ -181,8 +181,8 @@ Token* ParseExpressions::addToOperator(Token* fullToken, Operator* o, Token* act
 
 	//we have no active expression- this is ok for prefix operators but nothing else
 	if (activeExpression == nullptr) {
-		if (o->precedence != PrecedencePrefix)
-			Error::makeError(General, "expected a value", fullToken);
+		if (o->precedence != OperatorTypePrecedence::Prefix)
+			Error::makeError(ErrorType::General, "expected a value", fullToken);
 		//since we already got the following value we can just return the token
 		return fullToken;
 	}

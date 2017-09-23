@@ -108,7 +108,7 @@ public:
 	Type* release();
 	Type* retrieve();
 };
-enum ErrorType: unsigned char {
+enum class ErrorType: unsigned char {
 	General,
 	EndOfFileWhileSearching,
 	EndOfFileWhileReading,

@@ -156,7 +156,7 @@ void Error::makeError(ErrorType type, const char* message, Token* token) {
 			makeError(type, message, s->resultingToken);
 		} catch (...) {
 		}
-		type = Continuation;
+		type = ErrorType::Continuation;
 		errorCount--;
 	}
 	SourceFile* owningFile = token->owningFile;
@@ -164,15 +164,15 @@ void Error::makeError(ErrorType type, const char* message, Token* token) {
 	//print the error
 	char* errorPrefix;
 	switch (type) {
-		case Continuation: errorPrefix = "  --- in \"%s\" at line %d char %d\n"; break;
+		case ErrorType::Continuation: errorPrefix = "  --- in \"%s\" at line %d char %d\n"; break;
 		default:           errorPrefix = "Error in \"%s\" at line %d char %d: "; break;
 	}
 	printf(errorPrefix, owningFile->filename.c_str(), row + 1, token->contentPos - owningFile->rowStarts->get(row) + 1);
 	switch (type) {
-		case General: puts(message); break;
-		case EndOfFileWhileSearching: printf("reached the end of the file while searching for %s\n", message); break;
-		case EndOfFileWhileReading: printf("reached the end of the file while reading %s\n", message); break;
-		case Continuation: break;
+		case ErrorType::General: puts(message); break;
+		case ErrorType::EndOfFileWhileSearching: printf("reached the end of the file while searching for %s\n", message); break;
+		case ErrorType::EndOfFileWhileReading: printf("reached the end of the file while reading %s\n", message); break;
+		case ErrorType::Continuation: break;
 	}
 	showSnippet(token);
 	errorCount++;
@@ -241,7 +241,7 @@ void Error::showSnippet(Token* token) {
 					printf(contents + t->contentPos);
 					contents[t->endContentPos] = old;
 					Separator* separator;
-					if ((separator = dynamic_cast<Separator*>(t)) != nullptr && separator->type == Semicolon) {
+					if ((separator = dynamic_cast<Separator*>(t)) != nullptr && separator->type == SeparatorType::Semicolon) {
 						printf("\n");
 						printedSpaces = false;
 					}

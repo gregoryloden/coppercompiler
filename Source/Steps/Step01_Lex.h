@@ -5,7 +5,7 @@ class IntConstant;
 class Separator;
 class Operator;
 class DirectiveTitle;
-enum ErrorType: unsigned char;
+enum class ErrorType: unsigned char;
 template <class Type> class Array;
 //class IntConstant;
 

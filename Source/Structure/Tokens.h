@@ -7,13 +7,13 @@ class CDirective;
 class BigInt;
 template <class Type> class Array;
 
-enum SeparatorType: unsigned char {
+enum class SeparatorType: unsigned char {
 	LeftParenthesis = 0x1,
 	RightParenthesis = 0x2,
 	Comma = 0x4,
 	Semicolon = 0x8
 };
-enum OperatorType: unsigned char {
+enum class OperatorType: unsigned char {
 //	None,
 	Dot,
 	ObjectMemberAccess,
@@ -62,25 +62,25 @@ enum OperatorType: unsigned char {
 //	AssignRotateRight,
 	AssignBitwiseAnd,
 	AssignBitwiseXor,
-	AssignBitwiseOr,
+	AssignBitwiseOr
 //	AssignBooleanAnd,
 //	AssignBooleanOr
 };
-enum OperatorTypePrecedence: unsigned char {
-	PrecedenceObjectMember = 14,
-	PrecedencePostfix = 13,
-	PrecedencePrefix = 12,
-	PrecedenceMultiplication = 11,
-	PrecedenceAddition = 10,
-	PrecedenceBitShift = 9,
-	PrecedenceBitwiseAnd = 8,
-	PrecedenceBitwiseXor = 7,
-	PrecedenceBitwiseOr = 6,
-	PrecedenceComparison = 5,
-	PrecedenceBooleanAnd = 4,
-	PrecedenceBooleanOr = 3,
-	PrecedenceTernary = 2,
-	PrecedenceAssignment = 1
+enum class OperatorTypePrecedence: unsigned char {
+	ObjectMember = 14,
+	Postfix = 13,
+	Prefix = 12,
+	Multiplication = 11,
+	Addition = 10,
+	BitShift = 9,
+	BitwiseAnd = 8,
+	BitwiseXor = 7,
+	BitwiseOr = 6,
+	Comparison = 5,
+	BooleanAnd = 4,
+	BooleanOr = 3,
+	Ternary = 2,
+	Assignment = 1
 };
 
 //Booleans, etc. group on the right; additions, etc. groups on the left

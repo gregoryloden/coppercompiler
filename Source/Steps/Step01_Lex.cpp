@@ -34,82 +34,82 @@ struct OperatorTypeTrie {
 };
 const int baseOperatorTrieCount = 16;
 OperatorTypeTrie dotOperatorTries[] = {
-	{'.', ObjectMemberAccess, 0, nullptr}
+	{'.', OperatorType::ObjectMemberAccess, 0, nullptr}
 };
 OperatorTypeTrie addOperatorTries[] = {
-	{'+', Increment, 0, nullptr},
-	{'=', AssignAdd, 0, nullptr}
+	{'+', OperatorType::Increment, 0, nullptr},
+	{'=', OperatorType::AssignAdd, 0, nullptr}
 };
 OperatorTypeTrie subtractOperatorTries[] = {
-	{'-', Decrement, 0, nullptr},
-	{'=', AssignSubtract, 0, nullptr}
+	{'-', OperatorType::Decrement, 0, nullptr},
+	{'=', OperatorType::AssignSubtract, 0, nullptr}
 };
 OperatorTypeTrie bitwiseNotOperatorTries[] = {
-	{'!', VariableLogicalNot, 0, nullptr},
-	{'~', VariableBitwiseNot, 0, nullptr},
-	{'-', VariableNegate, 0, nullptr}
+	{'!', OperatorType::VariableLogicalNot, 0, nullptr},
+	{'~', OperatorType::VariableBitwiseNot, 0, nullptr},
+	{'-', OperatorType::VariableNegate, 0, nullptr}
 };
 OperatorTypeTrie logicalNotOperatorTries[] = {
-	{'=', NotEqual, 0, nullptr}
+	{'=', OperatorType::NotEqual, 0, nullptr}
 };
 OperatorTypeTrie multiplyOperatorTries[] = {
-	{'=', AssignMultiply, 0, nullptr}
+	{'=', OperatorType::AssignMultiply, 0, nullptr}
 };
 OperatorTypeTrie divideOperatorTries[] = {
-	{'=', AssignDivide, 0, nullptr}
+	{'=', OperatorType::AssignDivide, 0, nullptr}
 };
 OperatorTypeTrie modulusOperatorTries[] = {
-	{'=', AssignModulus, 0, nullptr}
+	{'=', OperatorType::AssignModulus, 0, nullptr}
 };
 OperatorTypeTrie shiftLeftOperatorTries[] = {
-	{'=', AssignShiftLeft, 0, nullptr}
+	{'=', OperatorType::AssignShiftLeft, 0, nullptr}
 };
 OperatorTypeTrie lessThanOperatorTries[] = {
-	{'<', ShiftLeft, 1, shiftLeftOperatorTries},
-	{'=', LessOrEqual, 0, nullptr}
+	{'<', OperatorType::ShiftLeft, 1, shiftLeftOperatorTries},
+	{'=', OperatorType::LessOrEqual, 0, nullptr}
 };
 OperatorTypeTrie shiftArithmeticRightOperatorTries[] = {
-	{'=', AssignShiftArithmeticRight, 0, nullptr}
+	{'=', OperatorType::AssignShiftArithmeticRight, 0, nullptr}
 };
 OperatorTypeTrie shiftRightOperatorTries[] = {
-	{'>', ShiftArithmeticRight, 1, shiftArithmeticRightOperatorTries},
-	{'=', AssignShiftRight, 0, nullptr}
+	{'>', OperatorType::ShiftArithmeticRight, 1, shiftArithmeticRightOperatorTries},
+	{'=', OperatorType::AssignShiftRight, 0, nullptr}
 };
 OperatorTypeTrie greaterThanOperatorTries[] = {
-	{'>', ShiftRight, 2, shiftRightOperatorTries},
-	{'=', GreaterOrEqual, 0, nullptr}
+	{'>', OperatorType::ShiftRight, 2, shiftRightOperatorTries},
+	{'=', OperatorType::GreaterOrEqual, 0, nullptr}
 };
 OperatorTypeTrie bitwiseAndOperatorTries[] = {
-	{'&', BooleanAnd, 0, nullptr},
-	{'=', AssignBitwiseAnd, 0, nullptr}
+	{'&', OperatorType::BooleanAnd, 0, nullptr},
+	{'=', OperatorType::AssignBitwiseAnd, 0, nullptr}
 };
 OperatorTypeTrie bitwiseXorOperatorTries[] = {
-	{'=', AssignBitwiseXor, 0, nullptr}
+	{'=', OperatorType::AssignBitwiseXor, 0, nullptr}
 };
 OperatorTypeTrie bitwiseOrOperatorTries[] = {
-	{'|', BooleanOr, 0, nullptr},
-	{'=', AssignBitwiseOr, 0, nullptr}
+	{'|', OperatorType::BooleanOr, 0, nullptr},
+	{'=', OperatorType::AssignBitwiseOr, 0, nullptr}
 };
 OperatorTypeTrie assignOperatorTries[] = {
-	{'=', Equal, 0, nullptr}
+	{'=', OperatorType::Equal, 0, nullptr}
 };
 OperatorTypeTrie baseOperatorTries[] = {
-	{'.', Dot, 1, dotOperatorTries},
-	{'+', Add, 2, addOperatorTries},
-	{'-', Subtract, 2, subtractOperatorTries},
-	{'~', BitwiseNot, 3, bitwiseNotOperatorTries},
-	{'!', LogicalNot, 1, logicalNotOperatorTries},
-	{'*', Multiply, 1, multiplyOperatorTries},
-	{'/', Divide, 1, divideOperatorTries},
-	{'%', Modulus, 1, modulusOperatorTries},
-	{'<', LessThan, 2, lessThanOperatorTries},
-	{'>', GreaterThan, 2, greaterThanOperatorTries},
-	{'&', BitwiseAnd, 2, bitwiseAndOperatorTries},
-	{'^', BitwiseXor, 1, bitwiseXorOperatorTries},
-	{'|', BitwiseOr, 1, bitwiseOrOperatorTries},
-	{'=', Assign, 1, assignOperatorTries},
-	{':', Colon, 0, nullptr},
-	{'?', QuestionMark, 0, nullptr}
+	{'.', OperatorType::Dot, 1, dotOperatorTries},
+	{'+', OperatorType::Add, 2, addOperatorTries},
+	{'-', OperatorType::Subtract, 2, subtractOperatorTries},
+	{'~', OperatorType::BitwiseNot, 3, bitwiseNotOperatorTries},
+	{'!', OperatorType::LogicalNot, 1, logicalNotOperatorTries},
+	{'*', OperatorType::Multiply, 1, multiplyOperatorTries},
+	{'/', OperatorType::Divide, 1, divideOperatorTries},
+	{'%', OperatorType::Modulus, 1, modulusOperatorTries},
+	{'<', OperatorType::LessThan, 2, lessThanOperatorTries},
+	{'>', OperatorType::GreaterThan, 2, greaterThanOperatorTries},
+	{'&', OperatorType::BitwiseAnd, 2, bitwiseAndOperatorTries},
+	{'^', OperatorType::BitwiseXor, 1, bitwiseXorOperatorTries},
+	{'|', OperatorType::BitwiseOr, 1, bitwiseOrOperatorTries},
+	{'=', OperatorType::Assign, 1, assignOperatorTries},
+	{':', OperatorType::Colon, 0, nullptr},
+	{'?', OperatorType::QuestionMark, 0, nullptr}
 };
 
 thread_local SourceFile* Lex::sourceFile;
@@ -154,7 +154,7 @@ LexToken* Lex::lex() {
 //}
 	EmptyToken errorToken (pos, sourceFile);
 	pos++;
-	Error::makeError(General, "unexpected character", &errorToken);
+	Error::makeError(ErrorType::General, "unexpected character", &errorToken);
 	return nullptr;
 }
 /*
@@ -384,7 +384,7 @@ bool Lex::skipComment() {
 	}
 	//reached the end of the file before the comment terminator, that's ok for a line comment but not a block comment
 	if (!lineComment)
-		Error::makeError(EndOfFileWhileSearching, "the end of the block comment", &errorToken);
+		Error::makeError(ErrorType::EndOfFileWhileSearching, "the end of the block comment", &errorToken);
 	return true;
 }
 //get a variable name, type, or keyword
@@ -430,7 +430,7 @@ LexToken* Lex::lexNumber() {
 			case 'b': base = 2; pos += 2; break;
 		}
 		if (outofbounds())
-			Error::makeError(EndOfFileWhileReading, "the number definition", &errorToken);
+			Error::makeError(ErrorType::EndOfFileWhileReading, "the number definition", &errorToken);
 		c = contents[pos];
 		digitExpected = true;
 	}
@@ -485,9 +485,9 @@ LexToken* Lex::lexNumber() {
 
 	if (digitExpected) {
 		if (outofbounds())
-			Error::makeError(EndOfFileWhileReading, "the number definition", &errorToken);
+			Error::makeError(ErrorType::EndOfFileWhileReading, "the number definition", &errorToken);
 		else
-			makeLexError(General, "expected digit");
+			makeLexError(ErrorType::General, "expected digit");
 	}
 
 	//we've now finished reading the number, turn it into the appropriate constant
@@ -566,7 +566,7 @@ StringLiteral* Lex::lexString() {
 	while (true) {
 		pos++;
 		if (outofbounds())
-			Error::makeError(EndOfFileWhileReading, "the contents of the string", &errorToken);
+			Error::makeError(ErrorType::EndOfFileWhileReading, "the contents of the string", &errorToken);
 
 		c = contents[pos];
 		if (c == '"') {
@@ -590,7 +590,7 @@ char Lex::nextStringCharacter() {
 	EmptyToken errorToken (pos, sourceFile);
 	pos++;
 	if (outofbounds())
-		Error::makeError(EndOfFileWhileReading, "the escape sequence", &errorToken);
+		Error::makeError(ErrorType::EndOfFileWhileReading, "the escape sequence", &errorToken);
 	c = contents[pos];
 	switch (c) {
 		case 'n': return '\n';
@@ -601,14 +601,14 @@ char Lex::nextStringCharacter() {
 		//2-digit hex escape sequence
 		case 'x': {
 			if (pos + 2 >= contentsLength)
-				Error::makeError(EndOfFileWhileReading, "the hex digit escape sequence", &errorToken);
+				Error::makeError(ErrorType::EndOfFileWhileReading, "the hex digit escape sequence", &errorToken);
 			char c2 = 0;
 			for (int max = pos + 2; pos < max;) {
 				pos++;
 				c = contents[pos];
 				char digit = cToDigit();
 				if (((unsigned char)digit) >= 16)
-					makeLexError(General, "escape sequence requires 2 hex digits");
+					makeLexError(ErrorType::General, "escape sequence requires 2 hex digits");
 				c2 = c2 << 4 | digit;
 			}
 			return c2;
@@ -620,7 +620,7 @@ char Lex::nextStringCharacter() {
 			return c;
 		//anything else is an invalid escape sequence
 		default:
-			makeLexError(General, "invalid escape sequence");
+			makeLexError(ErrorType::General, "invalid escape sequence");
 			return 0;
 	}
 }
@@ -635,15 +635,15 @@ IntConstant* Lex::lexCharacter() {
 	int begin = pos;
 	pos++;
 	if (outofbounds())
-		Error::makeError(EndOfFileWhileReading, "the character definition", &errorToken);
+		Error::makeError(ErrorType::EndOfFileWhileReading, "the character definition", &errorToken);
 
 	c = contents[pos];
 	c = nextStringCharacter();
 	pos++;
 	if (outofbounds())
-		Error::makeError(EndOfFileWhileReading, "the character definition", &errorToken);
+		Error::makeError(ErrorType::EndOfFileWhileReading, "the character definition", &errorToken);
 	if (contents[pos] != '\'')
-		makeLexError(General, "expected a close quote");
+		makeLexError(ErrorType::General, "expected a close quote");
 	pos++;
 	return new IntConstant((int)c, begin, pos, sourceFile);
 }
@@ -652,10 +652,10 @@ IntConstant* Lex::lexCharacter() {
 Separator* Lex::lexSeparator() {
 	Separator* val;
 	switch (c) {
-		case '(': val = new Separator(LeftParenthesis, pos, pos + 1, sourceFile); break;
-		case ')': val = new Separator(RightParenthesis, pos, pos + 1, sourceFile); break;
-		case ',': val = new Separator(Comma, pos, pos + 1, sourceFile); break;
-		case ';': val = new Separator(Semicolon, pos, pos + 1, sourceFile); break;
+		case '(': val = new Separator(SeparatorType::LeftParenthesis, pos, pos + 1, sourceFile); break;
+		case ')': val = new Separator(SeparatorType::RightParenthesis, pos, pos + 1, sourceFile); break;
+		case ',': val = new Separator(SeparatorType::Comma, pos, pos + 1, sourceFile); break;
+		case ';': val = new Separator(SeparatorType::Semicolon, pos, pos + 1, sourceFile); break;
 		default: return nullptr;
 	}
 
@@ -666,7 +666,7 @@ Separator* Lex::lexSeparator() {
 //lex location: no change | the first character after the operator
 Operator* Lex::lexOperator() {
 	int begin = pos;
-	OperatorType type = Dot;
+	OperatorType type = OperatorType::Dot;
 	OperatorTypeTrie* tries = baseOperatorTries;
 	int count = baseOperatorTrieCount;
 	bool found = false;
@@ -703,9 +703,9 @@ DirectiveTitle* Lex::lexDirectiveTitle() {
 	}
 
 	if (outofbounds())
-		Error::makeError(EndOfFileWhileReading, "the directive name", &errorToken);
+		Error::makeError(ErrorType::EndOfFileWhileReading, "the directive name", &errorToken);
 	else if (pos == begin)
-		makeLexError(General, "expected a directive name");
+		makeLexError(ErrorType::General, "expected a directive name");
 
 	return new DirectiveTitle(string(contents + begin, pos - begin), begin - 1, pos, sourceFile);
 }

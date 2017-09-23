@@ -10,7 +10,7 @@ class DirectiveTitle;
 class Identifier;
 class Separator;
 class Token;
-enum SeparatorType: unsigned char;
+enum class SeparatorType: unsigned char;
 template <class Type> class Array;
 
 class ParseDirectives {

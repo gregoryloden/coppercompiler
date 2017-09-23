@@ -69,9 +69,9 @@ Separator::Separator(SeparatorType pType, int pContentPos, int pEndContentPos, S
 Separator::~Separator() {}
 string Separator::separatorName(SeparatorType s) {
 	switch (s) {
-		case Semicolon: return "semicolon";
-		case LeftParenthesis: return "left parenthesis";
-		case RightParenthesis: return "right parenthesis";
+		case SeparatorType::Semicolon: return "semicolon";
+		case SeparatorType::LeftParenthesis: return "left parenthesis";
+		case SeparatorType::RightParenthesis: return "right parenthesis";
 		default: return "comma";
 	}
 }
@@ -81,71 +81,71 @@ Operator::Operator(OperatorType pType, int pContentPos, int pEndContentPos, Sour
 , left(nullptr)
 , right(nullptr) {
 	switch (pType) {
-//		case None:
-		case Dot:
-		case ObjectMemberAccess:
-			precedence = PrecedenceObjectMember;
-		case Increment:
-		case Decrement:
-		case VariableLogicalNot:
-		case VariableBitwiseNot:
-		case VariableNegate:
-			precedence = PrecedencePostfix;
-		case Cast:
-		case LogicalNot:
-		case BitwiseNot:
-		case Negate:
-			precedence = PrecedencePrefix;
-		case Multiply:
-		case Divide:
-		case Modulus:
-			precedence = PrecedenceMultiplication;
-		case Add:
-		case Subtract:
-			precedence = PrecedenceAddition;
-		case ShiftLeft:
-		case ShiftRight:
-		case ShiftArithmeticRight:
-//		case RotateLeft:
-//		case RotateRight:
-			precedence = PrecedenceBitShift;
-		case BitwiseAnd:
-			precedence = PrecedenceBitwiseAnd;
-		case BitwiseXor:
-			precedence = PrecedenceBitwiseXor;
-		case BitwiseOr:
-			precedence = PrecedenceBitwiseOr;
-		case Equal:
-		case NotEqual:
-		case LessOrEqual:
-		case GreaterOrEqual:
-		case LessThan:
-		case GreaterThan:
-			precedence = PrecedenceComparison;
-		case BooleanAnd:
-			precedence = PrecedenceBooleanAnd;
-		case BooleanOr:
-			precedence = PrecedenceBooleanOr;
-		case Colon:
-		case QuestionMark:
-			precedence = PrecedenceTernary;
-		case Assign:
-		case AssignAdd:
-		case AssignSubtract:
-		case AssignMultiply:
-		case AssignDivide:
-		case AssignModulus:
-		case AssignShiftLeft:
-		case AssignShiftRight:
-		case AssignShiftArithmeticRight:
-//		case AssignRotateLeft:
-//		case AssignRotateRight:
-		case AssignBitwiseAnd:
-		case AssignBitwiseXor:
-		case AssignBitwiseOr:
-//		case AssignBooleanAnd:
-//		case AssignBooleanOr:
-			precedence = PrecedenceAssignment;
+//		case OperatorType::None:
+		case OperatorType::Dot:
+		case OperatorType::ObjectMemberAccess:
+			precedence = OperatorTypePrecedence::ObjectMember;
+		case OperatorType::Increment:
+		case OperatorType::Decrement:
+		case OperatorType::VariableLogicalNot:
+		case OperatorType::VariableBitwiseNot:
+		case OperatorType::VariableNegate:
+			precedence = OperatorTypePrecedence::Postfix;
+		case OperatorType::Cast:
+		case OperatorType::LogicalNot:
+		case OperatorType::BitwiseNot:
+		case OperatorType::Negate:
+			precedence = OperatorTypePrecedence::Prefix;
+		case OperatorType::Multiply:
+		case OperatorType::Divide:
+		case OperatorType::Modulus:
+			precedence = OperatorTypePrecedence::Multiplication;
+		case OperatorType::Add:
+		case OperatorType::Subtract:
+			precedence = OperatorTypePrecedence::Addition;
+		case OperatorType::ShiftLeft:
+		case OperatorType::ShiftRight:
+		case OperatorType::ShiftArithmeticRight:
+//		case OperatorType::RotateLeft:
+//		case OperatorType::RotateRight:
+			precedence = OperatorTypePrecedence::BitShift;
+		case OperatorType::BitwiseAnd:
+			precedence = OperatorTypePrecedence::BitwiseAnd;
+		case OperatorType::BitwiseXor:
+			precedence = OperatorTypePrecedence::BitwiseXor;
+		case OperatorType::BitwiseOr:
+			precedence = OperatorTypePrecedence::BitwiseOr;
+		case OperatorType::Equal:
+		case OperatorType::NotEqual:
+		case OperatorType::LessOrEqual:
+		case OperatorType::GreaterOrEqual:
+		case OperatorType::LessThan:
+		case OperatorType::GreaterThan:
+			precedence = OperatorTypePrecedence::Comparison;
+		case OperatorType::BooleanAnd:
+			precedence = OperatorTypePrecedence::BooleanAnd;
+		case OperatorType::BooleanOr:
+			precedence = OperatorTypePrecedence::BooleanOr;
+		case OperatorType::Colon:
+		case OperatorType::QuestionMark:
+			precedence = OperatorTypePrecedence::Ternary;
+		case OperatorType::Assign:
+		case OperatorType::AssignAdd:
+		case OperatorType::AssignSubtract:
+		case OperatorType::AssignMultiply:
+		case OperatorType::AssignDivide:
+		case OperatorType::AssignModulus:
+		case OperatorType::AssignShiftLeft:
+		case OperatorType::AssignShiftRight:
+		case OperatorType::AssignShiftArithmeticRight:
+//		case OperatorType::AssignRotateLeft:
+//		case OperatorType::AssignRotateRight:
+		case OperatorType::AssignBitwiseAnd:
+		case OperatorType::AssignBitwiseXor:
+		case OperatorType::AssignBitwiseOr:
+//		case OperatorType::AssignBooleanAnd:
+//		case OperatorType::AssignBooleanOr:
+			precedence = OperatorTypePrecedence::Assignment;
 	}
 }
 Operator::~Operator() {
@@ -153,26 +153,27 @@ Operator::~Operator() {
 	delete right;
 }
 //determine if this operator should steal the right-hand side of the other operator
+//may throw
 bool Operator::takesRightHandPrecedence(Operator* other) {
 	if (precedence != other->precedence)
 		return precedence > other->precedence;
 	//some operators group on the right, whereas most operators group on the left
 	switch (precedence) {
-		case PrecedenceTernary:
+		case OperatorTypePrecedence::Ternary:
 			//beginning of a ternary, always group on the right
-			if (type == QuestionMark)
+			if (type == OperatorType::QuestionMark)
 				return true;
 			//this is a colon and the other one is a question mark- steal the right hand side if there isn't a colon already
-			else if (other->type == QuestionMark) {
+			else if (other->type == OperatorType::QuestionMark) {
 				Operator* o;
-				return (o = dynamic_cast<Operator*>(other->right)) == nullptr || o->type != Colon;
+				return (o = dynamic_cast<Operator*>(other->right)) == nullptr || o->type != OperatorType::Colon;
 			//this is a colon and the other one is a colon too
 			//since we never steal the right hand side of a question mark, we can only get here on an error
 			} else
-				Error::makeError(General, "ternary expression missing conditional", this);
-		case PrecedenceBooleanAnd:
-		case PrecedenceBooleanOr:
-		case PrecedenceAssignment:
+				Error::makeError(ErrorType::General, "ternary expression missing conditional", this);
+		case OperatorTypePrecedence::BooleanAnd:
+		case OperatorTypePrecedence::BooleanOr:
+		case OperatorTypePrecedence::Assignment:
 			return true;
 	}
 	return false;
