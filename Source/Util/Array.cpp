@@ -4,8 +4,8 @@
 #define instantiatePrefixTrieAVLNodeArrayTypes(type1, type2) \
 	instantiateArrayTypes(AVLNode<type1 COMMA PrefixTrie<type1 COMMA type2>*>*);
 #define instantiateNonPointerArrayTypes(type) \
-	instantiateArrayTypes(type); \
-	template <> void Array<type>::deleteSelfAndContents() { delete this; }
+	instantiateArrayTypes(type);\
+	template <> void Array<type>::deleteContents() {}
 
 instantiateArrayTypes(AbstractCodeBlock*);
 instantiateArrayTypes(CDirective*);
@@ -32,10 +32,9 @@ inner(new Type[1])
 template <class Type> Array<Type>::~Array() {
 	delete[] inner;
 }
-template <class Type> void Array<Type>::deleteSelfAndContents() {
+template <class Type> void Array<Type>::deleteContents() {
 	forEach(Type, t, this, ti)
 		delete t;
-	delete this;
 }
 //resize the array by the given scale
 template <class Type> void Array<Type>::resize(int scale) {

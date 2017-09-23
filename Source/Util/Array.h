@@ -11,7 +11,7 @@ private:
 	int innerLength;
 
 public:
-	void deleteSelfAndContents();
+	void deleteContents();
 private:
 	void resize(int scale);
 	void shiftBack(int pos, int shift);

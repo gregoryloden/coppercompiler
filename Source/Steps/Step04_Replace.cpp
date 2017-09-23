@@ -75,35 +75,7 @@ void Replace::replaceTokens(Array<Token*>* tokens, PrefixTrie<char, CDirectiveRe
 			t = tokens->get(ti);
 			if ((a = dynamic_cast<AbstractCodeBlock*>(t)) == nullptr)
 				Error::makeError(ErrorType::General, "expected an input list", t);
-			//split up the arguments around the commas
-			Array<Token*>* nextTokens = new Array<Token*>();
-			Array<AbstractCodeBlock*>* arguments = new Array<AbstractCodeBlock*>();
-			int nextArgumentStartPos = a->contentPos;
-			forEach(Token*, at, a->tokens, ati) {
-				Separator* s;
-				if ((s = dynamic_cast<Separator*>(Token::getResultingToken(at))) != nullptr &&
-					s->type == SeparatorType::Comma)
-				{
-					arguments->add(
-						new AbstractCodeBlock(nextTokens, nullptr, nextArgumentStartPos, s->contentPos, a->owningFile));
-					nextArgumentStartPos = s->contentPos + 1;
-					nextTokens = new Array<Token*>();
-					ati.replaceThis(nullptr);
-					delete at;
-				} else
-					nextTokens->add(at);
-			}
-			arguments->add(new AbstractCodeBlock(nextTokens, nullptr, nextArgumentStartPos, a->endContentPos, a->owningFile));
-			if (r->input->length > 0
-				? arguments->length != r->input->length
-				: (arguments->length != 1 || nextTokens->length != 0))
-			{
-				string message =
-					"expected " + to_string(r->input->length) + " arguments but got " + to_string(arguments->length);
-				//cleanup the tokens
-				deleteArguments(arguments);
-				Error::makeError(ErrorType::General, message.c_str(), fullToken);
-			}
+			Array<AbstractCodeBlock*>* arguments = collectArguments(a, r->input->length, fullToken);
 			//replace
 			tokensToInsert = buildReplacement(nullptr, r->replacement, arguments, r->input, fullToken);
 			//cleanup the tokens
@@ -113,7 +85,8 @@ void Replace::replaceTokens(Array<Token*>* tokens, PrefixTrie<char, CDirectiveRe
 		try {
 			replaceTokens(tokensToInsert, replaces);
 		} catch (...) {
-			tokensToInsert->deleteSelfAndContents();
+			tokensToInsert->deleteContents();
+			delete tokensToInsert;
 			r->inUse = false;
 			throw;
 		}
@@ -131,6 +104,38 @@ void Replace::replaceTokens(Array<Token*>* tokens, PrefixTrie<char, CDirectiveRe
 		delete tokensToInsert;
 		r->inUse = false;
 	}
+}
+//get a list of arguments from the code block, splitting it around the commas
+Array<AbstractCodeBlock*>* Replace::collectArguments(
+	AbstractCodeBlock* argumentsCodeBlock, int expectedArgumentCount, Token* errorToken)
+{
+	Array<Token*>* nextTokens = new Array<Token*>();
+	Array<AbstractCodeBlock*>* arguments = new Array<AbstractCodeBlock*>();
+	int nextArgumentStartPos = argumentsCodeBlock->contentPos;
+	forEach(Token*, at, argumentsCodeBlock->tokens, ati) {
+		Separator* s;
+		if ((s = dynamic_cast<Separator*>(Token::getResultingToken(at))) != nullptr && s->type == SeparatorType::Comma) {
+			arguments->add(new AbstractCodeBlock(
+				nextTokens, nullptr, nextArgumentStartPos, s->contentPos, argumentsCodeBlock->owningFile));
+			nextArgumentStartPos = s->contentPos + 1;
+			nextTokens = new Array<Token*>();
+			ati.replaceThis(nullptr);
+			delete at;
+		} else
+			nextTokens->add(at);
+	}
+	arguments->add(new AbstractCodeBlock(
+		nextTokens, nullptr, nextArgumentStartPos, argumentsCodeBlock->endContentPos, argumentsCodeBlock->owningFile));
+	if (expectedArgumentCount > 0
+		? arguments->length != expectedArgumentCount
+		: (arguments->length != 1 || nextTokens->length != 0))
+	{
+		string message = "expected " + to_string(expectedArgumentCount) + " arguments but got " + to_string(arguments->length);
+		//cleanup the tokens
+		deleteArguments(arguments);
+		Error::makeError(ErrorType::General, message.c_str(), errorToken);
+	}
+	return arguments;
 }
 //create a chain of substituted tokens above the original token, based on the parent token being replaced
 SubstitutedToken* Replace::substituteTokens(Token* tokenBeingReplaced, Token* resultingToken, bool deleteResultingToken) {

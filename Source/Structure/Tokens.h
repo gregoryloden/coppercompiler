@@ -5,6 +5,7 @@ using namespace std;
 class SourceFile;
 class CDirective;
 class BigInt;
+class CType;
 template <class Type> class Array;
 
 enum class SeparatorType: unsigned char {
@@ -200,6 +201,14 @@ public:
 	virtual ~ParenthesizedExpression();
 
 	Token* expression;
+};
+class Cast: public Operator {
+public:
+	Cast(CType* pType, bool pRaw, int pContentPos, int pEndContentPos, SourceFile* pOwningFile);
+	virtual ~Cast();
+
+	CType* type;
+	bool raw;
 };
 //class IdentifierList: public Token {
 //public:

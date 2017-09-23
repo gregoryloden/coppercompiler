@@ -193,9 +193,12 @@ AbstractCodeBlock::AbstractCodeBlock(
 , directives(pDirectives) {
 }
 AbstractCodeBlock::~AbstractCodeBlock() {
-	tokens->deleteSelfAndContents();
-	if (directives != nullptr)
-		directives->deleteSelfAndContents();
+	tokens->deleteContents();
+	delete tokens;
+	if (directives != nullptr) {
+		directives->deleteContents();
+		delete directives;
+	}
 }
 SubstitutedToken::SubstitutedToken(Token* pResultingToken, bool pShouldDelete, Token* tokenBeingReplaced)
 : Token(onlyWhenTrackingIDs("SBSTKN" COMMA) tokenBeingReplaced->contentPos, tokenBeingReplaced->endContentPos,
@@ -227,6 +230,14 @@ ParenthesizedExpression::ParenthesizedExpression(Token* pExpression, AbstractCod
 }
 ParenthesizedExpression::~ParenthesizedExpression() {
 	delete expression;
+}
+Cast::Cast(CType* pType, bool pRaw, int pContentPos, int pEndContentPos, SourceFile* pOwningFile)
+: Operator(onlyWhenTrackingIDs("CAST" COMMA) OperatorType::Cast, pContentPos, pEndContentPos, pOwningFile)
+, type(pType)
+, raw(pRaw) {
+}
+Cast::~Cast() {
+	//don't delete the type since it's owned by the types trie
 }
 //IdentifierList::IdentifierList(Identifier* pI1, Identifier* pI2)
 //: Token("IDFRLST", pI1->contentPos)

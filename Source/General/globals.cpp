@@ -121,6 +121,7 @@ int Math::max(int a, int b) {
 		printf("Total objects used: %d + %d untracked\n", (nextObjID - untrackedObjCount), untrackedObjCount);
 	}
 #endif
+const char* Keyword::rawKeyword = "raw";
 template <class Type> Deleter<Type>::Deleter(Type* pToDelete)
 : onlyInDebug(ObjCounter(onlyWhenTrackingIDs("DELETER")) COMMA)
 toDelete(pToDelete) {

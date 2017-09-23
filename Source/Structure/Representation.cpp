@@ -1530,5 +1530,6 @@ SourceFile::~SourceFile() {
 	//don't delete the source files, they will get deleted through the main source file list
 	delete includedFiles;
 	delete inclusionListeners;
-	replacedArguments->deleteSelfAndContents();
+	replacedArguments->deleteContents();
+	delete replacedArguments;
 }

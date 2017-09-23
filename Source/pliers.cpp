@@ -166,7 +166,8 @@ int main(int argc, char* argv[]) {
 	}
 	*/
 	#ifdef DEBUG
-		allFiles->deleteSelfAndContents();//cleanup();
+		allFiles->deleteContents();
+		delete allFiles;
 		ObjCounter::end();
 	#endif
 while(true) {}
@@ -425,7 +426,7 @@ bool isReservedWord(string s) {
 		s.compare("class") == 0 ||
 		s.compare("enum") == 0 ||
 		s.compare("operator") == 0 ||
-		s.compare("raw") == 0 ||
+		s.compare(Keyword::rawKeyword) == 0 ||
 		s.compare("partial") == 0 ||
 		s.compare("abstract") == 0;
 }

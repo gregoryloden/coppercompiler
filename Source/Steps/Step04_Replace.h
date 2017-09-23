@@ -17,6 +17,8 @@ public:
 private:
 	static void addReplacesToTrie(AbstractCodeBlock* abstractContents, PrefixTrie<char, CDirectiveReplace*>* replaces);
 	static void replaceTokens(Array<Token*>* tokens, PrefixTrie<char, CDirectiveReplace*>* replaces);
+	static Array<AbstractCodeBlock*>* collectArguments(
+		AbstractCodeBlock* argumentsCodeBlock, int expectedArgumentCount, Token* errorToken);
 	static SubstitutedToken* substituteTokens(Token* tokenBeingReplaced, Token* resultingToken, bool deleteResultingToken);
 	static Array<Token*>* buildReplacement(Array<Token*>* tokensOutput, AbstractCodeBlock* replacementBody,
 		Array<AbstractCodeBlock*>* arguments, Array<string>* input, Token* tokenBeingReplaced);

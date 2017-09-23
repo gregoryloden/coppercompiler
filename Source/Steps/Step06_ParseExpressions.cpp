@@ -60,7 +60,7 @@ Token* ParseExpressions::parseExpression(ArrayIterator<Token*>* ti, unsigned cha
 			Separator* s;
 			//before we do anything, see if we're done parsing
 			if ((s = dynamic_cast<Separator*>(t)) != nullptr) {
-				if (((unsigned char)(s->type) & endingSeparatorTypes) != 0)
+				if ((endingSeparatorTypes & (unsigned char)(s->type)) != 0)
 					return activeExpression;
 				string errorMessage = "unexpected " + Separator::separatorName(s->type);
 				Error::makeError(ErrorType::General, errorMessage.c_str(), fullToken);
@@ -114,8 +114,8 @@ Token* ParseExpressions::parseExpression(ArrayIterator<Token*>* ti, unsigned cha
 }
 //get a value expression that starts at the given token
 //if it's a value on it's own, we're done
-//if it's an abstract code block, get a value expression from it
-//if it's an operator, make sure it's a prefix operator, then recursively get a value expression
+//if it's an abstract code block, parse an expression from it
+//if it's an operator, make sure it's a prefix operator and recursively get a value expression
 //may throw
 Token* ParseExpressions::getValueExpression(Token* t, Token* fullToken, ArrayIterator<Token*>* ti) {
 	AbstractCodeBlock* a;
@@ -129,7 +129,6 @@ Token* ParseExpressions::getValueExpression(Token* t, Token* fullToken, ArrayIte
 		ArrayIterator<Token*> ai (a->tokens);
 		ParenthesizedExpression* value = new ParenthesizedExpression(
 			parseExpression(&ai, (unsigned char)SeparatorType::RightParenthesis, "expected an expression", a), a);
-		assert(fullToken == a);
 		delete fullToken; //any deleters in calling functions will not delete this so we have to delete it here
 		return value;
 	//a select few directives represent values or contain values like #file or #enable
@@ -159,13 +158,13 @@ Token* ParseExpressions::addToOperator(Operator* o, Token* fullToken, Token* act
 
 	//whatever the operator is, if it's not postfix then we expect a value to follow
 	if (o->precedence != OperatorTypePrecedence::Postfix) {
-		Token* t = ti->getNext();
+		Token* nextFullToken = ti->getNext();
 		if (!ti->hasThis())
 			Error::makeError(ErrorType::General, "expected a value to follow", fullToken);
 		ti->replaceThis(nullptr);
-		Deleter<Token> tDeleter (t);
-		o->right = getValueExpression(Token::getResultingToken(t), t, ti);
-		tDeleter.release();
+		Deleter<Token> nextFullTokenDeleter (nextFullToken);
+		o->right = getValueExpression(Token::getResultingToken(nextFullToken), nextFullToken, ti);
+		nextFullTokenDeleter.release();
 	}
 
 	//we have no active expression- this is ok for prefix operators but nothing else
@@ -181,7 +180,7 @@ Token* ParseExpressions::addToOperator(Operator* o, Token* fullToken, Token* act
 	//this works with postfix operators, no special processing required
 	Operator* oNext;
 	if ((oNext = dynamic_cast<Operator*>(Token::getResultingToken(activeExpression))) != nullptr &&
-		oNext->precedence < o->precedence)
+		o->takesRightHandPrecedence(oNext))
 	{
 		Operator* oParent = oNext;
 		while ((oNext = dynamic_cast<Operator*>(Token::getResultingToken(oParent->right))) != nullptr &&
@@ -202,15 +201,82 @@ Token* ParseExpressions::addToOperator(Operator* o, Token* fullToken, Token* act
 Token* ParseExpressions::evaluateAbstractCodeBlock(
 	AbstractCodeBlock* a, Token* fullToken, Token* activeExpression, ArrayIterator<Token*>* ti)
 {
+	Identifier* i;
+	CType* ct;
 	//since we have no active expression, this could be either a value or a cast
 	if (activeExpression == nullptr) {
 		if (a->tokens->length == 0)
 			Error::makeError(ErrorType::General, "expected a value", fullToken);
-		//TODO: ???????????????????? what if it's a cast? or a value type?
+		Token* lastToken = a->tokens->last();
+		//this is a cast, either regular or raw
+		if ((i = dynamic_cast<Identifier*>(Token::getResultingToken(lastToken))) != nullptr &&
+				(ct = CType::globalTypes->get(i->name.c_str(), i->name.length())) != nullptr)
+			return completeCast(ct, lastToken, a, ti);
+		else
+			return getValueExpression(a, fullToken, ti);
 	}
-	//TODO: ?????????????????? build function call/definition
+
+	//since we have an active expression, find the rightmost value
+	//this could be either a function definition or a function call
+	Operator* oParent = nullptr;
+	Operator* oNext;
+	if ((oNext = dynamic_cast<Operator*>(Token::getResultingToken(activeExpression))) != nullptr) {
+		do {
+			oParent = oNext;
+		} while ((oNext = dynamic_cast<Operator*>(Token::getResultingToken(oParent->right))));
+	}
+	Token* lastToken = oParent == nullptr ? activeExpression : oParent->right;
+	Token* newToken;
+	//it's a type so we expect a function definition
+	if ((i = dynamic_cast<Identifier*>(Token::getResultingToken(lastToken))) != nullptr &&
+		(ct = CType::globalTypes->get(i->name.c_str(), i->name.length())) != nullptr)
+	{
+		//TODO: function definition
+		newToken = completeFunctionDefinition(ct, a, ti);
+		delete lastToken;
+	//it's not a type so this is a function call
+	} else {
+		//TODO: function call
+		newToken = completeFunctionCall(lastToken, a);
+	}
+	if (oParent != nullptr) {
+		oParent->right = newToken;
+		return activeExpression;
+	} else
+		return newToken;
+}
+//get a cast expression with the type
+Token* ParseExpressions::completeCast(CType* type, Token* fullToken, AbstractCodeBlock* castBody, ArrayIterator<Token*>* ti) {
+	Identifier* i;
+	bool rawCast = (castBody->tokens->length >= 2 &&
+		(i = dynamic_cast<Identifier*>(Token::getResultingToken(castBody->tokens->first()))) != nullptr &&
+		i->name == Keyword::rawKeyword);
+	if (castBody->tokens->length > (rawCast ? 2 : 1))
+		Error::makeError(ErrorType::General, "unexpected token in type cast", castBody->tokens->get(rawCast ? 1 : 0));
+	Cast* cast = new Cast(type, rawCast, castBody->contentPos, castBody->endContentPos, castBody->owningFile);
+	//if the type name was substituted, use it for the operator
+	SubstitutedToken* st;
+	if ((st = dynamic_cast<SubstitutedToken*>(fullToken)) != nullptr) {
+		st->replaceResultingToken(cast);
+		castBody->tokens->set(castBody->tokens->length - 1, nullptr);
+	} else
+		fullToken = cast;
+	Deleter<Token> castDeleter (fullToken);
+	Token* value = addToOperator(cast, fullToken, nullptr, ti);
+	castDeleter.release();
+	return value;
+}
+//TODO: ??????????????
+Token* ParseExpressions::completeFunctionDefinition(CType* type, AbstractCodeBlock* parameters, ArrayIterator<Token*>* ti) {
+	//TODO: ??????????????
 	return nullptr;
 }
+//TODO: ??????????????
+Token* ParseExpressions::completeFunctionCall(Token* function, AbstractCodeBlock* arguments) {
+	//TODO: ??????????????
+	return nullptr;
+}
+
 
 //parse an expression or control flow
 //void ParseExpressions::parseStatement

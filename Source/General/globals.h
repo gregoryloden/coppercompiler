@@ -94,6 +94,10 @@ public:
 		static void end();
 	};
 #endif
+class Keyword {
+public:
+	static const char* rawKeyword;
+};
 //used to delete objects during a throw
 //should always be stack allocated
 template <class Type> class Deleter onlyInDebug(: public ObjCounter) {
