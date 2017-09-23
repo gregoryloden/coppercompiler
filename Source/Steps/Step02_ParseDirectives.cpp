@@ -4,6 +4,7 @@
 //	(builds #replace, evaluates #buildSetting, groups code for #if, #enable, etc.)
 
 thread_local SourceFile* ParseDirectives::sourceFile;
+thread_local Token* ParseDirectives::searchOrigin = nullptr;
 
 //get the list of tokens and directives
 //parse location: EOF
@@ -23,8 +24,10 @@ AbstractCodeBlock* ParseDirectives::parseAbstractCodeBlock(bool endsWithParenthe
 		while (true) {
 			Token* next = Lex::lex();
 			if (next == nullptr) {
-				if (endsWithParenthesis)
-					makeEndOfFileWhileSearchingError("a right parenthesis");
+				if (endsWithParenthesis) {
+					EmptyToken errorToken (contentPos, sourceFile);
+					Error::makeError(EndOfFileWhileSearching, "a matching right parenthesis", &errorToken);
+				}
 				break;
 			}
 
@@ -77,15 +80,16 @@ AbstractCodeBlock* ParseDirectives::parseAbstractCodeBlock(bool endsWithParenthe
 }
 //get the definition of a directive
 //parse location: the next token after the directive
+//may throw
 CDirective* ParseDirectives::completeDirective(DirectiveTitle* dt) {
 	if (dt->title == "replace")
-		return completeDirectiveReplace(false);
+		return completeDirectiveReplace(false, dt);
 	else if (dt->title == "replace-input")
-		return completeDirectiveReplace(true);
+		return completeDirectiveReplace(true, dt);
 	else if (dt->title == "include")
-		return completeDirectiveInclude(false);
+		return completeDirectiveInclude(false, dt);
 	else if (dt->title == "include-all")
-		return completeDirectiveInclude(true);
+		return completeDirectiveInclude(true, dt);
 	//other directives may change the lexing mode
 
 	Error::makeError(General, "unknown directive type", dt);
@@ -93,27 +97,33 @@ CDirective* ParseDirectives::completeDirective(DirectiveTitle* dt) {
 }
 //get the definition of a replace directive
 //parse location: the next token after the replace directive
-CDirectiveReplace* ParseDirectives::completeDirectiveReplace(bool replaceInput) {
-	Deleter<Identifier> toReplace(parseIdentifier());
-	Deleter<Array<string>> input(replaceInput ? parseParenthesizedCommaSeparatedIdentifierList() : nullptr);
-	int parenthesisContentPos = parseSeparator(LeftParenthesis);
-	return new CDirectiveReplace(toReplace.release(), input.release(), parseAbstractCodeBlock(true, parenthesisContentPos + 1),
-		sourceFile);
+//may throw
+CDirectiveReplace* ParseDirectives::completeDirectiveReplace(bool replaceInput, DirectiveTitle* endOfFileErrorToken) {
+	Deleter<Identifier> toReplace(parseToken<Identifier>("an identifier to replace", endOfFileErrorToken));
+	Deleter<Array<string>> input(replaceInput ? parseReplaceParameters(toReplace.retrieve()) : nullptr);
+	int parenthesisContentPos =
+		parseSeparator(LeftParenthesis, "a starting left parenthesis for the replacement body", endOfFileErrorToken);
+	return new CDirectiveReplace(
+		toReplace.release(), input.release(), parseAbstractCodeBlock(true, parenthesisContentPos + 1), sourceFile);
 }
 //get the definition of an include directive
 //parse location: the next token after the include directive
-CDirectiveInclude* ParseDirectives::completeDirectiveInclude(bool includeAll) {
-	StringLiteral* filenameLiteral = parseToken<StringLiteral>("a filename");
+//may throw
+CDirectiveInclude* ParseDirectives::completeDirectiveInclude(bool includeAll, DirectiveTitle* endOfFileErrorToken) {
+	StringLiteral* filenameLiteral = parseToken<StringLiteral>("a filename", endOfFileErrorToken);
 	CDirectiveInclude* directive = new CDirectiveInclude(filenameLiteral->val, includeAll);
 	delete filenameLiteral;
 	return directive;
 }
 //lex a token and make sure that it's the right type
 //parse location: the next token after this one
-template <class TokenType> TokenType* ParseDirectives::parseToken(const char* expectedTokenTypeName) {
+//may throw
+template <class TokenType> TokenType* ParseDirectives::parseToken(
+	const char* expectedTokenTypeName, Token* endOfFileErrorToken)
+{
 	LexToken* l = Lex::lex();
 	if (l == nullptr)
-		makeEndOfFileWhileSearchingError(expectedTokenTypeName);
+		Error::makeError(EndOfFileWhileSearching, expectedTokenTypeName, endOfFileErrorToken);
 	TokenType* t;
 	if ((t = dynamic_cast<TokenType*>(l)) == nullptr) {
 		Deleter<LexToken> lDeleter (l);
@@ -121,35 +131,27 @@ template <class TokenType> TokenType* ParseDirectives::parseToken(const char* ex
 	}
 	return t;
 }
-//lex a token and make sure it's an identifier
-//parse location: the next token after the identifier
-Identifier* ParseDirectives::parseIdentifier() {
-	return parseToken<Identifier>("an identifier");
-}
-//lex a token and make sure it's a separator
-//parse location: the next token after the separator
-Separator* ParseDirectives::parseSeparator() {
-	return parseToken<Separator>("a separator");
-}
 //lex a token and make sure it's a separator of the right type
 //parse location: the next token after the separator
-int ParseDirectives::parseSeparator(SeparatorType type) {
-	string expectedTokenTypeName = "a " + Separator::separatorName(type);
-	Separator* s = parseToken<Separator>(expectedTokenTypeName.c_str());
+//may throw
+int ParseDirectives::parseSeparator(SeparatorType type, const char* expectedTokenTypeName, Token* endOfFileErrorToken) {
+	Separator* s = parseToken<Separator>(expectedTokenTypeName, endOfFileErrorToken);
 	Deleter<Separator> sDeleter (s);
 	if (s->type != type)
-		makeUnexpectedTokenError(expectedTokenTypeName.c_str(), s);
+		makeUnexpectedTokenError(expectedTokenTypeName, s);
 	return s->contentPos;
 }
 //lex a comma-separated list of identifiers
 //parse location: the next token after the right parenthesis of the list
-Array<string>* ParseDirectives::parseParenthesizedCommaSeparatedIdentifierList() {
+//may throw
+Array<string>* ParseDirectives::parseReplaceParameters(Identifier* endOfFileErrorToken) {
 	Array<string>* names = new Array<string>();
 	Deleter<Array<string>> namesDeleter (names);
-	int parenthesisPos = parseSeparator(LeftParenthesis);
+	int parenthesisPos =
+		parseSeparator(LeftParenthesis, "a left parenthesis for the replace-input parameters", endOfFileErrorToken);
 	LexToken* initial = Lex::lex();
 	if (initial == nullptr)
-		makeEndOfFileWhileSearchingError("the replace-input parameters");
+		Error::makeError(EndOfFileWhileSearching, "the replace-input parameters", endOfFileErrorToken);
 	Identifier* identifier;
 	if ((identifier = dynamic_cast<Identifier*>(initial)) == nullptr) {
 		Separator* s;
@@ -160,25 +162,21 @@ Array<string>* ParseDirectives::parseParenthesizedCommaSeparatedIdentifierList()
 		delete s;
 		return namesDeleter.release();
 	}
+	char* expectedTokenTypeName = "a comma or right parenthesis";
 	while (true) {
 		names->add(identifier->name);
 		delete identifier;
-		Separator* s = parseSeparator();
+		Separator* s = parseToken<Separator>(expectedTokenTypeName, endOfFileErrorToken);
 		Deleter<Separator> sDeleter (s);
 		if (s->type == RightParenthesis)
 			return namesDeleter.release();
 		else if (s->type != Comma)
-			makeUnexpectedTokenError("a comma or right parenthesis", s);
-		identifier = parseIdentifier();
+			makeUnexpectedTokenError(expectedTokenTypeName, s);
+		identifier = parseToken<Identifier>("a replace-input parameter", endOfFileErrorToken);
 	}
 }
 //throw an error about an unexpected token
 void ParseDirectives::makeUnexpectedTokenError(const char* expectedTokenTypeName, Token* t) {
 	string message = string("expected ") + expectedTokenTypeName;
 	Error::makeError(General, message.c_str(), t);
-}
-//throw an error about an unexpected end-of-file
-void ParseDirectives::makeEndOfFileWhileSearchingError(const char* message) {
-	EmptyToken errorToken (sourceFile->contentsLength, sourceFile);
-	Error::makeError(EndOfFileWhileSearching, message, &errorToken);
 }

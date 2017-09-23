@@ -22,6 +22,7 @@ enum OperatorType: unsigned char {
 	VariableLogicalNot,
 	VariableBitwiseNot,
 	VariableNegate,
+	Cast,
 	LogicalNot,
 	BitwiseNot,
 	Negate,
@@ -66,20 +67,19 @@ enum OperatorType: unsigned char {
 //	AssignBooleanOr
 };
 enum OperatorTypePrecedence: unsigned char {
-	PrecedenceObjectMember = 15,
-	PrecedencePostfix = 14,
-	PrecedencePrefix = 13,
-	PrecedenceMultiplication = 12,
-	PrecedenceAddition = 11,
-	PrecedenceBitShift = 10,
-	PrecedenceBitwiseAnd = 9,
-	PrecedenceBitwiseXor = 8,
-	PrecedenceBitwiseOr = 7,
-	PrecedenceComparison = 6,
-	PrecedenceBooleanAnd = 5,
-	PrecedenceBooleanOr = 4,
-	PrecedenceTernaryColon = 3,
-	PrecedenceTernaryQuestionMark = 2,
+	PrecedenceObjectMember = 14,
+	PrecedencePostfix = 13,
+	PrecedencePrefix = 12,
+	PrecedenceMultiplication = 11,
+	PrecedenceAddition = 10,
+	PrecedenceBitShift = 9,
+	PrecedenceBitwiseAnd = 8,
+	PrecedenceBitwiseXor = 7,
+	PrecedenceBitwiseOr = 6,
+	PrecedenceComparison = 5,
+	PrecedenceBooleanAnd = 4,
+	PrecedenceBooleanOr = 3,
+	PrecedenceTernary = 2,
 	PrecedenceAssignment = 1
 };
 
@@ -160,6 +160,8 @@ public:
 	OperatorTypePrecedence precedence; //copper: readonly
 	Token* left; //copper: readonly
 	Token* right; //copper: readonly
+
+	bool takesRightHandPrecedence(Operator* other);
 };
 class DirectiveTitle: public LexToken {
 public:
@@ -198,7 +200,6 @@ public:
 	~ParenthesizedExpression();
 
 	Token* expression;
-	AbstractCodeBlock* source;
 };
 //class IdentifierList: public Token {
 //public:

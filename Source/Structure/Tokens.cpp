@@ -91,6 +91,7 @@ Operator::Operator(OperatorType pType, int pContentPos, int pEndContentPos, Sour
 		case VariableBitwiseNot:
 		case VariableNegate:
 			precedence = PrecedencePostfix;
+		case Cast:
 		case LogicalNot:
 		case BitwiseNot:
 		case Negate:
@@ -126,9 +127,8 @@ Operator::Operator(OperatorType pType, int pContentPos, int pEndContentPos, Sour
 		case BooleanOr:
 			precedence = PrecedenceBooleanOr;
 		case Colon:
-			precedence = PrecedenceTernaryColon;
 		case QuestionMark:
-			precedence = PrecedenceTernaryQuestionMark;
+			precedence = PrecedenceTernary;
 		case Assign:
 		case AssignAdd:
 		case AssignSubtract:
@@ -149,7 +149,33 @@ Operator::Operator(OperatorType pType, int pContentPos, int pEndContentPos, Sour
 	}
 }
 Operator::~Operator() {
-	//do not delete left or right because they are maintained by the abstract code block
+	delete left;
+	delete right;
+}
+//determine if this operator should steal the right-hand side of the other operator
+bool Operator::takesRightHandPrecedence(Operator* other) {
+	if (precedence != other->precedence)
+		return precedence > other->precedence;
+	//some operators group on the right, whereas most operators group on the left
+	switch (precedence) {
+		case PrecedenceTernary:
+			//beginning of a ternary, always group on the right
+			if (type == QuestionMark)
+				return true;
+			//this is a colon and the other one is a question mark- steal the right hand side if there isn't a colon already
+			else if (other->type == QuestionMark) {
+				Operator* o;
+				return (o = dynamic_cast<Operator*>(other->right)) == nullptr || o->type != Colon;
+			//this is a colon and the other one is a colon too
+			//since we never steal the right hand side of a question mark, we can only get here on an error
+			} else
+				Error::makeError(General, "ternary expression missing conditional", this);
+		case PrecedenceBooleanAnd:
+		case PrecedenceBooleanOr:
+		case PrecedenceAssignment:
+			return true;
+	}
+	return false;
 }
 DirectiveTitle::DirectiveTitle(string pTitle, int pContentPos, int pEndContentPos, SourceFile* pOwningFile)
 : LexToken(onlyWhenTrackingIDs("DCTVTTL" COMMA) pContentPos, pEndContentPos, pOwningFile)
@@ -182,12 +208,10 @@ SubstitutedToken::~SubstitutedToken() {
 }
 ParenthesizedExpression::ParenthesizedExpression(Token* pExpression, AbstractCodeBlock* pSource)
 : Token(onlyWhenTrackingIDs("PNTHEXP" COMMA) pSource->contentPos, pSource->endContentPos, pSource->owningFile)
-, expression(pExpression)
-, source(pSource) {
+, expression(pExpression) {
 }
 ParenthesizedExpression::~ParenthesizedExpression() {
-	//don't delete the expression since all the tokens are in the source code block
-	delete source;
+	delete expression;
 }
 //IdentifierList::IdentifierList(Identifier* pI1, Identifier* pI2)
 //: Token("IDFRLST", pI1->contentPos)

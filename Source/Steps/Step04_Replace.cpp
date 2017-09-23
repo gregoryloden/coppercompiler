@@ -2,7 +2,8 @@
 
 //evaluates #if, #replace, and #replace-input
 
-#define deleteArguments() forEach(AbstractCodeBlock*, aa, arguments, aai) { aa->tokens->clear(); delete aa; } delete arguments;
+#define deleteArguments(arguments) \
+	forEach(AbstractCodeBlock*, aa, arguments, aai) { aa->tokens->clear(); delete aa; } delete arguments;
 
 //evaluate all replacements in all files, using the replacements available per file
 void Replace::replaceCodeInFiles(Array<SourceFile*>* files) {
@@ -22,6 +23,7 @@ void Replace::replaceCodeInFiles(Array<SourceFile*>* files) {
 	}
 }
 //insert any replace directives from the list into the trie, erroring if it's already there
+//may throw
 void Replace::addReplacesToTrie(AbstractCodeBlock* abstractContents, PrefixTrie<char, CDirectiveReplace*>* replaces) {
 	forEach(CDirective*, d, abstractContents->directives, di) {
 		CDirectiveReplace* r;
@@ -35,6 +37,7 @@ void Replace::addReplacesToTrie(AbstractCodeBlock* abstractContents, PrefixTrie<
 }
 //search through all of the tokens in the file to look for ones to replace
 //if we find any, run its replacement
+//may throw
 void Replace::replaceTokens(Array<Token*>* tokens, PrefixTrie<char, CDirectiveReplace*>* replaces) {
 	for (int ti = 0; ti < tokens->length; ti++) {
 		Token* fullToken = tokens->get(ti);
@@ -93,15 +96,16 @@ void Replace::replaceTokens(Array<Token*>* tokens, PrefixTrie<char, CDirectiveRe
 				? arguments->length != r->input->length
 				: (arguments->length != 1 || nextTokens->length != 0))
 			{
-				string message = "expected " + to_string(r->input->length) + " arguments but got " + to_string(arguments->length);
+				string message =
+					"expected " + to_string(r->input->length) + " arguments but got " + to_string(arguments->length);
 				//cleanup the tokens
-				deleteArguments();
+				deleteArguments(arguments);
 				Error::makeError(General, message.c_str(), fullToken);
 			}
 			//replace
 			tokensToInsert = buildReplacement(nullptr, r->replacement, arguments, r->input, fullToken);
 			//cleanup the tokens
-			deleteArguments();
+			deleteArguments(arguments);
 		}
 		r->inUse = true;
 		try {

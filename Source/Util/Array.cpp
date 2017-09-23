@@ -166,10 +166,6 @@ template <class Type> Type ArrayIterator<Type>::getFirst() {
 template <class Type> Type ArrayIterator<Type>::getNext() {
 	return a->get(index += 1);
 }
-//get the previous element of the array
-template <class Type> Type ArrayIterator<Type>::getPrevious() {
-	return a->get(index -= 1);
-}
 //check if this iterator has the element it just returned via getNext()
 template <class Type> bool ArrayIterator<Type>::hasThis() {
 	return index < a->length;

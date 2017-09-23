@@ -130,6 +130,7 @@ void Lex::initializeLexer(SourceFile* newSourceFile) {
 }
 //retrieve the next token from contents
 //lex location: the first character after the next token | EOF
+//may throw
 LexToken* Lex::lex() {
 	do {
 		if (!skipWhitespace())
@@ -359,6 +360,7 @@ bool Lex::skipWhitespace() {
 //skip the next comment if there is one
 //returns whether a comment was skipped
 //lex location: no change | the first character after the comment | EOF
+//may throw
 bool Lex::skipComment() {
 	char c2;
 	if (c != '/' || pos + 1 >= contentsLength || ((c2 = contents[pos + 1]) != '/' && c2 != '*'))
@@ -410,6 +412,7 @@ LexToken* Lex::lexIdentifier() {
 }
 //get a number constant, either int or float
 //lex location: no change | the first character after the number
+//may throw
 LexToken* Lex::lexNumber() {
 	if (!isdigit(c))
 		return nullptr;
@@ -427,7 +430,7 @@ LexToken* Lex::lexNumber() {
 			case 'b': base = 2; pos += 2; break;
 		}
 		if (outofbounds())
-			makeLexError(EndOfFileWhileReading, "the number definition");
+			Error::makeError(EndOfFileWhileReading, "the number definition", &errorToken);
 		c = contents[pos];
 		digitExpected = true;
 	}
@@ -482,7 +485,7 @@ LexToken* Lex::lexNumber() {
 
 	if (digitExpected) {
 		if (outofbounds())
-			makeLexError(EndOfFileWhileReading, "the number definition");
+			Error::makeError(EndOfFileWhileReading, "the number definition", &errorToken);
 		else
 			makeLexError(General, "expected digit");
 	}
@@ -552,16 +555,18 @@ char Lex::cToDigit() {
 }
 //get a string literal
 //lex location: no change | the first character after the string
+//may throw
 StringLiteral* Lex::lexString() {
 	if (c != '"')
 		return nullptr;
 
+	EmptyToken errorToken (pos, sourceFile);
 	int begin = pos;
 	string val;
 	while (true) {
 		pos++;
 		if (outofbounds())
-			makeLexError(EndOfFileWhileReading, "the contents of the string");
+			Error::makeError(EndOfFileWhileReading, "the contents of the string", &errorToken);
 
 		c = contents[pos];
 		if (c == '"') {
@@ -577,6 +582,7 @@ StringLiteral* Lex::lexString() {
 }
 //returns the next character for the string, possibly from an escape sequence
 //lex location: the location of the character | the last character of the escape sequence
+//may throw
 char Lex::nextStringCharacter() {
 	if (c != '\\')
 		return c;
@@ -620,6 +626,7 @@ char Lex::nextStringCharacter() {
 }
 //get a character
 //lex location: no change | the first character after the character
+//may throw
 IntConstant* Lex::lexCharacter() {
 	if (c != '\'')
 		return nullptr;
@@ -681,10 +688,12 @@ Operator* Lex::lexOperator() {
 //get a directive title
 //returns a token even if the directive title is invalid- ParseDirective will take care of it
 //lex location: no change | the first character after the directive title
+//may throw
 DirectiveTitle* Lex::lexDirectiveTitle() {
 	if (c != '#')
 		return nullptr;
 
+	EmptyToken errorToken (pos, sourceFile);
 	pos++;
 	int begin = pos;
 	for (; inbounds(); pos++) {
@@ -694,7 +703,7 @@ DirectiveTitle* Lex::lexDirectiveTitle() {
 	}
 
 	if (outofbounds())
-		makeLexError(EndOfFileWhileReading, "the directive name");
+		Error::makeError(EndOfFileWhileReading, "the directive name", &errorToken);
 	else if (pos == begin)
 		makeLexError(General, "expected a directive name");
 

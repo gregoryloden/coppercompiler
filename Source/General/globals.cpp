@@ -45,6 +45,7 @@ template class Deleter<BigInt>;
 template class Deleter<DirectiveTitle>;
 template class Deleter<Identifier>;
 template class Deleter<LexToken>;
+template class Deleter<Token>;
 template class Deleter<Separator>;
 template class Deleter<SubstitutedToken>;
 template class Deleter<Array<AVLNode<SourceFile*, bool>*>>;
