@@ -189,13 +189,15 @@ public:
 
 	Token* resultingToken; //copper: readonly
 	bool shouldDelete;
+
+	void replaceResultingToken(Token* newResultingToken);
 };
 
 //Tokens used in expressions
 class ParenthesizedExpression: public Token {
 public:
 	ParenthesizedExpression(Token* pExpression, AbstractCodeBlock* source);
-	~ParenthesizedExpression();
+	virtual ~ParenthesizedExpression();
 
 	Token* expression;
 };

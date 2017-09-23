@@ -207,6 +207,20 @@ SubstitutedToken::~SubstitutedToken() {
 	if (shouldDelete)
 		delete resultingToken;
 }
+//replace the substituted token stack's resulting token with the new one
+//always assumes the new one is deletable
+void SubstitutedToken::replaceResultingToken(Token* newResultingToken) {
+	SubstitutedToken* s;
+	if ((s = dynamic_cast<SubstitutedToken*>(resultingToken)) != nullptr)
+		s->replaceResultingToken(newResultingToken);
+	else {
+		if (shouldDelete)
+			delete resultingToken;
+		else
+			shouldDelete = true;
+		resultingToken = newResultingToken;
+	}
+}
 ParenthesizedExpression::ParenthesizedExpression(Token* pExpression, AbstractCodeBlock* source)
 : Token(onlyWhenTrackingIDs("PNTHEXP" COMMA) source->contentPos, source->endContentPos, source->owningFile)
 , expression(pExpression) {

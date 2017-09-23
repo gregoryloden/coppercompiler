@@ -81,7 +81,9 @@ void Replace::replaceTokens(Array<Token*>* tokens, PrefixTrie<char, CDirectiveRe
 			int nextArgumentStartPos = a->contentPos;
 			forEach(Token*, at, a->tokens, ati) {
 				Separator* s;
-				if ((s = dynamic_cast<Separator*>(Token::getResultingToken(at))) != nullptr && s->type == SeparatorType::Comma) {
+				if ((s = dynamic_cast<Separator*>(Token::getResultingToken(at))) != nullptr &&
+					s->type == SeparatorType::Comma)
+				{
 					arguments->add(
 						new AbstractCodeBlock(nextTokens, nullptr, nextArgumentStartPos, s->contentPos, a->owningFile));
 					nextArgumentStartPos = s->contentPos + 1;
@@ -139,37 +141,42 @@ SubstitutedToken* Replace::substituteTokens(Token* tokenBeingReplaced, Token* re
 	assert(dynamic_cast<LexToken*>(resultingToken) != nullptr);
 	return new SubstitutedToken(resultingToken, deleteResultingToken, tokenBeingReplaced);
 }
-//recursively clone the abstract code block, and substitute any other tokens using the parent token
+//recursively clone the replacement body, and substitute any other tokens under the parent token being replaced
 //if there is input and a string or identifier matches one of the parameters, replace it
-Array<Token*>* Replace::buildReplacement(Array<Token*>* tokens, AbstractCodeBlock* abstractContents,
+Array<Token*>* Replace::buildReplacement(Array<Token*>* tokensOutput, AbstractCodeBlock* replacementBody,
 	Array<AbstractCodeBlock*>* arguments, Array<string>* input, Token* tokenBeingReplaced)
 {
-	if (tokens == nullptr)
-		tokens = new Array<Token*>();
+	if (tokensOutput == nullptr)
+		tokensOutput = new Array<Token*>();
 	bool hasInput = input != nullptr && input->length > 0;
-	forEach(Token*, t, abstractContents->tokens, ti) {
+	forEach(Token*, t, replacementBody->tokens, ti) {
 		AbstractCodeBlock* a;
 		StringLiteral* s;
 		Identifier* i;
 		//abstract code block, recursively replace it
 		if ((a = dynamic_cast<AbstractCodeBlock*>(t)) != nullptr) {
-			tokens->add(new AbstractCodeBlock(buildReplacement(nullptr, a, arguments, input, tokenBeingReplaced),
-				nullptr, a->contentPos, a->endContentPos, a->owningFile));
+			tokensOutput->add(
+				substituteTokens(
+					tokenBeingReplaced,
+					new AbstractCodeBlock(
+						buildReplacement(nullptr, a, arguments, input, tokenBeingReplaced),
+						nullptr, a->contentPos, a->endContentPos, a->owningFile),
+					true));
 			continue;
 		}
 		if (hasInput) {
 			if ((s = dynamic_cast<StringLiteral*>(t)) != nullptr) {
 				StringLiteral* newS = replaceStringLiteral(s, arguments, input);
-				tokens->add(substituteTokens(tokenBeingReplaced, newS, newS != s));
+				tokensOutput->add(substituteTokens(tokenBeingReplaced, newS, newS != s));
 				continue;
 			} else if ((i = dynamic_cast<Identifier*>(t)) != nullptr) {
-				replaceIdentifier(tokens, i, arguments, input, tokenBeingReplaced);
+				replaceIdentifier(tokensOutput, i, arguments, input, tokenBeingReplaced);
 				continue;
 			}
 		}
-		tokens->add(substituteTokens(tokenBeingReplaced, Token::getResultingToken(t), false));
+		tokensOutput->add(substituteTokens(tokenBeingReplaced, Token::getResultingToken(t), false));
 	}
-	return tokens;
+	return tokensOutput;
 }
 //replace any inputs with the entire argument including all whitespace and comments
 //does not recursively replace
@@ -198,8 +205,8 @@ StringLiteral* Replace::replaceStringLiteral(StringLiteral* s, Array<AbstractCod
 	return replacedParam ? new StringLiteral(val, s->contentPos, s->endContentPos, s->owningFile) : s;
 }
 //replace any sections of the identifier that match a parameter with the corresponding arguments
-void Replace::replaceIdentifier(
-	Array<Token*>* tokens, Identifier* i, Array<AbstractCodeBlock*>* arguments, Array<string>* input, Token* tokenBeingReplaced)
+void Replace::replaceIdentifier(Array<Token*>* tokensOutput, Identifier* i, Array<AbstractCodeBlock*>* arguments,
+	Array<string>* input, Token* tokenBeingReplaced)
 {
 	int nameLength = i->name.length();
 	SubstitutedToken* newTokenBeingReplaced = substituteTokens(tokenBeingReplaced, i, false);
@@ -213,7 +220,7 @@ void Replace::replaceIdentifier(
 			if (newI->name.compare(ni, param.length(), param) == 0) {
 				int offsetFromEnd = nameLength - ni - param.length() + 1;
 				AbstractCodeBlock* argument = arguments->get(j);
-				//if the first argument is an identifier, save it
+				//if the first token in the argument is an identifier, save it
 				Identifier* firstI = argument->tokens->length >= 1
 					? dynamic_cast<Identifier*>(Token::getResultingToken(argument->tokens->first()))
 					: nullptr;
@@ -223,32 +230,30 @@ void Replace::replaceIdentifier(
 				//we need at least 1 of those 3 though- if they're all empty, the regular case will handle it
 				//we don't want to add anything to the tokens list yet
 				if (argument->tokens->length == 0
-					? ni > 0 || ni + (int)(param.length()) < nameLength
-					: argument->tokens->length == 1 && firstI != nullptr)
-				{
-					newI = new Identifier(
-						newI->name.substr(0, ni) +
-							(firstI != nullptr ? firstI->name : "") +
-							newI->name.substr(ni + param.length()),
-						newI->contentPos, newI->endContentPos, newI->owningFile);
-					delete newTokenBeingReplaced;
-					newTokenBeingReplaced = substituteTokens(tokenBeingReplaced, newI, true);
+						? ni > 0 || ni + (int)(param.length()) < nameLength
+						: argument->tokens->length == 1 && firstI != nullptr)
+					newTokenBeingReplaced->replaceResultingToken(
+						newI = new Identifier(
+							newI->name.substr(0, ni) +
+								(firstI != nullptr ? firstI->name : "") +
+								newI->name.substr(ni + param.length()),
+							newI->contentPos, newI->endContentPos, newI->owningFile));
 				//if we have a prefix or suffix, they will not be part of the same identifier
-				} else {
+				else {
 					//if there is prefix before the param we found but we will not be joining identifiers, add the resulting
 					//	identifier to the beginning of the list
 					if (ni > 0 && firstI == nullptr)
-						tokens->add(substituteTokens(
+						tokensOutput->add(substituteTokens(
 							tokenBeingReplaced,
 							new Identifier(newI->name.substr(0, ni), newI->contentPos, newI->endContentPos, newI->owningFile),
 							true));
 					//insert all the argument tokens in the list
-					int prevLength = tokens->length;
-					buildReplacement(tokens, argument, nullptr, nullptr, newTokenBeingReplaced);
+					int prevLength = tokensOutput->length;
+					buildReplacement(tokensOutput, argument, nullptr, nullptr, newTokenBeingReplaced);
 					//if we have a prefix and an identifier as the first argument, join them
 					if (ni > 0 && firstI != nullptr) {
-						delete tokens->get(prevLength);
-						tokens->set(prevLength, substituteTokens(
+						delete tokensOutput->get(prevLength);
+						tokensOutput->set(prevLength, substituteTokens(
 							tokenBeingReplaced,
 							new Identifier(newI->name.substr(0, ni) + firstI->name,
 								newI->contentPos, newI->endContentPos, newI->owningFile),
@@ -262,13 +267,12 @@ void Replace::replaceIdentifier(
 						if (argument->tokens->length > 1 &&
 							(lastI = dynamic_cast<Identifier*>(Token::getResultingToken(argument->tokens->last()))) != nullptr)
 						{
-							delete tokens->pop();
+							delete tokensOutput->pop();
 							lastName = lastI->name;
 						}
-						newI = new Identifier(lastName + newI->name.substr(ni + param.length()),
-							newI->contentPos, newI->endContentPos, newI->owningFile);
-						delete newTokenBeingReplaced;
-						newTokenBeingReplaced = substituteTokens(tokenBeingReplaced, newI, true);
+						newTokenBeingReplaced->replaceResultingToken(
+							newI = new Identifier(lastName + newI->name.substr(ni + param.length()),
+								newI->contentPos, newI->endContentPos, newI->owningFile));
 					//we have no suffix, we don't need to do anything except get rid of the identifier
 					} else {
 						delete newTokenBeingReplaced;
@@ -281,5 +285,5 @@ void Replace::replaceIdentifier(
 		}
 	}
 	if (newTokenBeingReplaced != nullptr)
-		tokens->add(newTokenBeingReplaced);
+		tokensOutput->add(newTokenBeingReplaced);
 }

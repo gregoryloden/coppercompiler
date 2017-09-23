@@ -46,7 +46,8 @@ AbstractCodeBlock* ParseDirectives::parseAbstractCodeBlock(bool endsWithParenthe
 				} else if (s->type == SeparatorType::RightParenthesis) {
 					Deleter<Separator> sDeleter (s);
 					if (!endsWithParenthesis)
-						Error::makeError(ErrorType::General, "found a right parenthesis without a matching left parenthesis", s);
+						Error::makeError(
+							ErrorType::General, "found a right parenthesis without a matching left parenthesis", s);
 					endContentPos = s->contentPos;
 					break;
 				}
@@ -101,8 +102,8 @@ CDirective* ParseDirectives::completeDirective(DirectiveTitle* dt) {
 CDirectiveReplace* ParseDirectives::completeDirectiveReplace(bool replaceInput, DirectiveTitle* endOfFileErrorToken) {
 	Deleter<Identifier> toReplace(parseToken<Identifier>("an identifier to replace", endOfFileErrorToken));
 	Deleter<Array<string>> input(replaceInput ? parseReplaceParameters(toReplace.retrieve()) : nullptr);
-	int parenthesisContentPos =
-		parseSeparator(SeparatorType::LeftParenthesis, "a starting left parenthesis for the replacement body", endOfFileErrorToken);
+	int parenthesisContentPos = parseSeparator(
+		SeparatorType::LeftParenthesis, "a starting left parenthesis for the replacement body", endOfFileErrorToken);
 	return new CDirectiveReplace(
 		toReplace.release(), input.release(), parseAbstractCodeBlock(true, parenthesisContentPos + 1), sourceFile);
 }
@@ -147,8 +148,8 @@ int ParseDirectives::parseSeparator(SeparatorType type, const char* expectedToke
 Array<string>* ParseDirectives::parseReplaceParameters(Identifier* endOfFileErrorToken) {
 	Array<string>* names = new Array<string>();
 	Deleter<Array<string>> namesDeleter (names);
-	int parenthesisPos =
-		parseSeparator(SeparatorType::LeftParenthesis, "a left parenthesis for the replace-input parameters", endOfFileErrorToken);
+	int parenthesisPos = parseSeparator(
+		SeparatorType::LeftParenthesis, "a left parenthesis for the replace-input parameters", endOfFileErrorToken);
 	LexToken* initial = Lex::lex();
 	if (initial == nullptr)
 		Error::makeError(ErrorType::EndOfFileWhileSearching, "the replace-input parameters", endOfFileErrorToken);

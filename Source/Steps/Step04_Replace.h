@@ -18,9 +18,9 @@ private:
 	static void addReplacesToTrie(AbstractCodeBlock* abstractContents, PrefixTrie<char, CDirectiveReplace*>* replaces);
 	static void replaceTokens(Array<Token*>* tokens, PrefixTrie<char, CDirectiveReplace*>* replaces);
 	static SubstitutedToken* substituteTokens(Token* tokenBeingReplaced, Token* resultingToken, bool deleteResultingToken);
-	static Array<Token*>* buildReplacement(Array<Token*>* tokens, AbstractCodeBlock* abstractContents,
+	static Array<Token*>* buildReplacement(Array<Token*>* tokensOutput, AbstractCodeBlock* replacementBody,
 		Array<AbstractCodeBlock*>* arguments, Array<string>* input, Token* tokenBeingReplaced);
 	static StringLiteral* replaceStringLiteral(StringLiteral* s, Array<AbstractCodeBlock*>* arguments, Array<string>* input);
-	static void replaceIdentifier(Array<Token*>* tokens, Identifier* i, Array<AbstractCodeBlock*>* arguments,
+	static void replaceIdentifier(Array<Token*>* tokensOutput, Identifier* i, Array<AbstractCodeBlock*>* arguments,
 		Array<string>* input, Token* tokenBeingReplaced);
 };

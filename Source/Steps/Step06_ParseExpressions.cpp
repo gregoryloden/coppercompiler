@@ -14,17 +14,6 @@ void ParseExpressions::parseExpressionsInFiles(Array<SourceFile*>* files) {
 		}
 	}
 }
-//replace the substituted token stack's resulting token with the new one
-void ParseExpressions::replaceResultingToken(SubstitutedToken* parentS, Token* resultingToken) {
-	SubstitutedToken* s;
-	while ((s = dynamic_cast<SubstitutedToken*>(parentS->resultingToken)) != nullptr)
-		parentS = s;
-	if (parentS->shouldDelete)
-		delete parentS->resultingToken;
-	else
-		parentS->shouldDelete = true;
-	parentS->resultingToken = resultingToken;
-}
 //parse all the definitions in the source file and store them in it
 void ParseExpressions::parseGlobalDefinitions(SourceFile* sf) {
 	forEach(Token*, t, sf->abstractContents->tokens, ti) {
@@ -50,7 +39,8 @@ void ParseExpressions::parseGlobalDefinitions(SourceFile* sf) {
 //TODO: ????????????????? save it where?
 //may throw
 void ParseExpressions::completeVariableDefinition(CType* type, Token* typeToken, ArrayIterator<Token*>* ti) {
-	Token* assignment = parseExpression(ti, (unsigned char)SeparatorType::Semicolon, "expected a variable assignment to follow", typeToken);
+	Token* assignment =
+		parseExpression(ti, (unsigned char)SeparatorType::Semicolon, "expected a variable assignment to follow", typeToken);
 	//TODO: ????????????? what do we do with our completed variable definition?
 }
 //this is the main loop of parsing
@@ -77,25 +67,22 @@ Token* ParseExpressions::parseExpression(ArrayIterator<Token*>* ti, unsigned cha
 			}
 			AbstractCodeBlock* a;
 			Operator* o;
-			//this could be a function call, function parameters, a cast, or a value expression, but not a statement list
-			if ((a = dynamic_cast<AbstractCodeBlock*>(t)) != nullptr) {
-				//TODO: ???????????????????? what if it's a cast?
-				//TODO: ?????????????????? build function call/definition
-			//if we have an operator, it could be prefix, postfix, binary, or ternary, and it might have been lexed wrong
-			//whatever it is, figure it out with what we've got
-			} else if ((o = dynamic_cast<Operator*>(t)) != nullptr) {
+			if ((a = dynamic_cast<AbstractCodeBlock*>(t)) != nullptr)
+				activeExpression = evaluateAbstractCodeBlock(a, fullToken, activeExpression, ti);
+			else if ((o = dynamic_cast<Operator*>(t)) != nullptr) {
 				SubstitutedToken* st;
-				//we have to replace the operator
+				//replace the operator if it's substituted
 				if ((st = dynamic_cast<SubstitutedToken*>(fullToken)) != nullptr)
-					replaceResultingToken(st, o = new Operator(o->type, o->contentPos, o->endContentPos, o->owningFile));
-				activeExpression = addToOperator(fullToken, o, activeExpression, ti);
-			//we don't have anything yet and nothing came before, we expect a value expression
+					st->replaceResultingToken(o = new Operator(o->type, o->contentPos, o->endContentPos, o->owningFile));
+				activeExpression = addToOperator(o, fullToken, activeExpression, ti);
+			//we don't have anything yet so we expect a value expression
 			} else if (activeExpression == nullptr)
 				activeExpression = getValueExpression(t, fullToken, ti);
 			else
 				Error::makeError(ErrorType::General, "expected an operator or end of expression", fullToken);
 			fullTokenDeleter.release();
 		}
+
 		if (activeExpression == nullptr)
 			Error::makeError(ErrorType::General, emptyExpressionErrorMessage, emptyExpressionErrorToken);
 		else if ((endingSeparatorTypes & (unsigned char)SeparatorType::RightParenthesis) == 0) {
@@ -125,10 +112,10 @@ Token* ParseExpressions::parseExpression(ArrayIterator<Token*>* ti, unsigned cha
 	}
 	return activeExpression;
 }
-//get a value expression out of the token
+//get a value expression that starts at the given token
 //if it's a value on it's own, we're done
 //if it's an abstract code block, get a value expression from it
-//if it's an operator, make sure it's good to be a prefix operator, then recursively get a value expression
+//if it's an operator, make sure it's a prefix operator, then recursively get a value expression
 //may throw
 Token* ParseExpressions::getValueExpression(Token* t, Token* fullToken, ArrayIterator<Token*>* ti) {
 	AbstractCodeBlock* a;
@@ -136,7 +123,7 @@ Token* ParseExpressions::getValueExpression(Token* t, Token* fullToken, ArrayIte
 	Operator* o;
 	//try to parse a prefix operator
 	if ((o = dynamic_cast<Operator*>(t)) != nullptr)
-		addToOperator(fullToken, o, nullptr, ti);
+		addToOperator(o, fullToken, nullptr, ti);
 	//parse a parenthesized expression
 	else if ((a = dynamic_cast<AbstractCodeBlock*>(t)) != nullptr) {
 		ArrayIterator<Token*> ai (a->tokens);
@@ -160,8 +147,10 @@ Token* ParseExpressions::getValueExpression(Token* t, Token* fullToken, ArrayIte
 }
 //this is the meat of parsing, where retcon parsing happens
 //add a token to the right side of this operator, cascade as necessary
+//it could be prefix, postfix, binary, or ternary, and it might have been lexed wrong
+//whatever it is, figure it out with what we've got
 //may throw
-Token* ParseExpressions::addToOperator(Token* fullToken, Operator* o, Token* activeExpression, ArrayIterator<Token*>* ti) {
+Token* ParseExpressions::addToOperator(Operator* o, Token* fullToken, Token* activeExpression, ArrayIterator<Token*>* ti) {
 	//if we parsed a subtraction sign but there's no active expression, it's a negative sign
 	if (activeExpression == nullptr && o->type == OperatorType::Subtract) {
 		o->type = OperatorType::Negate;
@@ -206,6 +195,21 @@ Token* ParseExpressions::addToOperator(Token* fullToken, Operator* o, Token* act
 		o->left = activeExpression;
 		return fullToken;
 	}
+}
+//complete whatever expression we have using the abstract code block
+//this could be a function call, function parameters, a cast, or a value expression, but not a statement list
+//may throw
+Token* ParseExpressions::evaluateAbstractCodeBlock(
+	AbstractCodeBlock* a, Token* fullToken, Token* activeExpression, ArrayIterator<Token*>* ti)
+{
+	//since we have no active expression, this could be either a value or a cast
+	if (activeExpression == nullptr) {
+		if (a->tokens->length == 0)
+			Error::makeError(ErrorType::General, "expected a value", fullToken);
+		//TODO: ???????????????????? what if it's a cast? or a value type?
+	}
+	//TODO: ?????????????????? build function call/definition
+	return nullptr;
 }
 
 //parse an expression or control flow
