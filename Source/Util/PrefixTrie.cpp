@@ -1,13 +1,14 @@
 #include "Project.h"
 
-template class PrefixTrie<char, CDirectiveReplace*>;
-template class PrefixTrie<char, CType*>;
-template class PrefixTrie<char, SourceFile*>;
+#define instantiatePrefixTrie(type1, type2, value) \
+	template class PrefixTrie<type1, type2>;\
+	type2 const PrefixTrie<char, type2>::emptyValue = value;
+
 template class PrefixTrieUnion<char, CDirectiveReplace*>;
 
-CDirectiveReplace* const PrefixTrie<char, CDirectiveReplace*>::emptyValue = nullptr;
-CType* const PrefixTrie<char, CType*>::emptyValue = nullptr;
-SourceFile* const PrefixTrie<char, SourceFile*>::emptyValue = nullptr;
+instantiatePrefixTrie(char, CDirectiveReplace*, nullptr);
+instantiatePrefixTrie(char, CType*, nullptr);
+instantiatePrefixTrie(char, SourceFile*, nullptr);
 
 template <class KeyElement, class Value> PrefixTrie<KeyElement, Value>::PrefixTrie(
 	KeyElement* pCommonPrefix,

@@ -83,8 +83,6 @@ enum class OperatorTypePrecedence: unsigned char {
 	Assignment = 1
 };
 
-//Booleans, etc. group on the right; additions, etc. groups on the left
-
 class Token onlyInDebug(: public ObjCounter) {
 protected:
 	Token(onlyWhenTrackingIDs(char* pObjType COMMA) int pContentPos, int pEndContentPos, SourceFile* pOwningFile);
@@ -196,7 +194,7 @@ public:
 //Tokens used in expressions
 class ParenthesizedExpression: public Token {
 public:
-	ParenthesizedExpression(Token* pExpression, AbstractCodeBlock* pSource);
+	ParenthesizedExpression(Token* pExpression, AbstractCodeBlock* source);
 	~ParenthesizedExpression();
 
 	Token* expression;

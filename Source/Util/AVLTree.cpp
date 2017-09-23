@@ -1,32 +1,18 @@
 #include "Project.h"
 
-#define deletePrefixTrieNodeValueForTypes(t1, t2) template <> AVLNode<t1, PrefixTrie<t1, t2>*>::~AVLNode() { delete value; }
+#define instantiateAVLTree(type1, type2, defaultValue) \
+	template class AVLNode<type1, type2>;\
+	template class AVLTree<type1, type2>;\
+	type2 const AVLTree<type1, type2>::emptyValue = defaultValue;\
+	thread_local type2 AVLTree<type1, type2>::oldValue = defaultValue;
+#define instantiatePrefixTrieAVLTree(type1, type2) \
+	instantiateAVLTree(type1, PrefixTrie<type1 COMMA type2>*, nullptr);\
+	template <> AVLNode<type1, PrefixTrie<type1, type2>*>::~AVLNode() { delete value; }
 
-//template class AVLTree<int, int>;
-//template class AVLTree<char, char>;
-//template class AVLNode<int, int>;
-//template class AVLNode<char, char>;
-template class AVLNode<char, PrefixTrie<char, CDirectiveReplace*>*>;
-template class AVLNode<char, PrefixTrie<char, CType*>*>;
-template class AVLNode<char, PrefixTrie<char, SourceFile*>*>;
-template class AVLNode<SourceFile*, bool>;
-template class AVLTree<char, PrefixTrie<char, CDirectiveReplace*>*>;
-template class AVLTree<char, PrefixTrie<char, CType*>*>;
-template class AVLTree<char, PrefixTrie<char, SourceFile*>*>;
-template class AVLTree<SourceFile*, bool>;
-
-//const int AVLTree<int, int>::emptyValue = 0;
-//const char AVLTree<char, char>::emptyValue = '\0';
-//thread_local int AVLTree<int, int>::oldValue = 0;
-//thread_local char AVLTree<char, char>::oldValue = '\0';
-PrefixTrie<char, CDirectiveReplace*>* const AVLTree<char, PrefixTrie<char, CDirectiveReplace*>*>::emptyValue = nullptr;
-thread_local PrefixTrie<char, CDirectiveReplace*>* AVLTree<char, PrefixTrie<char, CDirectiveReplace*>*>::oldValue = nullptr;
-PrefixTrie<char, CType*>* const AVLTree<char, PrefixTrie<char, CType*>*>::emptyValue = nullptr;
-thread_local PrefixTrie<char, CType*>* AVLTree<char, PrefixTrie<char, CType*>*>::oldValue = nullptr;
-PrefixTrie<char, SourceFile*>* const AVLTree<char, PrefixTrie<char, SourceFile*>*>::emptyValue = nullptr;
-thread_local PrefixTrie<char, SourceFile*>* AVLTree<char, PrefixTrie<char, SourceFile*>*>::oldValue = nullptr;
-bool const AVLTree<SourceFile*, bool>::emptyValue = false;
-thread_local bool AVLTree<SourceFile*, bool>::oldValue = false;
+instantiateAVLTree(SourceFile*, bool, false);
+instantiatePrefixTrieAVLTree(char, CDirectiveReplace*);
+instantiatePrefixTrieAVLTree(char, CType*);
+instantiatePrefixTrieAVLTree(char, SourceFile*);
 
 template <class Key, class Value> AVLTree<Key, Value>::AVLTree()
 : onlyInDebug(ObjCounter(onlyWhenTrackingIDs("AVLTREE")) COMMA)
@@ -167,8 +153,6 @@ key(pKey)
 , left(nullptr)
 , right(nullptr) {
 }
-deletePrefixTrieNodeValueForTypes(char, CDirectiveReplace*)
-deletePrefixTrieNodeValueForTypes(char, SourceFile*)
 template <class Key, class Value> AVLNode<Key, Value>::~AVLNode() {
 	//don't delete left or right, so that we can delete nodes without deleting their whole trees
 	//deleting whole trees will happen via AVLTree::deleteTree when the AVLTree is deleted

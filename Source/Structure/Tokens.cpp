@@ -207,8 +207,8 @@ SubstitutedToken::~SubstitutedToken() {
 	if (shouldDelete)
 		delete resultingToken;
 }
-ParenthesizedExpression::ParenthesizedExpression(Token* pExpression, AbstractCodeBlock* pSource)
-: Token(onlyWhenTrackingIDs("PNTHEXP" COMMA) pSource->contentPos, pSource->endContentPos, pSource->owningFile)
+ParenthesizedExpression::ParenthesizedExpression(Token* pExpression, AbstractCodeBlock* source)
+: Token(onlyWhenTrackingIDs("PNTHEXP" COMMA) source->contentPos, source->endContentPos, source->owningFile)
 , expression(pExpression) {
 }
 ParenthesizedExpression::~ParenthesizedExpression() {

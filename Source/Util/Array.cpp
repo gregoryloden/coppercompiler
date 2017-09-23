@@ -1,37 +1,27 @@
 #include "Project.h"
 
-#define deleteSelfButNotContents(type) template <> void Array<type>::deleteSelfAndContents() { delete this; }
+#define instantiateArrayTypes(type) template class Array<type>; template class ArrayIterator<type>;
+#define instantiatePrefixTrieAVLNodeArrayTypes(type1, type2) \
+	instantiateArrayTypes(AVLNode<type1 COMMA PrefixTrie<type1 COMMA type2>*>*);
+#define instantiateNonPointerArrayTypes(type) \
+	instantiateArrayTypes(type); \
+	template <> void Array<type>::deleteSelfAndContents() { delete this; }
 
-template class Array<AbstractCodeBlock*>;
-template class Array<CDirective*>;
-template class Array<CDirectiveReplace*>;
-template class Array<char>;
-template class Array<Identifier*>;
-template class Array<int>;
-template class Array<LexToken*>;
-template class Array<SourceFile*>;
-template class Array<string>;
-template class Array<Token*>;
-template class Array<Array<Token*>*>;
-template class Array<AVLNode<char, PrefixTrie<char, CDirectiveReplace*>*>*>;
-template class Array<AVLNode<char, PrefixTrie<char, CType*>*>*>;
-template class Array<AVLNode<char, PrefixTrie<char, SourceFile*>*>*>;
-template class Array<AVLNode<SourceFile*, bool>*>;
-template class ArrayIterator<AbstractCodeBlock*>;
-template class ArrayIterator<CDirective*>;
-template class ArrayIterator<CDirectiveReplace*>;
-template class ArrayIterator<char>;
-template class ArrayIterator<Identifier*>;
-template class ArrayIterator<int>;
-template class ArrayIterator<LexToken*>;
-template class ArrayIterator<SourceFile*>;
-template class ArrayIterator<string>;
-template class ArrayIterator<Token*>;
-template class ArrayIterator<Array<Token*>*>;
-template class ArrayIterator<AVLNode<char, PrefixTrie<char, CDirectiveReplace*>*>*>;
-template class ArrayIterator<AVLNode<char, PrefixTrie<char, CType*>*>*>;
-template class ArrayIterator<AVLNode<char, PrefixTrie<char, SourceFile*>*>*>;
-template class ArrayIterator<AVLNode<SourceFile*, bool>*>;
+instantiateArrayTypes(AbstractCodeBlock*);
+instantiateArrayTypes(CDirective*);
+instantiateArrayTypes(CDirectiveReplace*);
+instantiateArrayTypes(Identifier*);
+instantiateArrayTypes(LexToken*);
+instantiateArrayTypes(SourceFile*);
+instantiateArrayTypes(Token*);
+instantiateArrayTypes(Array<Token*>*);
+instantiateArrayTypes(AVLNode<SourceFile* COMMA bool>*);
+instantiateNonPointerArrayTypes(char);
+instantiateNonPointerArrayTypes(int);
+instantiateNonPointerArrayTypes(string);
+instantiatePrefixTrieAVLNodeArrayTypes(char, CDirectiveReplace*);
+instantiatePrefixTrieAVLNodeArrayTypes(char, CType*);
+instantiatePrefixTrieAVLNodeArrayTypes(char, SourceFile*);
 
 template <class Type> Array<Type>::Array()
 : onlyInDebug(ObjCounter(onlyWhenTrackingIDs("ARRAY")) COMMA)
@@ -42,9 +32,6 @@ inner(new Type[1])
 template <class Type> Array<Type>::~Array() {
 	delete[] inner;
 }
-deleteSelfButNotContents(char)
-deleteSelfButNotContents(int)
-deleteSelfButNotContents(string)
 template <class Type> void Array<Type>::deleteSelfAndContents() {
 	forEach(Type, t, this, ti)
 		delete t;
