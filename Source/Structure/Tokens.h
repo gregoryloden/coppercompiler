@@ -18,6 +18,7 @@ enum class OperatorType: unsigned char {
 //	None,
 	Dot,
 	ObjectMemberAccess,
+	FunctionCall,
 	Increment,
 	Decrement,
 	VariableLogicalNot,
@@ -152,7 +153,11 @@ public:
 };
 class Operator: public LexToken {
 public:
-	Operator(OperatorType pType, int pContentPos, int pEndContentPos, SourceFile* pOwningFile);
+	#ifdef TRACK_OBJ_IDS
+		Operator(OperatorType pType, int pContentPos, int pEndContentPos, SourceFile* pOwningFile);
+	#endif
+	Operator(onlyWhenTrackingIDs(char* pObjType COMMA) OperatorType pType, int pContentPos, int pEndContentPos,
+		SourceFile* pOwningFile);
 	virtual ~Operator();
 
 	OperatorType type; //copper: readonly
@@ -204,16 +209,16 @@ public:
 };
 class Cast: public Operator {
 public:
-	Cast(CType* pType, bool pRaw, int pContentPos, int pEndContentPos, SourceFile* pOwningFile);
+	Cast(CType* pType, bool pRaw, AbstractCodeBlock* source);
 	virtual ~Cast();
 
 	CType* type;
 	bool raw;
 };
-//class IdentifierList: public Token {
-//public:
-//	IdentifierList(Identifier* pI1, Identifier* pI2);
-//	virtual ~IdentifierList();
-//
-//	Array<Identifier*> identifiers;
-//};
+class FunctionCall: public Operator {
+public:
+	FunctionCall(Token* function, Array<Token*>* pArguments);
+	virtual ~FunctionCall();
+
+	Array<Token*>* arguments;
+};

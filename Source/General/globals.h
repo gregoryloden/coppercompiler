@@ -5,7 +5,7 @@ class Token;
 class AbstractCodeBlock;
 
 #define forEach(Type, t, a, ti) ArrayIterator<Type> ti (a); for (Type t = ti.getFirst(); ti.hasThis(); t = ti.getNext())
-#define forEachContinued(Type, t, ti) for (Type t = ti->getNext(); ti->hasThis(); t = ti->getNext())
+#define forEachContinued(Type, t, ti) for (Type t = ti->getThis(); ti->hasThis(); t = ti->getNext())
 #define COMMA ,
 #ifdef DEBUG
 	#define onlyInDebug(x) x

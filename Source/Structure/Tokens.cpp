@@ -75,8 +75,14 @@ string Separator::separatorName(SeparatorType s) {
 		default: return "comma";
 	}
 }
-Operator::Operator(OperatorType pType, int pContentPos, int pEndContentPos, SourceFile* pOwningFile)
-: LexToken(onlyWhenTrackingIDs("OPERATR" COMMA) pContentPos, pEndContentPos, pOwningFile)
+#ifdef TRACK_OBJ_IDS
+	Operator::Operator(OperatorType pType, int pContentPos, int pEndContentPos, SourceFile* pOwningFile)
+	: Operator("OPERATR", pType, pContentPos, pEndContentPos, pOwningFile) {
+	}
+#endif
+Operator::Operator(
+	onlyWhenTrackingIDs(char* pObjType COMMA) OperatorType pType, int pContentPos, int pEndContentPos, SourceFile* pOwningFile)
+: LexToken(onlyWhenTrackingIDs(pObjType COMMA) pContentPos, pEndContentPos, pOwningFile)
 , type(pType)
 , left(nullptr)
 , right(nullptr) {
@@ -85,6 +91,7 @@ Operator::Operator(OperatorType pType, int pContentPos, int pEndContentPos, Sour
 		case OperatorType::Dot:
 		case OperatorType::ObjectMemberAccess:
 			precedence = OperatorTypePrecedence::ObjectMember;
+		case OperatorType::FunctionCall:
 		case OperatorType::Increment:
 		case OperatorType::Decrement:
 		case OperatorType::VariableLogicalNot:
@@ -231,17 +238,21 @@ ParenthesizedExpression::ParenthesizedExpression(Token* pExpression, AbstractCod
 ParenthesizedExpression::~ParenthesizedExpression() {
 	delete expression;
 }
-Cast::Cast(CType* pType, bool pRaw, int pContentPos, int pEndContentPos, SourceFile* pOwningFile)
-: Operator(onlyWhenTrackingIDs("CAST" COMMA) OperatorType::Cast, pContentPos, pEndContentPos, pOwningFile)
+Cast::Cast(CType* pType, bool pRaw, AbstractCodeBlock* source)
+: Operator(onlyWhenTrackingIDs("CAST" COMMA) OperatorType::Cast, source->contentPos, source->endContentPos, source->owningFile)
 , type(pType)
 , raw(pRaw) {
 }
 Cast::~Cast() {
 	//don't delete the type since it's owned by the types trie
 }
-//IdentifierList::IdentifierList(Identifier* pI1, Identifier* pI2)
-//: Token("IDFRLST", pI1->contentPos)
-//, identifiers(pI1) {
-//	identifiers.add(pI2);
-//}
-//IdentifierList::~IdentifierList() {}
+FunctionCall::FunctionCall(Token* function, Array<Token*>* pArguments)
+: Operator(onlyWhenTrackingIDs("FNCALL" COMMA) OperatorType::FunctionCall, function->contentPos, function->endContentPos,
+	function->owningFile)
+, arguments(pArguments) {
+	left = function;
+}
+FunctionCall::~FunctionCall() {
+	arguments->deleteContents();
+	delete arguments;
+}

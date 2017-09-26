@@ -20,5 +20,5 @@ private:
 		AbstractCodeBlock* a, Token* fullToken, Token* activeExpression, ArrayIterator<Token*>* ti);
 	static Token* completeCast(CType* type, Token* fullToken, AbstractCodeBlock* castBody, ArrayIterator<Token*>* ti);
 	static Token* completeFunctionDefinition(CType* type, AbstractCodeBlock* parameters, ArrayIterator<Token*>* ti);
-	static Token* completeFunctionCall(Token* function, AbstractCodeBlock* arguments);
+	static Token* completeFunctionCall(Token* function, AbstractCodeBlock* argumentsBlock);
 };

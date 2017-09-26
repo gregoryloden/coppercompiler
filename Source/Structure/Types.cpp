@@ -11,7 +11,7 @@ PrefixTrie<char, CType*>* CType::globalTypes = []() -> PrefixTrie<char, CType*>*
 	val->set("String", 6, new CClass("String"));
 	return val;
 }();
-CType::CType(onlyWhenTrackingIDs(char* pObjType COMMA))
+CType::CType(onlyWhenTrackingIDs(char* pObjType))
 onlyInDebug(: ObjCounter(onlyWhenTrackingIDs(pObjType))) {
 }
 CType::~CType() {}
@@ -20,7 +20,7 @@ CVoid::CVoid()
 }
 CVoid::~CVoid() {}
 CPrimitive::CPrimitive(onlyWhenTrackingIDs(char* pObjType COMMA) short pBitSize)
-: CType(onlyWhenTrackingIDs(pObjType COMMA))
+: CType(onlyWhenTrackingIDs(pObjType))
 , bitSize(pBitSize) {
 }
 CPrimitive::~CPrimitive() {}

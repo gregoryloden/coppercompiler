@@ -44,7 +44,7 @@ private:
 public:
 	Type getFirst();
 	Type getNext();
-	//Type getThis();
+	Type getThis();
 	//Type getPrevious();
 	//Type getLast();
 	//bool hasNext();
