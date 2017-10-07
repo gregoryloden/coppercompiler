@@ -40,10 +40,10 @@ AbstractCodeBlock* ParseDirectives::parseAbstractCodeBlock(bool endsWithParenthe
 				directives->add(dt->directive = completeDirective(dt));
 				dtDeleter.release();
 			} else if ((s = dynamic_cast<Separator*>(next)) != nullptr) {
-				if (s->type == SeparatorType::LeftParenthesis) {
+				if (s->separatorType == SeparatorType::LeftParenthesis) {
 					next = parseAbstractCodeBlock(true, s->contentPos + 1);
 					delete s;
-				} else if (s->type == SeparatorType::RightParenthesis) {
+				} else if (s->separatorType == SeparatorType::RightParenthesis) {
 					Deleter<Separator> sDeleter (s);
 					if (!endsWithParenthesis)
 						Error::makeError(
@@ -65,9 +65,9 @@ AbstractCodeBlock* ParseDirectives::parseAbstractCodeBlock(bool endsWithParenthe
 					LexToken* next = Lex::lex();
 					Separator* s;
 					if ((s = dynamic_cast<Separator*>(next)) != nullptr) {
-						if (s->type == SeparatorType::LeftParenthesis)
+						if (s->separatorType == SeparatorType::LeftParenthesis)
 							parentheses++;
-						else if (s->type == SeparatorType::RightParenthesis)
+						else if (s->separatorType == SeparatorType::RightParenthesis)
 							parentheses--;
 					}
 					delete next;
@@ -138,7 +138,7 @@ template <class TokenType> TokenType* ParseDirectives::parseToken(
 int ParseDirectives::parseSeparator(SeparatorType type, const char* expectedTokenTypeName, Token* endOfFileErrorToken) {
 	Separator* s = parseToken<Separator>(expectedTokenTypeName, endOfFileErrorToken);
 	Deleter<Separator> sDeleter (s);
-	if (s->type != type)
+	if (s->separatorType != type)
 		makeUnexpectedTokenError(expectedTokenTypeName, s);
 	return s->contentPos;
 }
@@ -156,7 +156,7 @@ Array<string>* ParseDirectives::parseReplaceParameters(Identifier* endOfFileErro
 	Identifier* identifier;
 	if ((identifier = dynamic_cast<Identifier*>(initial)) == nullptr) {
 		Separator* s;
-		if ((s = dynamic_cast<Separator*>(initial)) == nullptr || s->type != SeparatorType::RightParenthesis) {
+		if ((s = dynamic_cast<Separator*>(initial)) == nullptr || s->separatorType != SeparatorType::RightParenthesis) {
 			Deleter<LexToken> initialDeleter (initial);
 			makeUnexpectedTokenError("an identifier or right parenthesis", initial);
 		}
@@ -169,9 +169,9 @@ Array<string>* ParseDirectives::parseReplaceParameters(Identifier* endOfFileErro
 		delete identifier;
 		Separator* s = parseToken<Separator>(expectedTokenTypeName, endOfFileErrorToken);
 		Deleter<Separator> sDeleter (s);
-		if (s->type == SeparatorType::RightParenthesis)
+		if (s->separatorType == SeparatorType::RightParenthesis)
 			return namesDeleter.release();
-		else if (s->type != SeparatorType::Comma)
+		else if (s->separatorType != SeparatorType::Comma)
 			makeUnexpectedTokenError(expectedTokenTypeName, s);
 		identifier = parseToken<Identifier>("a replace-input parameter", endOfFileErrorToken);
 	}

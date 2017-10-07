@@ -114,7 +114,9 @@ Array<AbstractCodeBlock*>* Replace::collectArguments(
 	int nextArgumentStartPos = argumentsCodeBlock->contentPos;
 	forEach(Token*, at, argumentsCodeBlock->tokens, ati) {
 		Separator* s;
-		if ((s = dynamic_cast<Separator*>(Token::getResultingToken(at))) != nullptr && s->type == SeparatorType::Comma) {
+		if ((s = dynamic_cast<Separator*>(Token::getResultingToken(at))) != nullptr &&
+			s->separatorType == SeparatorType::Comma)
+		{
 			arguments->add(new AbstractCodeBlock(
 				nextTokens, nullptr, nextArgumentStartPos, s->contentPos, argumentsCodeBlock->owningFile));
 			nextArgumentStartPos = s->contentPos + 1;

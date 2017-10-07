@@ -95,6 +95,7 @@ public:
 	int contentPos; //copper: readonly
 	int endContentPos; //copper: readonly
 	SourceFile* owningFile; //copper: readonly
+	CType* dataType; //copper: readonly<Semant>
 
 	int getRow();
 	static Token* getResultingToken(Token* t);
@@ -145,23 +146,23 @@ public:
 };
 class Separator: public LexToken {
 public:
-	Separator(SeparatorType pType, int pContentPos, int pEndContentPos, SourceFile* pOwningFile);
+	Separator(SeparatorType pSeparatorType, int pContentPos, int pEndContentPos, SourceFile* pOwningFile);
 	virtual ~Separator();
 
-	SeparatorType type; //copper: readonly
+	SeparatorType separatorType; //copper: readonly
 
 	static string separatorName(SeparatorType s);
 };
 class Operator: public LexToken {
 public:
 	#ifdef TRACK_OBJ_IDS
-		Operator(OperatorType pType, int pContentPos, int pEndContentPos, SourceFile* pOwningFile);
+		Operator(OperatorType pOperatorType, int pContentPos, int pEndContentPos, SourceFile* pOwningFile);
 	#endif
-	Operator(onlyWhenTrackingIDs(char* pObjType COMMA) OperatorType pType, int pContentPos, int pEndContentPos,
+	Operator(onlyWhenTrackingIDs(char* pObjType COMMA) OperatorType pOperatorType, int pContentPos, int pEndContentPos,
 		SourceFile* pOwningFile);
 	virtual ~Operator();
 
-	OperatorType type; //copper: readonly
+	OperatorType operatorType; //copper: readonly
 	OperatorTypePrecedence precedence; //copper: readonly
 	Token* left; //copper: readonly
 	Token* right; //copper: readonly
@@ -213,7 +214,6 @@ public:
 	Cast(CType* pType, bool pIsRaw, AbstractCodeBlock* source);
 	virtual ~Cast();
 
-	CType* type;
 	bool isRaw;
 };
 class FunctionCall: public Token {

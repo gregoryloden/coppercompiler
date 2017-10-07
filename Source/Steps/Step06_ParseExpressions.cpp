@@ -52,7 +52,7 @@ CVariableDefinition* ParseExpressions::completeVariableDefinition(CType* type, T
 		return result;
 	}
 	Operator* o;
-	if ((o = dynamic_cast<Operator*>(t)) == nullptr || o->type != OperatorType::Assign)
+	if ((o = dynamic_cast<Operator*>(t)) == nullptr || o->operatorType != OperatorType::Assign)
 		Error::makeError(ErrorType::General, "invalid variable initialization", definition);
 	if ((i = dynamic_cast<Identifier*>(Token::getResultingToken(o->left))) == nullptr)
 		Error::makeError(ErrorType::General, "expected a variable name", o->left);
@@ -75,9 +75,9 @@ Token* ParseExpressions::parseExpression(ArrayIterator<Token*>* ti, unsigned cha
 			Separator* s;
 			//before we do anything, see if we're done parsing
 			if ((s = dynamic_cast<Separator*>(t)) != nullptr) {
-				if (activeExpression != nullptr && (endingSeparatorTypes & (unsigned char)(s->type)) != 0)
+				if (activeExpression != nullptr && (endingSeparatorTypes & (unsigned char)(s->separatorType)) != 0)
 					return activeExpression;
-				string errorMessage = "unexpected " + Separator::separatorName(s->type);
+				string errorMessage = "unexpected " + Separator::separatorName(s->separatorType);
 				Error::makeError(ErrorType::General, errorMessage.c_str(), fullToken);
 			}
 			AbstractCodeBlock* a;
@@ -90,7 +90,8 @@ Token* ParseExpressions::parseExpression(ArrayIterator<Token*>* ti, unsigned cha
 				SubstitutedToken* st;
 				//replace the operator if it's substituted
 				if ((st = dynamic_cast<SubstitutedToken*>(fullToken)) != nullptr)
-					st->replaceResultingToken(o = new Operator(o->type, o->contentPos, o->endContentPos, o->owningFile));
+					st->replaceResultingToken(
+						o = new Operator(o->operatorType, o->contentPos, o->endContentPos, o->owningFile));
 				activeExpression = addToOperator(o, fullToken, activeExpression, ti);
 			} else if ((dt = dynamic_cast<DirectiveTitle*>(t)) != nullptr)
 				continue; //let the directive title get deleted
@@ -170,8 +171,8 @@ Token* ParseExpressions::getValueExpression(Token* t, Token* fullToken, ArrayIte
 //may throw
 Token* ParseExpressions::addToOperator(Operator* o, Token* fullToken, Token* activeExpression, ArrayIterator<Token*>* ti) {
 	//if we parsed a subtraction sign but there's no active expression, it's a negative sign
-	if (activeExpression == nullptr && o->type == OperatorType::Subtract) {
-		o->type = OperatorType::Negate;
+	if (activeExpression == nullptr && o->operatorType == OperatorType::Subtract) {
+		o->operatorType = OperatorType::Negate;
 		o->precedence = OperatorTypePrecedence::Prefix;
 	}
 
@@ -318,7 +319,7 @@ Token* ParseExpressions::completeFunctionDefinition(
 			commaFullToken = pi.getNext();
 			if (pi.hasThis()) {
 				Separator* s;
-				if ((s = dynamic_cast<Separator*>(commaFullToken)) == nullptr || s->type != SeparatorType::Comma)
+				if ((s = dynamic_cast<Separator*>(commaFullToken)) == nullptr || s->separatorType != SeparatorType::Comma)
 					Error::makeError(ErrorType::General, "expected a comma or right parenthesis", commaFullToken);
 			} else
 				commaFullToken = nullptr;
@@ -388,7 +389,7 @@ StatementList* ParseExpressions::parseStatements(AbstractCodeBlock* a) {
 		forEach(Token*, fullToken, a->tokens, ti) {
 			Token* t = Token::getResultingToken(fullToken);
 			Separator* s;
-			if ((s = dynamic_cast<Separator*>(t)) != nullptr && s->type == SeparatorType::Semicolon)
+			if ((s = dynamic_cast<Separator*>(t)) != nullptr && s->separatorType == SeparatorType::Semicolon)
 				continue;
 			Identifier* i;
 			CType* ct;

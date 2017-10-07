@@ -236,7 +236,7 @@ void Error::showSnippet(Token* token) {
 			} else {
 				printToken(t);
 				Separator* separator;
-				if ((separator = dynamic_cast<Separator*>(t)) != nullptr && separator->type == SeparatorType::Semicolon) {
+				if ((separator = dynamic_cast<Separator*>(t)) != nullptr && separator->separatorType == SeparatorType::Semicolon) {
 					printf("\n");
 					printedSpaces = false;
 				}
@@ -272,7 +272,7 @@ void Error::showSnippet(Token* token) {
 				printf("(");
 				if (c->isRaw)
 					printf("raw ");
-				printf(c->type->name.c_str());
+				printf(c->dataType->name.c_str());
 				printf(")(");
 				printTokenTree(c->right, tabsCount, false);
 				printf(")");

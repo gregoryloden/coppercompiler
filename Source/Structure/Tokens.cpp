@@ -4,7 +4,8 @@ Token::Token(onlyWhenTrackingIDs(char* pObjType COMMA) int pContentPos, int pEnd
 : onlyInDebug(ObjCounter(onlyWhenTrackingIDs(pObjType)) COMMA)
 contentPos(pContentPos)
 , endContentPos(pEndContentPos)
-, owningFile(pOwningFile) {
+, owningFile(pOwningFile)
+, dataType(nullptr) {
 }
 Token::~Token() {
 	//don't delete owningFile
@@ -62,9 +63,9 @@ StringLiteral::StringLiteral(string pVal, int pContentPos, int pEndContentPos, S
 , val(pVal) {
 }
 StringLiteral::~StringLiteral() {}
-Separator::Separator(SeparatorType pType, int pContentPos, int pEndContentPos, SourceFile* pOwningFile)
+Separator::Separator(SeparatorType pSeparatorType, int pContentPos, int pEndContentPos, SourceFile* pOwningFile)
 : LexToken(onlyWhenTrackingIDs("SEPRATR" COMMA) pContentPos, pEndContentPos, pOwningFile)
-, type(pType) {
+, separatorType(pSeparatorType) {
 }
 Separator::~Separator() {}
 string Separator::separatorName(SeparatorType s) {
@@ -76,17 +77,17 @@ string Separator::separatorName(SeparatorType s) {
 	}
 }
 #ifdef TRACK_OBJ_IDS
-	Operator::Operator(OperatorType pType, int pContentPos, int pEndContentPos, SourceFile* pOwningFile)
-	: Operator("OPERATR", pType, pContentPos, pEndContentPos, pOwningFile) {
+	Operator::Operator(OperatorType pOperatorType, int pContentPos, int pEndContentPos, SourceFile* pOwningFile)
+	: Operator("OPERATR", pOperatorType, pContentPos, pEndContentPos, pOwningFile) {
 	}
 #endif
-Operator::Operator(
-	onlyWhenTrackingIDs(char* pObjType COMMA) OperatorType pType, int pContentPos, int pEndContentPos, SourceFile* pOwningFile)
+Operator::Operator(onlyWhenTrackingIDs(char* pObjType COMMA) OperatorType pOperatorType, int pContentPos, int pEndContentPos,
+	SourceFile* pOwningFile)
 : LexToken(onlyWhenTrackingIDs(pObjType COMMA) pContentPos, pEndContentPos, pOwningFile)
-, type(pType)
+, operatorType(pOperatorType)
 , left(nullptr)
 , right(nullptr) {
-	switch (pType) {
+	switch (pOperatorType) {
 //		case OperatorType::None:
 		case OperatorType::Dot:
 		case OperatorType::ObjectMemberAccess:
@@ -181,12 +182,12 @@ bool Operator::takesRightHandPrecedence(Operator* other) {
 	switch (precedence) {
 		case OperatorTypePrecedence::Ternary:
 			//beginning of a ternary, always group on the right
-			if (type == OperatorType::QuestionMark)
+			if (operatorType == OperatorType::QuestionMark)
 				return true;
 			//this is a colon and the other one is a question mark- steal the right hand side if there isn't a colon already
-			else if (other->type == OperatorType::QuestionMark) {
+			else if (other->operatorType == OperatorType::QuestionMark) {
 				Operator* o;
-				return (o = dynamic_cast<Operator*>(other->right)) == nullptr || o->type != OperatorType::Colon;
+				return (o = dynamic_cast<Operator*>(other->right)) == nullptr || o->operatorType != OperatorType::Colon;
 			//this is a colon and the other one is a colon too
 			//since we never steal the right hand side of a question mark, we can only get here on an error
 			} else
@@ -253,8 +254,8 @@ ParenthesizedExpression::~ParenthesizedExpression() {
 }
 Cast::Cast(CType* pType, bool pIsRaw, AbstractCodeBlock* source)
 : Operator(onlyWhenTrackingIDs("CAST" COMMA) OperatorType::Cast, source->contentPos, source->endContentPos, source->owningFile)
-, type(pType)
 , isRaw(pIsRaw) {
+	dataType = pType;
 }
 Cast::~Cast() {
 	//don't delete the type since it's owned by something else
