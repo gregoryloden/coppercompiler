@@ -91,37 +91,45 @@ Operator::Operator(
 		case OperatorType::Dot:
 		case OperatorType::ObjectMemberAccess:
 			precedence = OperatorTypePrecedence::ObjectMember;
-		case OperatorType::FunctionCall:
+			break;
 		case OperatorType::Increment:
 		case OperatorType::Decrement:
 		case OperatorType::VariableLogicalNot:
 		case OperatorType::VariableBitwiseNot:
 		case OperatorType::VariableNegate:
 			precedence = OperatorTypePrecedence::Postfix;
+			break;
 		case OperatorType::Cast:
 		case OperatorType::LogicalNot:
 		case OperatorType::BitwiseNot:
 		case OperatorType::Negate:
 			precedence = OperatorTypePrecedence::Prefix;
+			break;
 		case OperatorType::Multiply:
 		case OperatorType::Divide:
 		case OperatorType::Modulus:
 			precedence = OperatorTypePrecedence::Multiplication;
+			break;
 		case OperatorType::Add:
 		case OperatorType::Subtract:
 			precedence = OperatorTypePrecedence::Addition;
+			break;
 		case OperatorType::ShiftLeft:
 		case OperatorType::ShiftRight:
 		case OperatorType::ShiftArithmeticRight:
 //		case OperatorType::RotateLeft:
 //		case OperatorType::RotateRight:
 			precedence = OperatorTypePrecedence::BitShift;
+			break;
 		case OperatorType::BitwiseAnd:
 			precedence = OperatorTypePrecedence::BitwiseAnd;
+			break;
 		case OperatorType::BitwiseXor:
 			precedence = OperatorTypePrecedence::BitwiseXor;
+			break;
 		case OperatorType::BitwiseOr:
 			precedence = OperatorTypePrecedence::BitwiseOr;
+			break;
 		case OperatorType::Equal:
 		case OperatorType::NotEqual:
 		case OperatorType::LessOrEqual:
@@ -129,13 +137,17 @@ Operator::Operator(
 		case OperatorType::LessThan:
 		case OperatorType::GreaterThan:
 			precedence = OperatorTypePrecedence::Comparison;
+			break;
 		case OperatorType::BooleanAnd:
 			precedence = OperatorTypePrecedence::BooleanAnd;
+			break;
 		case OperatorType::BooleanOr:
 			precedence = OperatorTypePrecedence::BooleanOr;
+			break;
 		case OperatorType::Colon:
 		case OperatorType::QuestionMark:
 			precedence = OperatorTypePrecedence::Ternary;
+			break;
 		case OperatorType::Assign:
 		case OperatorType::AssignAdd:
 		case OperatorType::AssignSubtract:
@@ -153,6 +165,7 @@ Operator::Operator(
 //		case OperatorType::AssignBooleanAnd:
 //		case OperatorType::AssignBooleanOr:
 			precedence = OperatorTypePrecedence::Assignment;
+			break;
 	}
 }
 Operator::~Operator() {
@@ -238,21 +251,34 @@ ParenthesizedExpression::ParenthesizedExpression(Token* pExpression, AbstractCod
 ParenthesizedExpression::~ParenthesizedExpression() {
 	delete expression;
 }
-Cast::Cast(CType* pType, bool pRaw, AbstractCodeBlock* source)
+Cast::Cast(CType* pType, bool pIsRaw, AbstractCodeBlock* source)
 : Operator(onlyWhenTrackingIDs("CAST" COMMA) OperatorType::Cast, source->contentPos, source->endContentPos, source->owningFile)
 , type(pType)
-, raw(pRaw) {
+, isRaw(pIsRaw) {
 }
 Cast::~Cast() {
-	//don't delete the type since it's owned by the types trie
+	//don't delete the type since it's owned by something else
 }
-FunctionCall::FunctionCall(Token* function, Array<Token*>* pArguments)
-: Operator(onlyWhenTrackingIDs("FNCALL" COMMA) OperatorType::FunctionCall, function->contentPos, function->endContentPos,
-	function->owningFile)
+FunctionCall::FunctionCall(Token* pFunction, Array<Token*>* pArguments)
+: Token(onlyWhenTrackingIDs("FNCALL" COMMA) pFunction->contentPos, pFunction->endContentPos, pFunction->owningFile)
+, function(pFunction)
 , arguments(pArguments) {
-	left = function;
 }
 FunctionCall::~FunctionCall() {
+	delete function;
 	arguments->deleteContents();
 	delete arguments;
+}
+FunctionDefinition::FunctionDefinition(CType* pReturnType, Array<CVariableDefinition*>* pParameters, StatementList* pBody,
+	int pContentPos, int pEndContentPos, SourceFile* pOwningFile)
+: Token(onlyWhenTrackingIDs("FNDEF" COMMA) pContentPos, pEndContentPos, pOwningFile)
+, returnType(pReturnType)
+, parameters(pParameters)
+, body(pBody) {
+}
+FunctionDefinition::~FunctionDefinition() {
+	//don't delete the type since it's owned by something else
+	parameters->deleteContents();
+	delete parameters;
+	delete body;
 }

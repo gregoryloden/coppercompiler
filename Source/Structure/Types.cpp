@@ -1,43 +1,49 @@
 #include "Project.h"
 
 PrefixTrie<char, CType*>* CType::globalTypes = []() -> PrefixTrie<char, CType*>* {
+	CType* typesArray[] = {
+		new CVoid(),
+		new CIntegerPrimitive("bool", 1),
+		new CIntegerPrimitive("byte", 8),
+		new CIntegerPrimitive("short", 16),
+		new CIntegerPrimitive("int", 32),
+		new CFunctionType(),
+		new CClass("String")
+	};
 	PrefixTrie<char, CType*>* val = new PrefixTrie<char, CType*>();
-	val->set("void", 4, new CVoid());
-	val->set("bool", 4, new CIntegerPrimitive(1));
-	val->set("byte", 4, new CIntegerPrimitive(8));
-	val->set("short", 5, new CIntegerPrimitive(16));
-	val->set("int", 3, new CIntegerPrimitive(32));
-	val->set("Function", 8, new CFunctionType());
-	val->set("String", 6, new CClass("String"));
+	for (int i = 0; i < 7; i++) {
+		CType* ct = typesArray[i];
+		val->set(ct->name.c_str(), ct->name.length(), ct);
+	}
 	return val;
 }();
-CType::CType(onlyWhenTrackingIDs(char* pObjType))
-onlyInDebug(: ObjCounter(onlyWhenTrackingIDs(pObjType))) {
+CType::CType(onlyWhenTrackingIDs(char* pObjType COMMA) string pName)
+: onlyInDebug(ObjCounter(onlyWhenTrackingIDs(pObjType)) COMMA)
+name(pName) {
 }
 CType::~CType() {}
 CVoid::CVoid()
-: CType(onlyWhenTrackingIDs("VOIDTYP")) {
+: CType(onlyWhenTrackingIDs("VOIDTYP" COMMA) "void") {
 }
 CVoid::~CVoid() {}
-CPrimitive::CPrimitive(onlyWhenTrackingIDs(char* pObjType COMMA) short pBitSize)
-: CType(onlyWhenTrackingIDs(pObjType))
+CPrimitive::CPrimitive(onlyWhenTrackingIDs(char* pObjType COMMA) string pName, short pBitSize)
+: CType(onlyWhenTrackingIDs(pObjType COMMA) pName)
 , bitSize(pBitSize) {
 }
 CPrimitive::~CPrimitive() {}
-CIntegerPrimitive::CIntegerPrimitive(int pByteSize)
-: CPrimitive(onlyWhenTrackingIDs("INTPMTP" COMMA) pByteSize) {
+CIntegerPrimitive::CIntegerPrimitive(string pName, int pByteSize)
+: CPrimitive(onlyWhenTrackingIDs("INTPMTP" COMMA) pName, pByteSize) {
 }
 CIntegerPrimitive::~CIntegerPrimitive() {}
-CFloatingPointPrimitive::CFloatingPointPrimitive(int pByteSize)
-: CPrimitive(onlyWhenTrackingIDs("FLTPMTP" COMMA) pByteSize) {
+CFloatingPointPrimitive::CFloatingPointPrimitive(string pName, int pByteSize)
+: CPrimitive(onlyWhenTrackingIDs("FLTPMTP" COMMA) pName, pByteSize) {
 }
 CFloatingPointPrimitive::~CFloatingPointPrimitive() {}
 CFunctionType::CFunctionType()
-: CType(onlyWhenTrackingIDs("FUNCTYP")) {
+: CType(onlyWhenTrackingIDs("FUNCTYP" COMMA) "Function") {
 }
 CFunctionType::~CFunctionType() {}
 CClass::CClass(string pName)
-: CType(onlyWhenTrackingIDs("CLSSTYP"))
-, name(pName) {
+: CType(onlyWhenTrackingIDs("CLSSTYP" COMMA) pName) {
 }
 CClass::~CClass() {}

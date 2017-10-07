@@ -6,6 +6,8 @@ class SourceFile;
 class CDirective;
 class BigInt;
 class CType;
+class CVariableDefinition;
+class StatementList;
 template <class Type> class Array;
 
 enum class SeparatorType: unsigned char {
@@ -18,7 +20,6 @@ enum class OperatorType: unsigned char {
 //	None,
 	Dot,
 	ObjectMemberAccess,
-	FunctionCall,
 	Increment,
 	Decrement,
 	VariableLogicalNot,
@@ -209,16 +210,27 @@ public:
 };
 class Cast: public Operator {
 public:
-	Cast(CType* pType, bool pRaw, AbstractCodeBlock* source);
+	Cast(CType* pType, bool pIsRaw, AbstractCodeBlock* source);
 	virtual ~Cast();
 
 	CType* type;
-	bool raw;
+	bool isRaw;
 };
-class FunctionCall: public Operator {
+class FunctionCall: public Token {
 public:
-	FunctionCall(Token* function, Array<Token*>* pArguments);
+	FunctionCall(Token* pFunction, Array<Token*>* pArguments);
 	virtual ~FunctionCall();
 
+	Token* function;
 	Array<Token*>* arguments;
+};
+class FunctionDefinition: public Token {
+public:
+	FunctionDefinition(CType* pReturnType, Array<CVariableDefinition*>* pParameters, StatementList* pBody, int pContentPos,
+		int pEndContentPos, SourceFile* pOwningFile);
+	virtual ~FunctionDefinition();
+
+	CType* returnType;
+	Array<CVariableDefinition*>* parameters;
+	StatementList* body;
 };

@@ -73,7 +73,7 @@ void Replace::replaceTokens(Array<Token*>* tokens, PrefixTrie<char, CDirectiveRe
 			if (ti >= tokens->length)
 				Error::makeError(ErrorType::General, "expected an input list to follow", fullToken);
 			t = tokens->get(ti);
-			if ((a = dynamic_cast<AbstractCodeBlock*>(t)) == nullptr)
+			if ((a = dynamic_cast<AbstractCodeBlock*>(Token::getResultingToken(t))) == nullptr)
 				Error::makeError(ErrorType::General, "expected an input list", t);
 			Array<AbstractCodeBlock*>* arguments = collectArguments(a, r->input->length, fullToken);
 			//replace
@@ -90,9 +90,9 @@ void Replace::replaceTokens(Array<Token*>* tokens, PrefixTrie<char, CDirectiveRe
 			r->inUse = false;
 			throw;
 		}
-		//if we had arguments, save them away
+		//if we had arguments, save them away, making sure we get the full token
 		if (a != nullptr)
-			a->owningFile->replacedArguments->add(a);
+			a->owningFile->replacedArguments->add(t);
 		//insert them into the array, preserving the index relative to the end
 		int offsetFromEnd = tokens->length - ti;
 		if (r->input == nullptr)
@@ -143,7 +143,6 @@ SubstitutedToken* Replace::substituteTokens(Token* tokenBeingReplaced, Token* re
 	if ((s = dynamic_cast<SubstitutedToken*>(tokenBeingReplaced)) != nullptr)
 		return new SubstitutedToken(substituteTokens(s->resultingToken, resultingToken, deleteResultingToken), true, s);
 
-	assert(dynamic_cast<LexToken*>(resultingToken) != nullptr);
 	return new SubstitutedToken(resultingToken, deleteResultingToken, tokenBeingReplaced);
 }
 //recursively clone the replacement body, and substitute any other tokens under the parent token being replaced

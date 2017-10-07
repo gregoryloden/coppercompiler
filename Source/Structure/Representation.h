@@ -106,9 +106,12 @@ class MEMPTR;
 class AssemblyInstruction;
 class Expression;
 */
+class CType;
 template <class Type> class Array;
-class Identifier;
 class AbstractCodeBlock;
+class CVariableDefinition;
+class StatementList;
+class Token;
 template <class Key, class Value> class AVLTree;
 /*
 
@@ -419,9 +422,18 @@ public:
 	AbstractCodeBlock* abstractContents; //copper: private<writeonly ParseDirectives>
 	AVLTree<SourceFile*, bool>* includedFiles; //copper: private<readonly Include>
 	Array<SourceFile*>* inclusionListeners; //copper: private<readonly Include>
-	Array<AbstractCodeBlock*>* replacedArguments;
-	//Array<??????????> globalDefinitions;
+	Array<Token*>* replacedArguments; //copper: private<readonly Replace>
+	Array<CVariableDefinition*>* globalDefinitions; //copper: private<ParseExpressions>
 	//Array<??????????> typesDefined;
 //	Array<CVariable*>* variables;
 //	Array<CClass*>* classes;
+};
+class CVariableDefinition onlyInDebug(: public ObjCounter) {
+public:
+	CVariableDefinition(CType* pType, string pName, Token* pInitialization);
+	virtual ~CVariableDefinition();
+
+	CType* type;
+	string name;
+	Token* initialization;
 };

@@ -41,6 +41,7 @@ Thunk THeapAlloc ("HeapAlloc", 0x1BD);
 Thunk THeapReAlloc ("HeapReAlloc", 0x1C4);
 */
 
+template class Deleter<AbstractCodeBlock>;
 template class Deleter<BigInt>;
 template class Deleter<DirectiveTitle>;
 template class Deleter<Identifier>;
@@ -122,6 +123,10 @@ int Math::max(int a, int b) {
 	}
 #endif
 const char* Keyword::rawKeyword = "raw";
+const char* Keyword::ifKeyword = "if";
+const char* Keyword::forKeyword = "for";
+const char* Keyword::whileKeyword = "while";
+const char* Keyword::doKeyword = "do";
 template <class Type> Deleter<Type>::Deleter(Type* pToDelete)
 : onlyInDebug(ObjCounter(onlyWhenTrackingIDs("DELETER")) COMMA)
 toDelete(pToDelete) {
@@ -166,7 +171,7 @@ void Error::makeError(ErrorType type, const char* message, Token* token) {
 	char* errorPrefix;
 	switch (type) {
 		case ErrorType::Continuation: errorPrefix = "  --- in \"%s\" at line %d char %d\n"; break;
-		default:           errorPrefix = "Error in \"%s\" at line %d char %d: "; break;
+		default:                      errorPrefix = "Error in \"%s\" at line %d char %d: "; break;
 	}
 	printf(errorPrefix, owningFile->filename.c_str(), row + 1, token->contentPos - owningFile->rowStarts->get(row) + 1);
 	switch (type) {
@@ -197,13 +202,14 @@ void Error::showSnippet(Token* token) {
 }
 #ifdef DEBUG
 	//recursively print the contents of the abstract code block
-	void Debug::printAbstractCodeBlock(AbstractCodeBlock* codeBlock, int spacesCount) {
+	void Debug::printAbstractCodeBlock(AbstractCodeBlock* codeBlock, int tabsCount) {
 		if (codeBlock->directives != nullptr && codeBlock->directives->length > 0)
 			printf(" -- %d directives\n", codeBlock->directives->length);
 		else
 			printf("\n");
 		bool printedSpaces = false;
 		forEach(Token*, t, codeBlock->tokens, ti) {
+			t = Token::getResultingToken(t);
 			DirectiveTitle* dt;
 			if ((dt = dynamic_cast<DirectiveTitle*>(t)) != nullptr && printedSpaces) {
 				printf("\n");
@@ -212,7 +218,7 @@ void Error::showSnippet(Token* token) {
 			if (printedSpaces)
 				printf(" ");
 			else {
-				for (int j = 0; j < spacesCount; j++)
+				for (int j = 0; j < tabsCount; j++)
 					printf("    ");
 				printedSpaces = true;
 			}
@@ -222,30 +228,17 @@ void Error::showSnippet(Token* token) {
 					printf("()");
 				} else {
 					printf("(");
-					printAbstractCodeBlock(a, spacesCount + 1);
-					for (int i = 0; i < spacesCount; i++)
+					printAbstractCodeBlock(a, tabsCount + 1);
+					for (int i = 0; i < tabsCount; i++)
 						printf("    ");
 					printf(")");
 				}
 			} else {
-				t = Token::getResultingToken(t);
-				Identifier* i;
-				StringLiteral* s;
-				if ((i = dynamic_cast<Identifier*>(t)) != nullptr)
-					printf(i->name.c_str());
-				else if ((s = dynamic_cast<StringLiteral*>(t)) != nullptr)
-					printf("\"%s\"", s->val.c_str());
-				else {
-					char* contents = t->owningFile->contents;
-					char old = contents[t->endContentPos];
-					contents[t->endContentPos] = '\0';
-					printf(contents + t->contentPos);
-					contents[t->endContentPos] = old;
-					Separator* separator;
-					if ((separator = dynamic_cast<Separator*>(t)) != nullptr && separator->type == SeparatorType::Semicolon) {
-						printf("\n");
-						printedSpaces = false;
-					}
+				printToken(t);
+				Separator* separator;
+				if ((separator = dynamic_cast<Separator*>(t)) != nullptr && separator->type == SeparatorType::Semicolon) {
+					printf("\n");
+					printedSpaces = false;
 				}
 			}
 			if (dt != nullptr) {
@@ -255,6 +248,115 @@ void Error::showSnippet(Token* token) {
 		}
 		if (printedSpaces)
 			printf("\n");
+	}
+	//print the variable definition and its initialization if there is one
+	void Debug::printVariableDefinition(CVariableDefinition* definition, int tabsCount) {
+		printf(definition->type->name.c_str());
+		printf(" ");
+		if (definition->initialization != nullptr)
+			Debug::printTokenTree(definition->initialization, tabsCount, false);
+		else
+			printf(definition->name.c_str());
+		printf(";\n");
+	}
+	//recursively print the contents of the token tree
+	void Debug::printTokenTree(Token* t, int tabsCount, bool printOperatorParentheses) {
+		t = Token::getResultingToken(t);
+		Operator* o;
+		ParenthesizedExpression* p;
+		FunctionCall* fc;
+		FunctionDefinition* fd;
+		if ((o = dynamic_cast<Operator*>(t)) != nullptr) {
+			Cast* c;
+			if ((c = dynamic_cast<Cast*>(t)) != nullptr) {
+				printf("(");
+				if (c->isRaw)
+					printf("raw ");
+				printf(c->type->name.c_str());
+				printf(")(");
+				printTokenTree(c->right, tabsCount, false);
+				printf(")");
+			} else {
+				if (printOperatorParentheses)
+					printf("(");
+				if (o->left != nullptr)
+					printTokenTree(o->left, tabsCount, true);
+				printf(" ");
+				printToken(o);
+				printf(" ");
+				if (o->right != nullptr)
+					printTokenTree(o->right, tabsCount, true);
+				if (printOperatorParentheses)
+					printf(")");
+			}
+		} else if ((p = dynamic_cast<ParenthesizedExpression*>(t)) != nullptr)
+			printTokenTree(p, tabsCount, true);
+		else if ((fc = dynamic_cast<FunctionCall*>(t)) != nullptr) {
+			printTokenTree(fc->function, tabsCount, true);
+			printf("(");
+			bool printComma = false;
+			forEach(Token*, argument, fc->arguments, ai) {
+				if (printComma)
+					printf(", ");
+				else
+					printComma = true;
+				printTokenTree(argument, tabsCount, false);
+			}
+			printf(")");
+		} else if ((fd = dynamic_cast<FunctionDefinition*>(t)) != nullptr) {
+			printf(fd->returnType->name.c_str());
+			printf("(");
+			bool printComma = false;
+			forEach(CVariableDefinition*, parameter, fd->parameters, pi) {
+				if (printComma)
+					printf(", ");
+				else
+					printComma = true;
+				printf(parameter->type->name.c_str());
+				printf(" ");
+				printf(parameter->name.c_str());
+			}
+			printf(") (\n");
+			printStatementList(fd->body, tabsCount + 1);
+			for (int i = 0; i < tabsCount; i++)
+				printf("    ");
+			printf(")");
+		} else
+			printToken(t);
+	}
+	//print the contents of the statement
+	void Debug::printStatementList(StatementList* sl, int tabsCount) {
+		forEach(CVariableDefinition*, c, sl->variables, ci) {
+			for (int i = 0; i < tabsCount; i++)
+				printf("    ");
+			printVariableDefinition(c, tabsCount);
+		}
+		forEach(Statement*, s, sl->statements, si) {
+			for (int i = 0; i < tabsCount; i++)
+				printf("    ");
+			ExpressionStatement* e;
+			if ((e = dynamic_cast<ExpressionStatement*>(s)) != nullptr)
+				printTokenTree(e->expression, tabsCount, false);
+			printf(";\n");
+		}
+	}
+	//if it's an identifier or a string, it might have come from a replace, so print its contents
+	//if it's anything else, use the contentPos and endContentPos to print this token
+	void Debug::printToken(Token* t) {
+		assert(dynamic_cast<LexToken*>(t) != nullptr);
+		Identifier* i;
+		StringLiteral* s;
+		if ((i = dynamic_cast<Identifier*>(t)) != nullptr)
+			printf(i->name.c_str());
+		else if ((s = dynamic_cast<StringLiteral*>(t)) != nullptr)
+			printf("\"%s\"", s->val.c_str());
+		else {
+			char* contents = t->owningFile->contents;
+			char old = contents[t->endContentPos];
+			contents[t->endContentPos] = '\0';
+			printf(contents + t->contentPos);
+			contents[t->endContentPos] = old;
+		}
 	}
 	void Debug::crashProgram() {
 		*((char*)(nullptr)) = 0;

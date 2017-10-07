@@ -1507,7 +1507,8 @@ filename(pFilename)
 , abstractContents(nullptr)
 , includedFiles(new AVLTree<SourceFile*, bool>())
 , inclusionListeners(new Array<SourceFile*>())
-, replacedArguments(new Array<AbstractCodeBlock*>()) {
+, replacedArguments(new Array<Token*>())
+, globalDefinitions(new Array<CVariableDefinition*>()) {
 	//load the file
 	FILE* file = nullptr;
 	fopen_s(&file, filename.c_str(), "rb");
@@ -1532,4 +1533,16 @@ SourceFile::~SourceFile() {
 	delete inclusionListeners;
 	replacedArguments->deleteContents();
 	delete replacedArguments;
+	globalDefinitions->deleteContents();
+	delete globalDefinitions;
+}
+CVariableDefinition::CVariableDefinition(CType* pType, string pName, Token* pInitialization)
+: onlyInDebug(ObjCounter(onlyWhenTrackingIDs("VARDEF")) COMMA)
+type(pType)
+, name(pName)
+, initialization(pInitialization) {
+}
+CVariableDefinition::~CVariableDefinition() {
+	//don't delete the type since it's owned by something else
+	delete initialization;
 }

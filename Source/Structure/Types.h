@@ -6,11 +6,12 @@ template <class Key, class Value> class PrefixTrie;
 
 class CType onlyInDebug(: public ObjCounter) {
 protected:
-	CType(onlyWhenTrackingIDs(char* pObjType));
+	CType(onlyWhenTrackingIDs(char* pObjType COMMA) string pName);
 public:
 	virtual ~CType();
 
 	static PrefixTrie<char, CType*>* globalTypes;
+	string name;
 };
 class CVoid: public CType {
 public:
@@ -19,7 +20,7 @@ public:
 };
 class CPrimitive: public CType {
 protected:
-	CPrimitive(onlyWhenTrackingIDs(char* pObjType COMMA) short pBitSize);
+	CPrimitive(onlyWhenTrackingIDs(char* pObjType COMMA) string pName, short pBitSize);
 public:
 	virtual ~CPrimitive();
 
@@ -27,12 +28,12 @@ public:
 };
 class CIntegerPrimitive: public CPrimitive {
 public:
-	CIntegerPrimitive(int pByteSize);
+	CIntegerPrimitive(string pName, int pByteSize);
 	virtual ~CIntegerPrimitive();
 };
 class CFloatingPointPrimitive: public CPrimitive {
 public:
-	CFloatingPointPrimitive(int pByteSize);
+	CFloatingPointPrimitive(string pName, int pByteSize);
 	virtual ~CFloatingPointPrimitive();
 };
 class CFunctionType: public CType {
@@ -44,8 +45,6 @@ class CClass: public CType {
 public:
 	CClass(string pName);
 	virtual ~CClass();
-
-	string name;
 };
 /*
 class CEnum: public CType {

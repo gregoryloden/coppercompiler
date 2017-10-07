@@ -199,6 +199,14 @@ void compile(char* filename) {
 
 	ParseExpressions::parseExpressionsInFiles(allFiles);
 	returnIfErrors();
+	#ifdef DEBUG
+		forEach(SourceFile*, s, allFiles, si3) {
+			printf("Global definitions for \"%s\":\n", s->filename.c_str());
+			forEach(CVariableDefinition*, definition, s->globalDefinitions, di) {
+				Debug::printVariableDefinition(definition, 0);
+			}
+		}
+	#endif
 puts("Suspended until the rewrite is complete");
 }
 /*
@@ -396,13 +404,13 @@ bool isReservedWord(string s) {
 		s.compare("recurse") == 0 ||
 		//control flow
 		s.compare("return") == 0 ||
-		s.compare("if") == 0 ||
+		s.compare(Keyword::ifKeyword) == 0 ||
 		s.compare("else") == 0 ||
-		s.compare("for") == 0 ||
+		s.compare(Keyword::forKeyword) == 0 ||
 		s.compare("break") == 0 ||
 		s.compare("continue") == 0 ||
-		s.compare("while") == 0 ||
-		s.compare("do") == 0 ||
+		s.compare(Keyword::whileKeyword) == 0 ||
+		s.compare(Keyword::doKeyword) == 0 ||
 		s.compare("switch") == 0 ||
 		s.compare("case") == 0 ||
 		s.compare("default") == 0 ||

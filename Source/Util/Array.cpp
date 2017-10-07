@@ -10,9 +10,11 @@
 instantiateArrayTypes(AbstractCodeBlock*);
 instantiateArrayTypes(CDirective*);
 instantiateArrayTypes(CDirectiveReplace*);
+instantiateArrayTypes(CVariableDefinition*);
 instantiateArrayTypes(Identifier*);
 instantiateArrayTypes(LexToken*);
 instantiateArrayTypes(SourceFile*);
+instantiateArrayTypes(Statement*);
 instantiateArrayTypes(Token*);
 instantiateArrayTypes(Array<Token*>*);
 instantiateArrayTypes(AVLNode<SourceFile* COMMA bool>*);
