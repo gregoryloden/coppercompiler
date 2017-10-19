@@ -41,14 +41,14 @@ AbstractCodeBlock* ParseDirectives::parseAbstractCodeBlock(bool endsWithParenthe
 				dtDeleter.release();
 			} else if ((s = dynamic_cast<Separator*>(next)) != nullptr) {
 				if (s->separatorType == SeparatorType::LeftParenthesis) {
-					next = parseAbstractCodeBlock(true, s->contentPos + 1);
+					next = parseAbstractCodeBlock(true, s->contentPos);
 					delete s;
 				} else if (s->separatorType == SeparatorType::RightParenthesis) {
 					Deleter<Separator> sDeleter (s);
 					if (!endsWithParenthesis)
 						Error::makeError(
 							ErrorType::General, "found a right parenthesis without a matching left parenthesis", s);
-					endContentPos = s->contentPos;
+					endContentPos = s->endContentPos;
 					break;
 				}
 			}
@@ -105,7 +105,7 @@ CDirectiveReplace* ParseDirectives::completeDirectiveReplace(bool replaceInput, 
 	int parenthesisContentPos = parseSeparator(
 		SeparatorType::LeftParenthesis, "a starting left parenthesis for the replacement body", endOfFileErrorToken);
 	return new CDirectiveReplace(
-		toReplace.release(), input.release(), parseAbstractCodeBlock(true, parenthesisContentPos + 1), sourceFile);
+		toReplace.release(), input.release(), parseAbstractCodeBlock(true, parenthesisContentPos), sourceFile);
 }
 //get the definition of an include directive
 //parse location: the next token after the include directive
@@ -128,7 +128,7 @@ template <class TokenType> TokenType* ParseDirectives::parseToken(
 	TokenType* t;
 	if ((t = dynamic_cast<TokenType*>(l)) == nullptr) {
 		Deleter<LexToken> lDeleter (l);
-		makeUnexpectedTokenError(expectedTokenTypeName, l);
+		Error::makeError(ErrorType::Expected, expectedTokenTypeName, l);
 	}
 	return t;
 }
@@ -139,7 +139,7 @@ int ParseDirectives::parseSeparator(SeparatorType type, const char* expectedToke
 	Separator* s = parseToken<Separator>(expectedTokenTypeName, endOfFileErrorToken);
 	Deleter<Separator> sDeleter (s);
 	if (s->separatorType != type)
-		makeUnexpectedTokenError(expectedTokenTypeName, s);
+		Error::makeError(ErrorType::Expected, expectedTokenTypeName, s);
 	return s->contentPos;
 }
 //lex a comma-separated list of identifiers
@@ -158,7 +158,7 @@ Array<string>* ParseDirectives::parseReplaceParameters(Identifier* endOfFileErro
 		Separator* s;
 		if ((s = dynamic_cast<Separator*>(initial)) == nullptr || s->separatorType != SeparatorType::RightParenthesis) {
 			Deleter<LexToken> initialDeleter (initial);
-			makeUnexpectedTokenError("an identifier or right parenthesis", initial);
+			Error::makeError(ErrorType::Expected, "an identifier or right parenthesis", initial);
 		}
 		delete s;
 		return namesDeleter.release();
@@ -172,12 +172,7 @@ Array<string>* ParseDirectives::parseReplaceParameters(Identifier* endOfFileErro
 		if (s->separatorType == SeparatorType::RightParenthesis)
 			return namesDeleter.release();
 		else if (s->separatorType != SeparatorType::Comma)
-			makeUnexpectedTokenError(expectedTokenTypeName, s);
+			Error::makeError(ErrorType::Expected, expectedTokenTypeName, s);
 		identifier = parseToken<Identifier>("a replace-input parameter", endOfFileErrorToken);
 	}
-}
-//throw an error about an unexpected token
-void ParseDirectives::makeUnexpectedTokenError(const char* expectedTokenTypeName, Token* t) {
-	string message = string("expected ") + expectedTokenTypeName;
-	Error::makeError(ErrorType::General, message.c_str(), t);
 }

@@ -7,7 +7,6 @@ class Operator;
 class DirectiveTitle;
 enum class ErrorType: unsigned char;
 template <class Type> class Array;
-//class IntConstant;
 
 class Lex {
 private:

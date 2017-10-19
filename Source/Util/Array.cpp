@@ -16,13 +16,14 @@ instantiateArrayTypes(LexToken*);
 instantiateArrayTypes(SourceFile*);
 instantiateArrayTypes(Statement*);
 instantiateArrayTypes(Token*);
+instantiateArrayTypes(VariableInitialization*);
 instantiateArrayTypes(Array<Token*>*);
 instantiateArrayTypes(AVLNode<SourceFile* COMMA bool>*);
 instantiateNonPointerArrayTypes(char);
 instantiateNonPointerArrayTypes(int);
 instantiateNonPointerArrayTypes(string);
 instantiatePrefixTrieAVLNodeArrayTypes(char, CDirectiveReplace*);
-instantiatePrefixTrieAVLNodeArrayTypes(char, CType*);
+instantiatePrefixTrieAVLNodeArrayTypes(char, CDataType*);
 instantiatePrefixTrieAVLNodeArrayTypes(char, SourceFile*);
 
 template <class Type> Array<Type>::Array()
@@ -150,7 +151,7 @@ template <class Type> ArrayIterator<Type>::~ArrayIterator() {
 template <class Type> Type ArrayIterator<Type>::getFirst() {
 	return a->get(index = 0);
 }
-//get the next element of the array
+//advance to the next element of the array and return it
 template <class Type> Type ArrayIterator<Type>::getNext() {
 	return a->get(index += 1);
 }
@@ -158,9 +159,13 @@ template <class Type> Type ArrayIterator<Type>::getNext() {
 template <class Type> Type ArrayIterator<Type>::getThis() {
 	return a->get(index);
 }
+//go back to the previous element of the array and return it
+template <class Type> Type ArrayIterator<Type>::getPrevious() {
+	return a->get(index -= 1);
+}
 //check if this iterator has the element it just returned via getNext()
 template <class Type> bool ArrayIterator<Type>::hasThis() {
-	return index < a->length;
+	return (unsigned int)index < (unsigned int)(a->length);
 }
 //set an item in the array at the current index
 template <class Type> void ArrayIterator<Type>::replaceThis(Type t) {

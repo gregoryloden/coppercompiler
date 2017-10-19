@@ -1,8 +1,18 @@
 #include "Project.h"
 
 //converts abstract sequences of tokens into structured trees
-//provides each source file with a list of global variable definitions and type definitions
+//provides each source file with a list of global variable definitions and completed type definitions
 
+const char* ParseExpressions::returnKeyword = "return";
+const char* ParseExpressions::ifKeyword = "if";
+const char* ParseExpressions::elseKeyword = "else";
+const char* ParseExpressions::forKeyword = "for";
+const char* ParseExpressions::whileKeyword = "while";
+const char* ParseExpressions::doKeyword = "do";
+const char* ParseExpressions::continueKeyword = "continue";
+const char* ParseExpressions::breakKeyword = "break";
+const char* ParseExpressions::classKeyword = "class";
+const char* ParseExpressions::rawKeyword = "raw";
 //parse all expressions in all files
 void ParseExpressions::parseExpressionsInFiles(Array<SourceFile*>* files) {
 	forEach(SourceFile*, s, files, si) {
@@ -13,119 +23,146 @@ void ParseExpressions::parseExpressionsInFiles(Array<SourceFile*>* files) {
 		}
 	}
 }
+//get the next token from the array as a token of the specified type
+//parse location: the location of the resulting token
+//may throw
+template <class TokenType> TokenType* ParseExpressions::parseExpectedToken(
+	ArrayIterator<Token*>* ti, Token* precedingToken, const char* tokenDescription)
+{
+	Token* nextToken = ti->getNext();
+	if (!ti->hasThis())
+		Error::makeError(ErrorType::ExpectedToFollow, tokenDescription, precedingToken);
+	TokenType* t;
+	if ((t = dynamic_cast<TokenType*>(nextToken)) == nullptr)
+		Error::makeError(ErrorType::Expected, tokenDescription, nextToken);
+	return t;
+}
 //parse all the definitions in the source file and store them in it
 //parse location: EOF
 void ParseExpressions::parseGlobalDefinitions(SourceFile* sf) {
-	forEach(Token*, fullToken, sf->abstractContents->tokens, ti) {
+	forEach(Token*, t, sf->abstractContents->tokens, ti) {
 		try {
 			ti.replaceThis(nullptr);
-			Deleter<Token> fullTokenDeleter (fullToken);
-			Token* t = Token::getResultingToken(fullToken);
+			Deleter<Token> tDeleter (t);
 			Identifier* i;
-			CType* ct;
 			DirectiveTitle* dt;
-			if ((i = dynamic_cast<Identifier*>(t)) != nullptr &&
-					(ct = CType::globalTypes->get(i->name.c_str(), i->name.length())) != nullptr)
-				sf->globalDefinitions->add(completeVariableDefinition(ct, fullToken, &ti));
-			else if ((dt = dynamic_cast<DirectiveTitle*>(t)) != nullptr)
+			if ((i = dynamic_cast<Identifier*>(t)) != nullptr) {
+				CDataType* cdt;
+				if (i->name == classKeyword) {
+					//TODO: handle type definitions
+				} if ((cdt = CDataType::globalDataTypes->get(i->name.c_str(), i->name.length())) != nullptr) {
+					//make sure this is a variable definition
+					Identifier* variableName = parseExpectedToken<Identifier>(&ti, t, "a variable name");
+					ti.replaceThis(nullptr);
+					sf->globalVariables->add(
+						completeVariableInitialization(i, cdt, variableName, &ti, SeparatorType::Semicolon));
+					continue;
+				}
+			} else if ((dt = dynamic_cast<DirectiveTitle*>(t)) != nullptr)
+				//TODO: handle #enable directives
 				continue;
-			else
-				//TODO: handle type definitions
-				Error::makeError(ErrorType::General, "expected a type or variable definition", fullToken);
+			Error::makeError(ErrorType::Expected, "a type or variable definition", t);
 		} catch (...) {
 		}
 	}
-	//TODO: ???????????? what do we do with variable definitions?
 }
-//we parsed a type name, now get a variable initialization
-//parse location: the semicolon after the variable definition
+//we parsed a type name and a variable name, now get any other variables defined, possibly with an initialization
+//parse location: the semicolon after the variable definitions/initialization | the end of the token array
 //may throw
-CVariableDefinition* ParseExpressions::completeVariableDefinition(CType* type, Token* fullToken, ArrayIterator<Token*>* ti) {
-	ti->getNext();
-	Token* definition =
-		parseExpression(ti, (unsigned char)SeparatorType::Semicolon, "expected a variable assignment to follow", fullToken);
-	Token* t = Token::getResultingToken(definition);
-	Identifier* i;
-	if ((i = dynamic_cast<Identifier*>(t)) != nullptr) {
-		CVariableDefinition* result = new CVariableDefinition(type, i->name, nullptr);
-		delete i;
-		return result;
+VariableInitialization* ParseExpressions::completeVariableInitialization(
+	Identifier* typeToken, CDataType* type, Identifier* name, ArrayIterator<Token*>* ti, SeparatorType endingSeparatorType)
+{
+	Array<CVariableDefinition*>* variables = new Array<CVariableDefinition*>();
+	ArrayContentDeleter<CVariableDefinition> variablesDeleter (variables);
+	variables->add(new CVariableDefinition(type, name));
+	Identifier* lastName = name;
+	string expectedTokensMessage =
+		buildExpectedSeparatorErrorMessage((unsigned char)endingSeparatorType | (unsigned char)SeparatorType::Comma, false) +
+		", or assignment operator";
+	while (true) {
+		Token* t = parseExpectedToken<Token>(ti, lastName, expectedTokensMessage.c_str());
+		Separator* s;
+		Operator* o;
+		if ((s = dynamic_cast<Separator*>(t)) != nullptr &&
+			(s->separatorType == SeparatorType::Comma || s->separatorType == endingSeparatorType))
+		{
+			if (s->separatorType == SeparatorType::Comma) {
+				Identifier* i = parseExpectedToken<Identifier>(ti, t, "a variable name or type name");
+				CDataType* cdt;
+				if ((cdt = CDataType::globalDataTypes->get(i->name.c_str(), i->name.length())) != nullptr) {
+					type = cdt;
+					i = parseExpectedToken<Identifier>(ti, i, "a variable name");
+				}
+				lastName = i;
+				ti->replaceThis(nullptr);
+				variables->add(new CVariableDefinition(type, lastName));
+			} else
+				return new VariableInitialization(variablesDeleter.release(), nullptr, lastName);
+		} else if ((o = dynamic_cast<Operator*>(t)) != nullptr && o->operatorType == OperatorType::Assign) {
+			ti->getNext();
+			Token* initialization = parseExpression(
+				ti,
+				(unsigned char)endingSeparatorType,
+				ErrorType::ExpectedToFollow,
+				"an variable initialization expression",
+				o);
+			return new VariableInitialization(variablesDeleter.release(), initialization, getLastToken(initialization));
+		} else
+			Error::makeError(ErrorType::Expected, expectedTokensMessage.c_str(), t);
 	}
-	Operator* o;
-	if ((o = dynamic_cast<Operator*>(t)) == nullptr || o->operatorType != OperatorType::Assign)
-		Error::makeError(ErrorType::General, "invalid variable initialization", definition);
-	if ((i = dynamic_cast<Identifier*>(Token::getResultingToken(o->left))) == nullptr)
-		Error::makeError(ErrorType::General, "expected a variable name", o->left);
-	return new CVariableDefinition(type, i->name, definition);
 }
 //this is the main loop of parsing
-//return the expression that starts at the current iterator position
+//return the expression that starts at the current token
 //fully expects a non-empty expression and nothing else- other functions will find things like parameters or keywords
-//parse location: one of the ending separator types | the end of the abstract code block (EOF for the global one)
+//does not accept variable initializations
+//parse location: one of the ending separator types | the end of the token array if we can end on a right parenthesis
 //may throw
 Token* ParseExpressions::parseExpression(ArrayIterator<Token*>* ti, unsigned char endingSeparatorTypes,
-	char* emptyExpressionErrorMessage, Token* emptyExpressionErrorToken)
+	ErrorType expectedExpressionErrorType, const char* expectedExpressionErrorMessage, Token* expectedExpressionErrorToken)
 {
 	Token* activeExpression = nullptr;
 	try {
-		forEachContinued(Token*, fullToken, ti) {
+		forEachContinued(Token*, t, ti) {
 			ti->replaceThis(nullptr);
-			Deleter<Token> fullTokenDeleter (fullToken);
-			Token* t = Token::getResultingToken(fullToken);
-			Separator* s;
+			Deleter<Token> tDeleter (t);
+
 			//before we do anything, see if we're done parsing
+			Separator* s;
 			if ((s = dynamic_cast<Separator*>(t)) != nullptr) {
+				assert(s->separatorType != SeparatorType::RightParenthesis);
 				if (activeExpression != nullptr && (endingSeparatorTypes & (unsigned char)(s->separatorType)) != 0)
 					return activeExpression;
-				string errorMessage = "unexpected " + Separator::separatorName(s->separatorType);
-				Error::makeError(ErrorType::General, errorMessage.c_str(), fullToken);
+				string errorMessage = "unexpected " + Separator::separatorName(s->separatorType, false);
+				Error::makeError(ErrorType::General, errorMessage.c_str(), s);
 			}
+
 			AbstractCodeBlock* a;
 			Operator* o;
-			DirectiveTitle* dt;
+			//abstract code blocks and operators have their own handling
 			if ((a = dynamic_cast<AbstractCodeBlock*>(t)) != nullptr) {
-				activeExpression = evaluateAbstractCodeBlock(a, fullToken, activeExpression, ti);
-				continue; //the tokens have been taken so let it get deleted
-			} else if ((o = dynamic_cast<Operator*>(t)) != nullptr) {
-				SubstitutedToken* st;
-				//replace the operator if it's substituted
-				if ((st = dynamic_cast<SubstitutedToken*>(fullToken)) != nullptr)
-					st->replaceResultingToken(
-						o = new Operator(o->operatorType, o->contentPos, o->endContentPos, o->owningFile));
-				activeExpression = addToOperator(o, fullToken, activeExpression, ti);
-			} else if ((dt = dynamic_cast<DirectiveTitle*>(t)) != nullptr)
-				continue; //let the directive title get deleted
+				activeExpression = evaluateAbstractCodeBlock(a, activeExpression, ti);
+				continue; //we're done with the abstract code block so let it get deleted
+			} else if ((o = dynamic_cast<Operator*>(t)) != nullptr)
+				activeExpression = addToOperator(o, activeExpression, ti);
 			//we don't have anything yet so we expect a value expression
 			else if (activeExpression == nullptr)
-				activeExpression = getValueExpression(t, fullToken, ti);
-			else
-				Error::makeError(ErrorType::General, "expected an operator or end of expression", fullToken);
-			fullTokenDeleter.release();
+				activeExpression = parseValueExpression(t, ti);
+			else {
+				string errorMessage =
+					buildExpectedSeparatorErrorMessage(endingSeparatorTypes, false) + ", operator, or end of expression";
+				Error::makeError(ErrorType::Expected, errorMessage.c_str(), t);
+			}
+			tDeleter.release();
 		}
 
+		//an empty expression is never OK
 		if (activeExpression == nullptr) {
-			assert(emptyExpressionErrorMessage != nullptr && emptyExpressionErrorToken != nullptr);
-			Error::makeError(ErrorType::General, emptyExpressionErrorMessage, emptyExpressionErrorToken);
+			assert(expectedExpressionErrorMessage != nullptr && expectedExpressionErrorToken != nullptr);
+			Error::makeError(expectedExpressionErrorType, expectedExpressionErrorMessage, expectedExpressionErrorToken);
+		//error if we weren't supposed to end on a right parenthesis
 		} else if ((endingSeparatorTypes & (unsigned char)SeparatorType::RightParenthesis) == 0) {
-			//find the last token to use as the error token
-			Token* lastToken = activeExpression;
-			ParenthesizedExpression* p = nullptr;
-			while (true) {
-				Operator* o;
-				Token* resultingLastToken = Token::getResultingToken(lastToken);
-				if ((o = dynamic_cast<Operator*>(resultingLastToken)) != nullptr && o->right != nullptr)
-					lastToken = o->right;
-				else {
-					p = dynamic_cast<ParenthesizedExpression*>(resultingLastToken);
-					break;
-				}
-			}
-			//if it was a parenthesized expression, use the end content pos instead of the regular content pos
-			EmptyToken errorToken (p == nullptr ? lastToken->contentPos : p->endContentPos, lastToken->owningFile);
-			if (endingSeparatorTypes == (unsigned char)SeparatorType::Semicolon)
-				Error::makeError(ErrorType::General, "expected a semicolon to follow", &errorToken);
-			else
-				Error::makeError(ErrorType::General, "unexpected end of expression", &errorToken);
+			string errorMessage = buildExpectedSeparatorErrorMessage(endingSeparatorTypes, true);
+			Error::makeError(ErrorType::ExpectedToFollow, errorMessage.c_str(), getLastToken(activeExpression));
 		}
 	} catch (...) {
 		delete activeExpression;
@@ -140,17 +177,17 @@ Token* ParseExpressions::parseExpression(ArrayIterator<Token*>* ti, unsigned cha
 //if it's a value on it's own, we're done
 //parse location: the location of the given token | the next value token after the location of the given operator
 //may throw
-Token* ParseExpressions::getValueExpression(Token* t, Token* fullToken, ArrayIterator<Token*>* ti) {
+Token* ParseExpressions::parseValueExpression(Token* t, ArrayIterator<Token*>* ti) {
 	Operator* o;
 	AbstractCodeBlock* a;
 	DirectiveTitle* dt;
 	//try to parse a prefix operator
 	if ((o = dynamic_cast<Operator*>(t)) != nullptr)
-		addToOperator(o, fullToken, nullptr, ti);
+		addToOperator(o, nullptr, ti);
 	//parse a parenthesized expression or a cast
 	else if ((a = dynamic_cast<AbstractCodeBlock*>(t)) != nullptr)
-		return evaluateAbstractCodeBlock(a, fullToken, nullptr, ti);
-	//a select few directives represent values or contain values like #file or #enable
+		return evaluateAbstractCodeBlock(a, nullptr, ti);
+	//a select few directives represent values or contain values like #file
 	else if ((dt = dynamic_cast<DirectiveTitle*>(t)) != nullptr) {
 		//TODO: but not yet
 	//parse a regular single value
@@ -158,18 +195,18 @@ Token* ParseExpressions::getValueExpression(Token* t, Token* fullToken, ArrayIte
 			dynamic_cast<IntConstant*>(t) != nullptr ||
 			dynamic_cast<FloatConstant*>(t) != nullptr ||
 			dynamic_cast<StringLiteral*>(t) != nullptr)
-		return fullToken;
+		return t;
 	assert(dynamic_cast<ParenthesizedExpression*>(t) == nullptr);
-	Error::makeError(ErrorType::General, "expected a value", fullToken);
+	Error::makeError(ErrorType::Expected, "a value", t);
 	return nullptr;
 }
 //this is the meat of parsing, where retcon parsing happens
-//add a token to the right side of this operator, cascade as necessary
+//if applicable, add a token to the right side of this operator, cascading as necessary
 //it could be prefix, postfix, binary, or ternary, and it might have been lexed wrong
 //whatever it is, figure it out with what we've got
 //parse location: the next value token after this operator
 //may throw
-Token* ParseExpressions::addToOperator(Operator* o, Token* fullToken, Token* activeExpression, ArrayIterator<Token*>* ti) {
+Token* ParseExpressions::addToOperator(Operator* o, Token* activeExpression, ArrayIterator<Token*>* ti) {
 	//if we parsed a subtraction sign but there's no active expression, it's a negative sign
 	if (activeExpression == nullptr && o->operatorType == OperatorType::Subtract) {
 		o->operatorType = OperatorType::Negate;
@@ -178,91 +215,82 @@ Token* ParseExpressions::addToOperator(Operator* o, Token* fullToken, Token* act
 
 	//whatever the operator is, if it's not postfix then we expect a value to follow
 	if (o->precedence != OperatorTypePrecedence::Postfix) {
-		Token* nextFullToken = ti->getNext();
-		if (!ti->hasThis())
-			Error::makeError(ErrorType::General, "expected a value to follow", fullToken);
+		Token* t = parseExpectedToken<Token>(ti, o, "a value");
 		ti->replaceThis(nullptr);
-		Deleter<Token> nextFullTokenDeleter (nextFullToken);
-		Token* t = Token::getResultingToken(nextFullToken);
-		o->right = getValueExpression(t, nextFullToken, ti);
+		Deleter<Token> tDeleter (t);
+		o->right = parseValueExpression(t, ti);
 		//if it's an abstract code block then we're done with it and actually do want to delete it, but otherwise release it
 		AbstractCodeBlock* a;
 		if ((a = dynamic_cast<AbstractCodeBlock*>(t)) == nullptr)
-			nextFullTokenDeleter.release();
+			tDeleter.release();
 	}
 
 	//we have no active expression- this is ok for prefix operators but nothing else
 	if (activeExpression == nullptr) {
 		if (o->precedence != OperatorTypePrecedence::Prefix)
-			Error::makeError(ErrorType::General, "expected a value", fullToken);
+			Error::makeError(ErrorType::Expected, "a value", o);
 		//since we already got the following value we can just return the token
-		return fullToken;
+		return o;
 	//of course, if we do have an active expression, then we can't have a prefix operator
 	} else if (o->precedence == OperatorTypePrecedence::Prefix)
-		Error::makeError(ErrorType::General, "unexpected prefix operator", fullToken);
+		Error::makeError(ErrorType::General, "unexpected prefix operator", o);
 
 	//since we have an active expression, check to see if it's an operator with a lower precedence
 	//if so, we need to go through and reassign
-	//nothing can take the right hand side of a postfix operator since it's nullptr
+	//this handles postfix operators since their right side is nullptr
 	Operator* oNext;
-	if ((oNext = dynamic_cast<Operator*>(Token::getResultingToken(activeExpression))) != nullptr &&
-		o->takesRightHandPrecedence(oNext))
-	{
+	if ((oNext = dynamic_cast<Operator*>(activeExpression)) != nullptr && o->takesRightSidePrecedence(oNext)) {
 		Operator* oParent = oNext;
-		while ((oNext = dynamic_cast<Operator*>(Token::getResultingToken(oParent->right))) != nullptr &&
-				o->takesRightHandPrecedence(oNext))
+		while ((oNext = dynamic_cast<Operator*>(oParent->right)) != nullptr && o->takesRightSidePrecedence(oNext))
 			oParent = oNext;
 		o->left = oParent->right;
-		oParent->right = fullToken;
+		oParent->right = o;
 		return activeExpression;
 	//it's not an operator or it's a higher precedence, we're done
 	} else {
 		o->left = activeExpression;
-		return fullToken;
+		return o;
 	}
 }
 //complete whatever expression we have using the abstract code block
 //if there is no active expression, this could be a cast or a value expression
 //if there is, this could be a function call or function parameters
-//whatever it is, it's not a statement list
+//but it's not a statement list
 //parse location: the last token of whatever expression uses this abstract code block
 //may throw
-Token* ParseExpressions::evaluateAbstractCodeBlock(
-	AbstractCodeBlock* a, Token* fullToken, Token* activeExpression, ArrayIterator<Token*>* ti)
-{
+Token* ParseExpressions::evaluateAbstractCodeBlock(AbstractCodeBlock* a, Token* activeExpression, ArrayIterator<Token*>* ti) {
 	Identifier* i;
-	CType* ct;
-	//since we have no active expression, this could be either a value or a cast
+	CDataType* cdt;
+	//since we have no active expression, this could be either a cast, a variable initialization, or a value
 	if (activeExpression == nullptr) {
 		if (a->tokens->length == 0)
-			Error::makeError(ErrorType::General, "expected a value", fullToken);
+			Error::makeError(ErrorType::Expected, "a value", a);
 		Token* lastToken = a->tokens->last();
-		if ((i = dynamic_cast<Identifier*>(Token::getResultingToken(lastToken))) != nullptr &&
-				(ct = CType::globalTypes->get(i->name.c_str(), i->name.length())) != nullptr)
-			return completeCast(ct, a, ti);
-		else {
-			ArrayIterator<Token*> ai (a->tokens);
-			return new ParenthesizedExpression(
-				parseExpression(&ai, (unsigned char)SeparatorType::RightParenthesis, "expected an expression", fullToken), a);
-		}
+		if ((i = dynamic_cast<Identifier*>(lastToken)) != nullptr &&
+				(cdt = CDataType::globalDataTypes->get(i->name.c_str(), i->name.length())) != nullptr)
+			return completeCast(cdt, a, ti);
+		else
+			return completeParenthesizedExpression(a, true);
 	}
 
 	//since we have an active expression, find the rightmost value
 	//this could be either a function definition or a function call
 	Operator* oParent = nullptr;
 	Operator* oNext;
-	if ((oNext = dynamic_cast<Operator*>(Token::getResultingToken(activeExpression))) != nullptr) {
+	if ((oNext = dynamic_cast<Operator*>(activeExpression)) != nullptr) {
 		do {
 			oParent = oNext;
-		} while ((oNext = dynamic_cast<Operator*>(Token::getResultingToken(oParent->right))));
+		} while ((oNext = dynamic_cast<Operator*>(oParent->right)) &&
+			//function calls are like postfix operators, don't steal the right side of operators with a higher precedence
+			oNext->precedence < OperatorTypePrecedence::Postfix);
 	}
 	Token* lastToken = oParent == nullptr ? activeExpression : oParent->right;
 	Token* newToken;
 	//in order for it to be a function definition, the type must be the last token and not in any parentheses
-	if ((i = dynamic_cast<Identifier*>(Token::getResultingToken(lastToken))) != nullptr &&
-		(ct = CType::globalTypes->get(i->name.c_str(), i->name.length())) != nullptr)
+	if ((i = dynamic_cast<Identifier*>(lastToken)) != nullptr &&
+		(cdt = CDataType::globalDataTypes->get(i->name.c_str(), i->name.length())) != nullptr)
 	{
-		newToken = completeFunctionDefinition(ct, lastToken, a, ti);
+		newToken = completeFunctionDefinition(cdt, a, ti);
 		delete lastToken;
 	} else
 		newToken = completeFunctionCall(lastToken, a);
@@ -272,215 +300,348 @@ Token* ParseExpressions::evaluateAbstractCodeBlock(
 	} else
 		return newToken;
 }
-//get a cast expression with the type
+//get a cast expression with the type, and check that the abstract code block is a proper cast
 //parse location: the next value token after this cast
 //may throw
-Token* ParseExpressions::completeCast(CType* type, AbstractCodeBlock* castBody, ArrayIterator<Token*>* ti) {
+Token* ParseExpressions::completeCast(CDataType* type, AbstractCodeBlock* castBody, ArrayIterator<Token*>* ti) {
 	Identifier* i;
 	bool rawCast = (castBody->tokens->length >= 2 &&
-		(i = dynamic_cast<Identifier*>(Token::getResultingToken(castBody->tokens->first()))) != nullptr &&
-		i->name == Keyword::rawKeyword);
+		(i = dynamic_cast<Identifier*>(castBody->tokens->first())) != nullptr &&
+		i->name == rawKeyword);
 	if (castBody->tokens->length > (rawCast ? 2 : 1))
 		Error::makeError(ErrorType::General, "unexpected token in type cast", castBody->tokens->get(rawCast ? 1 : 0));
 	Cast* cast = new Cast(type, rawCast, castBody);
-	Token* castFullToken = castBody->tokens->last();
-	//if the type name was substituted, use it for the operator
-	SubstitutedToken* st;
-	if ((st = dynamic_cast<SubstitutedToken*>(castFullToken)) != nullptr) {
-		st->replaceResultingToken(cast);
-		castBody->tokens->set(castBody->tokens->length - 1, nullptr);
-	} else
-		castFullToken = cast;
-	Deleter<Token> castDeleter (castFullToken);
-	Token* value = addToOperator(cast, castFullToken, nullptr, ti);
+	Deleter<Token> castDeleter (cast);
+	Token* value = addToOperator(cast, nullptr, ti);
 	assert(value == cast);
-	castDeleter.release();
-	return value;
+	return castDeleter.release();
 }
-//get a function definition from the given abstract code block as parameters plus a following function body
+//get an expression from the abstract code block, possibly a variable initialization (with a value required)
+//parse location: no change (the location of the abstract code block)
+//may throw
+Token* ParseExpressions::completeParenthesizedExpression(AbstractCodeBlock* a, bool wrapExpression) {
+	Identifier* typeName;
+	CDataType* cdt;
+	Identifier* variableName;
+	ArrayIterator<Token*> ai (a->tokens);
+	//check if we have a variable initialization
+	if (a->tokens->length >= 2 &&
+		(typeName = dynamic_cast<Identifier*>(a->tokens->first())) != nullptr &&
+		(cdt = CDataType::globalDataTypes->get(typeName->name.c_str(), typeName->name.length())) != nullptr &&
+		(variableName = dynamic_cast<Identifier*>(a->tokens->get(1))) != nullptr)
+	{
+		//don't forget to remove the variable name from the array
+		ai.getNext();
+		ai.replaceThis(nullptr);
+		VariableInitialization* variableInitialization =
+			completeVariableInitialization(typeName, cdt, variableName, &ai, SeparatorType::RightParenthesis);
+		//in an expression, declared variables must be initialized
+		if (variableInitialization->initialization == nullptr) {
+			Deleter<VariableInitialization> variableInitializationDeleter (variableInitialization);
+			Error::makeError(ErrorType::ExpectedToFollow, "a variable initialization", variableInitialization);
+		}
+		return variableInitialization;
+	} else {
+		EmptyToken errorToken (a->contentPos + 1, a->owningFile);
+		Token* expression = parseExpression(
+			&ai, (unsigned char)SeparatorType::RightParenthesis, ErrorType::Expected, "an expression", &errorToken);
+		return wrapExpression ? new ParenthesizedExpression(expression, a) : expression;
+	}
+}
+//get a function definition from the given abstract code block as parameters and then parse a following function body
 //parse location: the function body
 //may throw
 Token* ParseExpressions::completeFunctionDefinition(
-	CType* type, Token* fullToken, AbstractCodeBlock* parametersBlock, ArrayIterator<Token*>* ti)
+	CDataType* type, AbstractCodeBlock* parametersBlock, ArrayIterator<Token*>* ti)
 {
 	Array<CVariableDefinition*>* parameters = new Array<CVariableDefinition*>();
-	StatementList* statements = nullptr;
-	try {
-		//parse parameters
-		Token* commaFullToken = nullptr;
-		forEach(Token*, typeFullToken, parametersBlock->tokens, pi) {
-			Token* t = Token::getResultingToken(typeFullToken);
-			Identifier* i;
-			CType* ct;
-			if ((i = dynamic_cast<Identifier*>(t)) == nullptr ||
-					(ct = CType::globalTypes->get(i->name.c_str(), i->name.length())) == nullptr)
-				Error::makeError(ErrorType::General, "expected a type name", typeFullToken);
-			i = getExpectedToken<Identifier>(&pi, typeFullToken, "variable name");
-			commaFullToken = pi.getNext();
-			if (pi.hasThis()) {
-				Separator* s;
-				if ((s = dynamic_cast<Separator*>(commaFullToken)) == nullptr || s->separatorType != SeparatorType::Comma)
-					Error::makeError(ErrorType::General, "expected a comma or right parenthesis", commaFullToken);
-			} else
-				commaFullToken = nullptr;
-			parameters->add(new CVariableDefinition(ct, i->name, nullptr));
-		}
-		if (commaFullToken != nullptr)
-			Error::makeError(ErrorType::General, "trailing comma in parentheses list", commaFullToken);
-		AbstractCodeBlock* bodyBlock = getExpectedToken<AbstractCodeBlock>(ti, fullToken, "function body");
-		ti->replaceThis(nullptr);
-		Deleter<AbstractCodeBlock> bodyBlockDeleter (bodyBlock);
-		statements = parseStatements(bodyBlock);
-	} catch (...) {
-		parameters->deleteContents();
-		delete parameters;
-		throw;
+	ArrayContentDeleter<CVariableDefinition> parametersDeleter (parameters);
+	//parse parameters
+	Token* comma = nullptr;
+	forEach(Token*, t, parametersBlock->tokens, pi) {
+		Identifier* i;
+		CDataType* cdt;
+		if ((i = dynamic_cast<Identifier*>(t)) == nullptr ||
+				(cdt = CDataType::globalDataTypes->get(i->name.c_str(), i->name.length())) == nullptr)
+			Error::makeError(ErrorType::Expected, "a type name", t);
+		Identifier* variableName = parseExpectedToken<Identifier>(&pi, t, "a variable name");
+		pi.replaceThis(nullptr);
+		Deleter<Identifier> variableNameDeleter (variableName);
+		comma = pi.getNext();
+		if (pi.hasThis()) {
+			Separator* s;
+			if ((s = dynamic_cast<Separator*>(comma)) == nullptr || s->separatorType != SeparatorType::Comma) {
+				string errorMessage = buildExpectedSeparatorErrorMessage(
+					(unsigned char)SeparatorType::Comma | (unsigned char)SeparatorType::RightParenthesis, true);
+				Error::makeError(ErrorType::Expected, errorMessage.c_str(), comma);
+			}
+		} else
+			comma = nullptr;
+		parameters->add(new CVariableDefinition(cdt, variableNameDeleter.release()));
 	}
-	return new FunctionDefinition(
-		type, parameters, statements, parametersBlock->contentPos, parametersBlock->endContentPos, parametersBlock->owningFile);
+	if (comma != nullptr)
+		Error::makeError(ErrorType::General, "trailing comma in parentheses list", comma);
+	Array<Statement*>* statements = parseStatementList(ti, parametersBlock, "a function body", false);
+	return new FunctionDefinition(type, parametersDeleter.release(), statements, ti->getThis());
 }
 //convert the given arguments into a list of arguments
 //parse location: no change (the location of the given abstract code block)
 //may throw
 Token* ParseExpressions::completeFunctionCall(Token* function, AbstractCodeBlock* argumentsBlock) {
 	Array<Token*>* arguments = new Array<Token*>();
-	try {
-		forEach(Token*, t, argumentsBlock->tokens, ti) {
-			t = parseExpression(
-				&ti,
-				(unsigned char)(SeparatorType::Comma) | (unsigned char)(SeparatorType::RightParenthesis),
-				//we already know that the array isn't empty so we don't have to worry about an empty expression error
-				nullptr,
-				nullptr);
-			arguments->add(t);
-		}
-	} catch (...) {
-		arguments->deleteContents();
-		delete arguments;
-		throw;
+	ArrayContentDeleter<Token> argumentsDeleter (arguments);
+	forEach(Token*, t, argumentsBlock->tokens, ti) {
+		arguments->add(parseExpression(
+			&ti,
+			(unsigned char)SeparatorType::Comma | (unsigned char)SeparatorType::RightParenthesis,
+			//we already know that the array isn't empty so we don't have to worry about an empty expression error
+			ErrorType::General,
+			nullptr,
+			nullptr));
 	}
-	return new FunctionCall(function, arguments);
+	return new FunctionCall(function, argumentsDeleter.release(), argumentsBlock);
 }
-//get a token of the specified type from the array
-//parse location: the location of the resulting token
+//get a statement list, erroring if there's nothing left
+//if it's a single statement and we accept those, return just that
+//if it's a single statement and we don't accept it, error because we require a parenthesized statement list
+//parse location: the statement list (statement list) | the semicolon of the statement (single statement)
 //may throw
-template <class TokenType> TokenType* ParseExpressions::getExpectedToken(
-	ArrayIterator<Token*>* ti, Token* precedingFullToken, const char* tokenDescription)
+Array<Statement*>* ParseExpressions::parseStatementList(
+	ArrayIterator<Token*>* ti, Token* noValueErrorToken, const char* statementDescription, bool acceptSingleStatement)
 {
-	Token* nextFullToken = ti->getNext();
-	if (!ti->hasThis()) {
-		string errorMessage = string("expected a ") + tokenDescription + " to follow";
-		Error::makeError(ErrorType::General, errorMessage.c_str(), precedingFullToken);
+	Token* t = parseExpectedToken<Token>(ti, noValueErrorToken, statementDescription);
+	Array<Statement*>* statements = new Array<Statement*>();
+	ArrayContentDeleter<Statement> statementsDeleter (statements);
+	//if this is not an abstract code block or it is but it lacks semicolons, then this is a single statement
+	AbstractCodeBlock* a;
+	if ((a = dynamic_cast<AbstractCodeBlock*>(t)) == nullptr || (!hasSemicolon(a) && a->tokens->length > 0)) {
+		if (acceptSingleStatement) {
+			Statement* s;
+			if ((s = parseStatement(ti)) != nullptr)
+				statements->add(s);
+			return statementsDeleter.release();
+		} else
+			Error::makeError(ErrorType::Expected, statementDescription, t);
 	}
-	TokenType* t;
-	if ((t = dynamic_cast<TokenType*>(Token::getResultingToken(nextFullToken))) == nullptr) {
-		string errorMessage = string("expected a ") + tokenDescription;
-		Error::makeError(ErrorType::General, errorMessage.c_str(), nextFullToken);
+	//we do have an abstract code block and it represents a statement list
+	forEach(Token*, t, a->tokens, ai) {
+		Statement* s;
+		if ((s = parseStatement(&ai)) != nullptr)
+			statements->add(s);
 	}
+	return statementsDeleter.release();
+}
+//parse a single statement starting at the current token
+//includes expression statements, keyword statements and empty statements (which return null)
+//assumes there is a token available
+//parse location: the last token of the statement
+//may throw
+Statement* ParseExpressions::parseStatement(ArrayIterator<Token*>* ti) {
+	DirectiveTitle* dt;
+	if ((dt = dynamic_cast<DirectiveTitle*>(ti->getThis())) != nullptr) {
+		//TODO: handle #enable stuff
+		return nullptr;
+	}
+	Statement* keywordStatement = parseKeywordStatement(ti);
+	return keywordStatement != nullptr ? keywordStatement : parseExpressionStatement(ti);
+}
+//parse a statement if the current token is a keyword identifier, return null if not
+//parse location: no change | the last token of the keyword statement
+//may throw
+Statement* ParseExpressions::parseKeywordStatement(ArrayIterator<Token*>* ti) {
+	Identifier* keywordToken;
+	if ((keywordToken = dynamic_cast<Identifier*>(ti->getThis())) == nullptr)
+		return nullptr;
+
+	string keyword = keywordToken->name;
+	bool continueLoop;
+	if (keyword == returnKeyword) {
+		Token* t = parseExpectedToken<Token>(ti, keywordToken, "an expression or semicolon");
+		Separator* s;
+		return new ReturnStatement((s = dynamic_cast<Separator*>(t)) != nullptr && s->separatorType == SeparatorType::Semicolon
+			? nullptr
+			: parseExpression(ti, (unsigned char)SeparatorType::Semicolon, ErrorType::General, nullptr, nullptr));
+	} else if (keyword == ifKeyword) {
+		AbstractCodeBlock* conditionBlock = parseExpectedToken<AbstractCodeBlock>(ti, keywordToken, "a condition expression");
+		Deleter<Token> condition (completeParenthesizedExpression(conditionBlock, false));
+		Deleter<Array<Statement*>> thenBody (parseStatementList(ti, conditionBlock, "if-statement body", true));
+		Array<Statement*>* elseBody = nullptr;
+		Token* elseToken = ti->getNext();
+		Identifier* i;
+		if (ti->hasThis() && (i = dynamic_cast<Identifier*>(elseToken)) != nullptr && i->name == elseKeyword)
+			elseBody = parseStatementList(ti, i, "else-statement body", true);
+		//go back if it's not an else keyword
+		else
+			ti->getPrevious();
+		return new IfStatement(condition.release(), thenBody.release(), elseBody);
+	} else if (keyword == forKeyword) {
+		AbstractCodeBlock* conditionBlock = parseExpectedToken<AbstractCodeBlock>(ti, keywordToken, "a for-loop condition");
+		ArrayIterator<Token*> ai (conditionBlock->tokens);
+		if (!ai.hasThis())
+			Error::makeError(ErrorType::Expected, "a for-loop initialization", conditionBlock);
+		Deleter<ExpressionStatement> initialization (parseExpressionStatement(&ai));
+		Token* initializationSemicolon = ai.getThis();
+		ai.getNext();
+		Deleter<Token> condition (parseExpression(
+			&ai,
+			(unsigned char)SeparatorType::Semicolon,
+			ErrorType::ExpectedToFollow,
+			"a for-loop condition",
+			initializationSemicolon));
+		ai.getNext();
+		Token* increment = ai.hasThis()
+			? parseExpression(&ai, (unsigned char)SeparatorType::RightParenthesis, ErrorType::General, nullptr, nullptr)
+			: nullptr;
+		Deleter<Token> incrementDeleter (increment);
+		Array<Statement*>* body = parseStatementList(ti, conditionBlock, "a for-loop body", true);
+		return new LoopStatement(initialization.release(), condition.release(), incrementDeleter.release(), body, true);
+	} else if (keyword == whileKeyword) {
+		AbstractCodeBlock* conditionBlock = parseExpectedToken<AbstractCodeBlock>(ti, keywordToken, "a condition expression");
+		Deleter<Token> condition (completeParenthesizedExpression(conditionBlock, false));
+		Array<Statement*>* body = parseStatementList(ti, conditionBlock, "a while-loop body", true);
+		return new LoopStatement(nullptr, condition.release(), nullptr, body, true);
+	} else if (keyword == doKeyword) {
+		ArrayContentDeleter<Statement> body (parseStatementList(ti, keywordToken, "a do-while-loop body", true));
+		Identifier* whileToken = parseExpectedToken<Identifier>(ti, ti->getThis(), "a \"while\" keyword");
+		if (whileToken->name != whileKeyword)
+			Error::makeError(ErrorType::Expected, "a \"while\" keyword", whileToken);
+		AbstractCodeBlock* conditionBlock = parseExpectedToken<AbstractCodeBlock>(ti, whileToken, "a condition expression");
+		Token* condition = completeParenthesizedExpression(conditionBlock, false);
+		return new LoopStatement(nullptr, condition, nullptr, body.release(), false);
+	} else if ((continueLoop = (keyword == continueKeyword)) || keyword == breakKeyword) {
+		Token* t = parseExpectedToken<Token>(ti, keywordToken, "a semicolon or integer");
+		IntConstant* levels;
+		if ((levels = dynamic_cast<IntConstant*>(t)) == nullptr)
+			ti->getPrevious();
+		else
+			ti->replaceThis(nullptr);
+		Deleter<IntConstant> levelsDeleter (levels);
+		Separator* s = parseExpectedToken<Separator>(ti, ti->getThis(), "a semicolon");
+		if (s->separatorType != SeparatorType::Semicolon)
+			Error::makeError(ErrorType::Expected, "a semicolon", s);
+		return new LoopControlFlowStatement(continueLoop, levelsDeleter.release());
+	} else
+		return nullptr;
+}
+//parse a single expression statement starting at the current token, including any variable definitions
+//returns null for empty statements
+//parse location: the end semicolon/right parenthesis of the statement
+//may throw
+ExpressionStatement* ParseExpressions::parseExpressionStatement(ArrayIterator<Token*>* ti) {
+	Token* t = ti->getThis();
+	Separator* s;
+	if ((s = dynamic_cast<Separator*>(t)) != nullptr && s->separatorType == SeparatorType::Semicolon)
+		return nullptr;
+	Identifier* i;
+	CDataType* cdt;
+	//if it's a type, see if it's a variable initialization vs a function definition
+	if ((i = dynamic_cast<Identifier*>(t)) != nullptr &&
+		(cdt = CDataType::globalDataTypes->get(i->name.c_str(), i->name.length())) != nullptr)
+	{
+		t = ti->getNext();
+		Identifier* variableName;
+		//if a variable name followed, create a variable initialization
+		if (ti->hasThis() && (variableName = dynamic_cast<Identifier*>(t)) != nullptr) {
+			ti->replaceThis(nullptr);
+			return new ExpressionStatement(
+				completeVariableInitialization(i, cdt, variableName, ti, SeparatorType::Semicolon));
+		//otherwise, go back so that we can parse an expression
+		} else
+			ti->getPrevious();
+	}
+	//if we get here then it's a plain, non-empty expression
+	//we don't have to worry about an empty expression error message
+	return new ExpressionStatement(
+		parseExpression(ti, (unsigned char)SeparatorType::Semicolon, ErrorType::General, nullptr, nullptr));
+	return nullptr;
+}
+//get the right-most token of an operator tree, if there is one
+Token* ParseExpressions::getLastToken(Token* t) {
+	Operator* o;
+	while ((o = dynamic_cast<Operator*>(t)) != nullptr && o->right != nullptr)
+		t = o->right;
 	return t;
 }
-//parse semicolon-separated statments out of the abstract code block
-//parse location: the end of the abstract code block
-//may throw
-StatementList* ParseExpressions::parseStatements(AbstractCodeBlock* a) {
-	Array<Statement*>* statements = new Array<Statement*>();
-	Array<CVariableDefinition*>* localVariables = new Array<CVariableDefinition*>();
-	try {
-		forEach(Token*, fullToken, a->tokens, ti) {
-			Token* t = Token::getResultingToken(fullToken);
-			Separator* s;
-			if ((s = dynamic_cast<Separator*>(t)) != nullptr && s->separatorType == SeparatorType::Semicolon)
-				continue;
-			Identifier* i;
-			CType* ct;
-			DirectiveTitle* dt;
-			//if it's not an expression statement, it starts with a keyword or a type name for a variable definition
-			if ((i = dynamic_cast<Identifier*>(t)) != nullptr) {
-				if ((ct = CType::globalTypes->get(i->name.c_str(), i->name.length())) != nullptr) {
-					CVariableDefinition* definition = completeVariableDefinition(ct, fullToken, &ti);
-					localVariables->add(definition);
-					if (definition->initialization != nullptr) {
-						statements->add(new ExpressionStatement(definition->initialization));
-						definition->initialization = nullptr;
-					}
-					continue;
-				} else if (i->name == Keyword::ifKeyword) {
-					//TODO: if statments
-					continue;
-				} else if (i->name == Keyword::forKeyword) {
-					//TODO: if statments
-					continue;
-				} else if (i->name == Keyword::whileKeyword) {
-					//TODO: if statments
-					continue;
-				} else if (i->name == Keyword::doKeyword) {
-					//TODO: if statments
-					continue;
-				}
-			} else if ((dt = dynamic_cast<DirectiveTitle*>(t)) != nullptr) {
-				//TODO: handle #enable stuff
-				continue;
-			}
-			//if we get here then it's a plain, non-empty expression
-			//we don't have to worry about an empty expression error message
-			statements->add(
-				new ExpressionStatement(parseExpression(&ti, (unsigned char)SeparatorType::Semicolon, nullptr, nullptr)));
-		}
-	} catch (...) {
-		statements->deleteContents();
-		delete statements;
-		localVariables->deleteContents();
-		delete localVariables;
-		throw;
+//check if there is a semicolon- if so then this is a statement list, if not then it's part of a single statement
+bool ParseExpressions::hasSemicolon(AbstractCodeBlock* a) {
+	forEach(Token*, t, a->tokens, ti) {
+		Separator* s;
+		if ((s = dynamic_cast<Separator*>(t)) != nullptr && s->separatorType == SeparatorType::Semicolon)
+			return true;
 	}
-	return new StatementList(statements, localVariables);
+	return false;
 }
-
-
-//parse an expression or control flow
-//void ParseExpressions::parseStatement
-
-
-
-
-
-//to test retcon parsing: 3 * 4 + 5 * 6 == 3 * 4 + 5 * 6 && 3 * 4 + 5 * 6 == 3 * 4 + 5 * 6
-
-//Token* addToIdentifier(Identifier* base, Token* next);
-
-	////every global definition starts with an identifier or a directive
-	//if (dynamic_cast<Identifier*>(active) == nullptr /*&& dynamic_cast<CDirective*>(active) == nullptr*/)
-	//	makeError(0, "expected an identifier or directive declaration", active->contentPos);
-
-	//while (true) {
-	//	LexToken* next = lex();
-	//	if (next == nullptr) {
-	//		tokens->add(active);
-	//		return tokens;
-	//	}
-
-	//	//find out what we have
-	//	Token* result;
-	//	Identifier* ai;
-	//	if (((ai = dynamic_cast<Identifier*>(active)) != nullptr && (result = addToIdentifier(ai, next)) != nullptr) ||
-	//			true) {
-
-	//	}
-	//}
-
-//try to add a token to an identifier
-//possible outcomes:
-//	identifier + identifier -> identifier list
-//	identifier + left parenthesis ->
-//		identifier + fdsafsadfsfdsafdsfdsafasd
-//Token* addToIdentifier(Identifier* base, LexToken* next) {
-//	Identifier* ni;
-//	Operator* oi;
-//	if ((ni = dynamic_cast<Identifier*>(next)) != nullptr)
-//		return new IdentifierList(base, ni);
-//	else if ((oi = dynamic_cast<Operator*>(next)) != nullptr) {
-//		oi->left = base;
-//		return addToOperator(oi) ? oi : nullptr;
-//	}
-//	return next;
-//}
+//check if the string is a keyword
+bool ParseExpressions::isKeyword(string s) {
+	return
+		//values
+		s.compare("true") == 0 ||
+		s.compare("false") == 0 ||
+		s.compare("null") == 0 ||
+		s.compare("recurse") == 0 ||
+		//control flow
+		s.compare(returnKeyword) == 0 ||
+		s.compare(ifKeyword) == 0 ||
+		s.compare(elseKeyword) == 0 ||
+		s.compare(forKeyword) == 0 ||
+		s.compare(whileKeyword) == 0 ||
+		s.compare(doKeyword) == 0 ||
+		s.compare(continueKeyword) == 0 ||
+		s.compare(breakKeyword) == 0 ||
+		s.compare("switch") == 0 ||
+		s.compare("case") == 0 ||
+		s.compare("default") == 0 ||
+		s.compare("goto") == 0 ||
+		//memory
+		s.compare("new") == 0 ||
+		s.compare("delete") == 0 ||
+		//access modifiers
+		//s.compare("public") == 0 ||
+		s.compare("private") == 0 ||
+		s.compare("readonly") == 0 ||
+		s.compare("writeonly") == 0 ||
+		s.compare("local") == 0 ||
+		s.compare("global") == 0 ||
+		s.compare("final") == 0 ||
+		//s.compare("nonnull") == 0 ||
+		//s.compare("nullable") == 0 ||
+		s.compare("perthread") == 0 ||
+		//types
+		s.compare("is") == 0 ||
+		s.compare(classKeyword) == 0 ||
+		s.compare("enum") == 0 ||
+		s.compare("operator") == 0 ||
+		s.compare(rawKeyword) == 0 ||
+		s.compare("partial") == 0 ||
+		s.compare("abstract") == 0;
+}
+//construct a comma-separated list of separator type names from the given mask
+string ParseExpressions::buildExpectedSeparatorErrorMessage(unsigned char expectedSeparatorTypesMask, bool concludeList) {
+	SeparatorType separatorTypes[] = {
+		SeparatorType::LeftParenthesis,
+		SeparatorType::RightParenthesis,
+		SeparatorType::Comma,
+		SeparatorType::Semicolon
+	};
+	const int separatorTypesCount = sizeof(separatorTypes) / sizeof(separatorTypes[0]);
+	SeparatorType expectedSeparatorTypes[separatorTypesCount];
+	int expectedSeparatorTypesCount = 0;
+	for (int i = 0; i < separatorTypesCount; i++) {
+		if ((expectedSeparatorTypesMask & (unsigned char)(separatorTypes[i])) != 0) {
+			expectedSeparatorTypes[expectedSeparatorTypesCount] = separatorTypes[i];
+			expectedSeparatorTypesCount++;
+		}
+	}
+	string errorMessage = "";
+	for (int i = 0; i < expectedSeparatorTypesCount; i++) {
+		if (i == 0)
+			errorMessage += Separator::separatorName(expectedSeparatorTypes[i], true);
+		else if (i + 1 < expectedSeparatorTypesCount || !concludeList)
+			errorMessage += ", " + Separator::separatorName(expectedSeparatorTypes[i], false);
+		else if (expectedSeparatorTypesCount == 2)
+			errorMessage += " or " + Separator::separatorName(expectedSeparatorTypes[i], false);
+		else
+			errorMessage += ", or " + Separator::separatorName(expectedSeparatorTypes[i], false);
+	}
+	return errorMessage;
+}

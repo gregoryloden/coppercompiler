@@ -1507,8 +1507,8 @@ filename(pFilename)
 , abstractContents(nullptr)
 , includedFiles(new AVLTree<SourceFile*, bool>())
 , inclusionListeners(new Array<SourceFile*>())
-, replacedArguments(new Array<Token*>())
-, globalDefinitions(new Array<CVariableDefinition*>()) {
+, replacedTokens(new Array<Token*>())
+, globalVariables(new Array<VariableInitialization*>()) {
 	//load the file
 	FILE* file = nullptr;
 	fopen_s(&file, filename.c_str(), "rb");
@@ -1531,18 +1531,30 @@ SourceFile::~SourceFile() {
 	//don't delete the source files, they will get deleted through the main source file list
 	delete includedFiles;
 	delete inclusionListeners;
-	replacedArguments->deleteContents();
-	delete replacedArguments;
-	globalDefinitions->deleteContents();
-	delete globalDefinitions;
+	replacedTokens->deleteContents();
+	delete replacedTokens;
+	globalVariables->deleteContents();
+	delete globalVariables;
 }
-CVariableDefinition::CVariableDefinition(CType* pType, string pName, Token* pInitialization)
+int SourceFile::getRow(int contentPos) {
+	int rowLo = 0;
+	int rowHi = rowStarts->length;
+	int row = rowHi / 2;
+	while (row > rowLo) {
+		if (contentPos >= rowStarts->get(row))
+			rowLo = row;
+		else
+			rowHi = row;
+		row = (rowLo + rowHi) / 2;
+	}
+	return row;
+}
+CVariableDefinition::CVariableDefinition(CDataType* pType, Identifier* pName)
 : onlyInDebug(ObjCounter(onlyWhenTrackingIDs("VARDEF")) COMMA)
 type(pType)
-, name(pName)
-, initialization(pInitialization) {
+, name(pName) {
 }
 CVariableDefinition::~CVariableDefinition() {
 	//don't delete the type since it's owned by something else
-	delete initialization;
+	delete name;
 }

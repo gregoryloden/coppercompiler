@@ -3,10 +3,11 @@
 
 class Token;
 class AbstractCodeBlock;
-class StatementList;
-class CVariableDefinition;
+class Statement;
+class VariableInitialization;
+template <class Type> class Array;
 
-#define forEach(Type, t, a, ti) ArrayIterator<Type> ti (a); for (Type t = ti.getFirst(); ti.hasThis(); t = ti.getNext())
+#define forEach(Type, t, a, ti) ArrayIterator<Type> ti (a); for (Type t = ti.getThis(); ti.hasThis(); t = ti.getNext())
 #define forEachContinued(Type, t, ti) for (Type t = ti->getThis(); ti->hasThis(); t = ti->getNext())
 #define COMMA ,
 #ifdef DEBUG
@@ -76,6 +77,9 @@ public:
 	class ObjCounter {
 	public:
 		ObjCounter(onlyWhenTrackingIDs(char* pObjType));
+		#ifdef TRACK_OBJ_IDS
+			ObjCounter(ObjCounter* cloneSource): ObjCounter(cloneSource->objType) {}
+		#endif
 		virtual ~ObjCounter();
 
 	private:
@@ -96,14 +100,6 @@ public:
 		static void end();
 	};
 #endif
-class Keyword {
-public:
-	static const char* rawKeyword;
-	static const char* ifKeyword;
-	static const char* forKeyword;
-	static const char* whileKeyword;
-	static const char* doKeyword;
-};
 //used to delete objects during a throw
 //should always be stack allocated
 template <class Type> class Deleter onlyInDebug(: public ObjCounter) {
@@ -111,17 +107,24 @@ public:
 	Deleter(Type* pToDelete);
 	virtual ~Deleter();
 
-private:
+protected:
 	Type* toDelete;
 
 public:
 	Type* release();
 	Type* retrieve();
 };
+template <class Type> class ArrayContentDeleter: public Deleter<Array<Type*>> {
+public:
+	ArrayContentDeleter(Array<Type*>* pToDelete);
+	virtual ~ArrayContentDeleter();
+};
 enum class ErrorType: unsigned char {
 	General,
 	EndOfFileWhileSearching,
 	EndOfFileWhileReading,
+	Expected,
+	ExpectedToFollow,
 	Continuation
 };
 class Error {
@@ -141,10 +144,10 @@ private:
 	class Debug {
 	public:
 		static void printAbstractCodeBlock(AbstractCodeBlock* codeBlock, int tabsCount);
-		static void printVariableDefinition(CVariableDefinition* definition, int tabsCount);
 		static void printTokenTree(Token* t, int tabsCount, bool printOperatorParentheses);
-		static void printStatementList(StatementList* sl, int tabsCount);
-		static void printToken(Token* t);
+		static void printStatementList(Array<Statement*>* a, int tabsCount, bool statementContinuationFollows);
+		static void printStatement(Statement* s, int tabsCount);
+		static void printLexToken(Token* t);
 		static void crashProgram();
 	};
 #endif

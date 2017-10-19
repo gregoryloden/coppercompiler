@@ -202,8 +202,9 @@ void compile(char* filename) {
 	#ifdef DEBUG
 		forEach(SourceFile*, s, allFiles, si3) {
 			printf("Global definitions for \"%s\":\n", s->filename.c_str());
-			forEach(CVariableDefinition*, definition, s->globalDefinitions, di) {
-				Debug::printVariableDefinition(definition, 0);
+			forEach(VariableInitialization*, initialization, s->globalVariables, di) {
+				Debug::printTokenTree(initialization, 0, false);
+				printf(";\n");
 			}
 		}
 	#endif
@@ -393,52 +394,6 @@ int varType(string s) {
 	}
 	return TNONE;
 }
-*/
-//check if the string is a keyword
-bool isReservedWord(string s) {
-	return
-		//values
-		s.compare("true") == 0 ||
-		s.compare("false") == 0 ||
-		s.compare("null") == 0 ||
-		s.compare("recurse") == 0 ||
-		//control flow
-		s.compare("return") == 0 ||
-		s.compare(Keyword::ifKeyword) == 0 ||
-		s.compare("else") == 0 ||
-		s.compare(Keyword::forKeyword) == 0 ||
-		s.compare("break") == 0 ||
-		s.compare("continue") == 0 ||
-		s.compare(Keyword::whileKeyword) == 0 ||
-		s.compare(Keyword::doKeyword) == 0 ||
-		s.compare("switch") == 0 ||
-		s.compare("case") == 0 ||
-		s.compare("default") == 0 ||
-		s.compare("goto") == 0 ||
-		//memory
-		s.compare("new") == 0 ||
-		s.compare("delete") == 0 ||
-		//access modifiers
-		//s.compare("public") == 0 ||
-		s.compare("private") == 0 ||
-		s.compare("readonly") == 0 ||
-		s.compare("writeonly") == 0 ||
-		s.compare("local") == 0 ||
-		s.compare("global") == 0 ||
-		s.compare("final") == 0 ||
-		//s.compare("nonnull") == 0 ||
-		//s.compare("nullable") == 0 ||
-		s.compare("perthread") == 0 ||
-		//types
-		s.compare("is") == 0 ||
-		s.compare("class") == 0 ||
-		s.compare("enum") == 0 ||
-		s.compare("operator") == 0 ||
-		s.compare(Keyword::rawKeyword) == 0 ||
-		s.compare("partial") == 0 ||
-		s.compare("abstract") == 0;
-}
-/*
 //replace a spot in the tokens array with the given expression
 Expression* replace(int loc, Expression* val) {
 	delete tokens.inner[loc];

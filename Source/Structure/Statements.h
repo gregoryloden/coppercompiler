@@ -2,6 +2,8 @@
 
 class Token;
 class CVariableDefinition;
+class StatementList;
+class IntConstant;
 template <class Type> class Array;
 
 class Statement onlyInDebug(: public ObjCounter) {
@@ -17,13 +19,39 @@ public:
 
 	Token* expression;
 };
-
-//For function bodies, if statements, etc. to include variable definitions
-class StatementList onlyInDebug(: public ObjCounter) {
+class ReturnStatement: public Statement {
 public:
-	StatementList(Array<Statement*>* pStatements, Array<CVariableDefinition*>* pVariables);
-	~StatementList();
+	ReturnStatement(Token* pExpression);
+	virtual ~ReturnStatement();
 
-	Array<Statement*>* statements;
-	Array<CVariableDefinition*>* variables;
+	Token* expression;
+};
+class IfStatement: public Statement {
+public:
+	IfStatement(Token* pCondition, Array<Statement*>* pThenBody, Array<Statement*>* pElseBody);
+	virtual ~IfStatement();
+
+	Token* condition;
+	Array<Statement*>* thenBody;
+	Array<Statement*>* elseBody;
+};
+class LoopStatement: public Statement {
+public:
+	LoopStatement(ExpressionStatement* pInitialization, Token* pCondition, Token* pIncrement, Array<Statement*>* pBody,
+		bool pInitialConditionCheck);
+	virtual ~LoopStatement();
+
+	ExpressionStatement* initialization;
+	Token* condition;
+	Token* increment;
+	Array<Statement*>* body;
+	bool initialConditionCheck;
+};
+class LoopControlFlowStatement: public Statement {
+public:
+	LoopControlFlowStatement(bool pContinueLoop, IntConstant* pLevels);
+	virtual ~LoopControlFlowStatement();
+
+	bool continueLoop;
+	IntConstant* levels;
 };

@@ -3,7 +3,7 @@
 class BigInt onlyInDebug(: public ObjCounter) {
 public:
 	BigInt(int pBase);
-	BigInt(BigInt* pSource);
+	BigInt(BigInt* pSource, bool stealInner);
 	virtual ~BigInt();
 
 private:

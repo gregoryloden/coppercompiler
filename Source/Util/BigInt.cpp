@@ -7,14 +7,17 @@ base(pBase)
 , highByte(-1)
 , inner(new unsigned char[1]) {
 }
-//this one is for use right before pSource will be deleted (stack allocated) or its inner will be replaced
-BigInt::BigInt(BigInt* pSource)
+//if pSource will be deleted (stack allocated) or its inner will be replaced, steal its inner
+BigInt::BigInt(BigInt* pSource, bool stealInner)
 : onlyInDebug(ObjCounter(onlyWhenTrackingIDs("BIGINT")) COMMA)
 base(pSource->base)
 , innerLength(pSource->innerLength)
 , highByte(pSource->highByte)
-, inner(pSource->inner) {
-	pSource->inner = nullptr;
+, inner(stealInner ? pSource->inner : new unsigned char[pSource->innerLength]) {
+	if (stealInner)
+		pSource->inner = nullptr;
+	else
+		memcpy(inner, pSource->inner, highByte + 1);
 }
 BigInt::~BigInt() {
 	delete[] inner;
@@ -79,6 +82,7 @@ void BigInt::multiply(BigInt* other) {
 	//do a simple O(n^2) multiplication
 	for (int i = 0; i <= oldHighByte; i++) {
 		for (int j = 0; j <= otherHighByte; j++) {
+			//multiply the two bytes, add them to the byte location that they go to, and cascade up as necessary
 			int resultIndex = i + j;
 			short product = (short)(oldInner[i]) * (short)(otherInner[j]);
 			short newSum = newInner[resultIndex] + product;
@@ -140,7 +144,7 @@ void BigInt::longDiv(BigInt* other) {
 	if (other->highBit() == 0)
 		return;
 
-	BigInt original(this);
+	BigInt original(this, true);
 	int shifted = original.highBit() - other->highBit();
 	other->lShift(shifted);
 	//size our new array to make sure it can handle a quotient rounded up and a half bit

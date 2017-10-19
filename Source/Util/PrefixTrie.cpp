@@ -7,7 +7,7 @@
 template class PrefixTrieUnion<char, CDirectiveReplace*>;
 
 instantiatePrefixTrie(char, CDirectiveReplace*, nullptr);
-instantiatePrefixTrie(char, CType*, nullptr);
+instantiatePrefixTrie(char, CDataType*, nullptr);
 instantiatePrefixTrie(char, SourceFile*, nullptr);
 
 template <class KeyElement, class Value> PrefixTrie<KeyElement, Value>::PrefixTrie(
@@ -135,7 +135,7 @@ template <class KeyElement, class Value> Value PrefixTrie<KeyElement, Value>::ge
 }
 template <class KeyElement, class Value> PrefixTrieUnion<KeyElement, Value>::PrefixTrieUnion(
 	PrefixTrie<KeyElement, Value>* pNext)
-: PrefixTrie()
+: PrefixTrie<KeyElement, Value>()
 , next(pNext) {
 }
 template <class KeyElement, class Value> PrefixTrieUnion<KeyElement, Value>::~PrefixTrieUnion<KeyElement, Value>() {

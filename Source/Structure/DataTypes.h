@@ -4,21 +4,21 @@ using namespace std;
 
 template <class Key, class Value> class PrefixTrie;
 
-class CType onlyInDebug(: public ObjCounter) {
+class CDataType onlyInDebug(: public ObjCounter) {
 protected:
-	CType(onlyWhenTrackingIDs(char* pObjType COMMA) string pName);
+	CDataType(onlyWhenTrackingIDs(char* pObjType COMMA) string pName);
 public:
-	virtual ~CType();
+	virtual ~CDataType();
 
-	static PrefixTrie<char, CType*>* globalTypes;
+	static PrefixTrie<char, CDataType*>* globalDataTypes;
 	string name;
 };
-class CVoid: public CType {
+class CVoid: public CDataType {
 public:
 	CVoid();
 	virtual ~CVoid();
 };
-class CPrimitive: public CType {
+class CPrimitive: public CDataType {
 protected:
 	CPrimitive(onlyWhenTrackingIDs(char* pObjType COMMA) string pName, short pBitSize);
 public:
@@ -36,18 +36,18 @@ public:
 	CFloatingPointPrimitive(string pName, int pByteSize);
 	virtual ~CFloatingPointPrimitive();
 };
-class CFunctionType: public CType {
+class CFunctionType: public CDataType {
 public:
 	CFunctionType();
 	virtual ~CFunctionType();
 };
-class CClass: public CType {
+class CClass: public CDataType {
 public:
 	CClass(string pName);
 	virtual ~CClass();
 };
 /*
-class CEnum: public CType {
+class CEnum: public CDataType {
 public:
 	CEnum();
 	virtual ~CEnum();

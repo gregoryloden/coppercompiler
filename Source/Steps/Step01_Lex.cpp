@@ -487,7 +487,7 @@ LexToken* Lex::lexNumber() {
 		if (outofbounds())
 			Error::makeError(ErrorType::EndOfFileWhileReading, "the number definition", &errorToken);
 		else
-			makeLexError(ErrorType::General, "expected digit");
+			makeLexError(ErrorType::Expected, "digit");
 	}
 
 	//we've now finished reading the number, turn it into the appropriate constant
@@ -643,7 +643,7 @@ IntConstant* Lex::lexCharacter() {
 	if (outofbounds())
 		Error::makeError(ErrorType::EndOfFileWhileReading, "the character definition", &errorToken);
 	if (contents[pos] != '\'')
-		makeLexError(ErrorType::General, "expected a close quote");
+		makeLexError(ErrorType::Expected, "a close quote");
 	pos++;
 	return new IntConstant((int)c, begin, pos, sourceFile);
 }
@@ -705,7 +705,7 @@ DirectiveTitle* Lex::lexDirectiveTitle() {
 	if (outofbounds())
 		Error::makeError(ErrorType::EndOfFileWhileReading, "the directive name", &errorToken);
 	else if (pos == begin)
-		makeLexError(ErrorType::General, "expected a directive name");
+		makeLexError(ErrorType::Expected, "a directive name");
 
 	return new DirectiveTitle(string(contents + begin, pos - begin), begin - 1, pos, sourceFile);
 }

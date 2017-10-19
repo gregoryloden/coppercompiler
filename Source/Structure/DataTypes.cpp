@@ -1,7 +1,7 @@
 #include "Project.h"
 
-PrefixTrie<char, CType*>* CType::globalTypes = []() -> PrefixTrie<char, CType*>* {
-	CType* typesArray[] = {
+PrefixTrie<char, CDataType*>* CDataType::globalDataTypes = []() -> PrefixTrie<char, CDataType*>* {
+	CDataType* typesArray[] = {
 		new CVoid(),
 		new CIntegerPrimitive("bool", 1),
 		new CIntegerPrimitive("byte", 8),
@@ -10,24 +10,24 @@ PrefixTrie<char, CType*>* CType::globalTypes = []() -> PrefixTrie<char, CType*>*
 		new CFunctionType(),
 		new CClass("String")
 	};
-	PrefixTrie<char, CType*>* val = new PrefixTrie<char, CType*>();
+	PrefixTrie<char, CDataType*>* val = new PrefixTrie<char, CDataType*>();
 	for (int i = 0; i < 7; i++) {
-		CType* ct = typesArray[i];
-		val->set(ct->name.c_str(), ct->name.length(), ct);
+		CDataType* cdt = typesArray[i];
+		val->set(cdt->name.c_str(), cdt->name.length(), cdt);
 	}
 	return val;
 }();
-CType::CType(onlyWhenTrackingIDs(char* pObjType COMMA) string pName)
+CDataType::CDataType(onlyWhenTrackingIDs(char* pObjType COMMA) string pName)
 : onlyInDebug(ObjCounter(onlyWhenTrackingIDs(pObjType)) COMMA)
 name(pName) {
 }
-CType::~CType() {}
+CDataType::~CDataType() {}
 CVoid::CVoid()
-: CType(onlyWhenTrackingIDs("VOIDTYP" COMMA) "void") {
+: CDataType(onlyWhenTrackingIDs("VOIDTYP" COMMA) "void") {
 }
 CVoid::~CVoid() {}
 CPrimitive::CPrimitive(onlyWhenTrackingIDs(char* pObjType COMMA) string pName, short pBitSize)
-: CType(onlyWhenTrackingIDs(pObjType COMMA) pName)
+: CDataType(onlyWhenTrackingIDs(pObjType COMMA) pName)
 , bitSize(pBitSize) {
 }
 CPrimitive::~CPrimitive() {}
@@ -40,10 +40,10 @@ CFloatingPointPrimitive::CFloatingPointPrimitive(string pName, int pByteSize)
 }
 CFloatingPointPrimitive::~CFloatingPointPrimitive() {}
 CFunctionType::CFunctionType()
-: CType(onlyWhenTrackingIDs("FUNCTYP" COMMA) "Function") {
+: CDataType(onlyWhenTrackingIDs("FUNCTYP" COMMA) "Function") {
 }
 CFunctionType::~CFunctionType() {}
 CClass::CClass(string pName)
-: CType(onlyWhenTrackingIDs("CLSSTYP" COMMA) pName) {
+: CDataType(onlyWhenTrackingIDs("CLSSTYP" COMMA) pName) {
 }
 CClass::~CClass() {}

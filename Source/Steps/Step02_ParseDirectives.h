@@ -28,5 +28,4 @@ private:
 	template <class TokenType> static TokenType* parseToken(const char* expectedTokenTypeName, Token* endOfFileErrorToken);
 	static int parseSeparator(SeparatorType type, const char* expectedTokenTypeName, Token* endOfFileErrorToken);
 	static Array<string>* parseReplaceParameters(Identifier* endOfFileErrorToken);
-	static void makeUnexpectedTokenError(const char* expectedTokenTypeName, Token* t);
 };

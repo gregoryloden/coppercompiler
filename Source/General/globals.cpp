@@ -1,5 +1,7 @@
 #include "Project.h"
 
+#define instantiateArrayContentDeleter(type) template class ArrayContentDeleter<type>; template class Deleter<Array<type*>>;
+
 /*
 Array<Expression*> tokens;
 int tlength;
@@ -44,16 +46,21 @@ Thunk THeapReAlloc ("HeapReAlloc", 0x1C4);
 template class Deleter<AbstractCodeBlock>;
 template class Deleter<BigInt>;
 template class Deleter<DirectiveTitle>;
+template class Deleter<ExpressionStatement>;
 template class Deleter<Identifier>;
+template class Deleter<IntConstant>;
 template class Deleter<LexToken>;
-template class Deleter<Token>;
 template class Deleter<Separator>;
-template class Deleter<SubstitutedToken>;
+template class Deleter<Token>;
+template class Deleter<VariableInitialization>;
 template class Deleter<Array<AVLNode<SourceFile*, bool>*>>;
 template class Deleter<Array<string>>;
 template class Deleter<Array<Token*>>;
 template class Deleter<PrefixTrie<char, CDirectiveReplace*>>;
 template class Deleter<PrefixTrieUnion<char, CDirectiveReplace*>>;
+instantiateArrayContentDeleter(CVariableDefinition);
+instantiateArrayContentDeleter(Statement);
+instantiateArrayContentDeleter(Token);
 
 int Math::min(int a, int b) {
 	return a < b ? a : b;
@@ -122,11 +129,6 @@ int Math::max(int a, int b) {
 		printf("Total objects used: %d + %d untracked\n", (nextObjID - untrackedObjCount), untrackedObjCount);
 	}
 #endif
-const char* Keyword::rawKeyword = "raw";
-const char* Keyword::ifKeyword = "if";
-const char* Keyword::forKeyword = "for";
-const char* Keyword::whileKeyword = "while";
-const char* Keyword::doKeyword = "do";
 template <class Type> Deleter<Type>::Deleter(Type* pToDelete)
 : onlyInDebug(ObjCounter(onlyWhenTrackingIDs("DELETER")) COMMA)
 toDelete(pToDelete) {
@@ -144,6 +146,13 @@ template <class Type> Type* Deleter<Type>::release() {
 	toDelete = nullptr;
 	return val;
 }
+template <class Type> ArrayContentDeleter<Type>::ArrayContentDeleter(Array<Type*>* pToDelete)
+: Deleter<Array<Type*>>(pToDelete) {
+}
+template <class Type> ArrayContentDeleter<Type>::~ArrayContentDeleter() {
+	if (toDelete != nullptr)
+		toDelete->deleteContents();
+}
 char* Error::snippet = []() -> char* {
 	char* val = new char[SNIPPET_PREFIX_SPACES + SNIPPET_CHARS + 1 + SNIPPET_PREFIX_SPACES + SNIPPET_CHARS / 2 + 2];
 	memset(val, ' ', SNIPPET_PREFIX_SPACES);
@@ -156,33 +165,30 @@ char* Error::snippet = []() -> char* {
 int Error::errorCount = 0;
 //print an error and throw
 void Error::makeError(ErrorType type, const char* message, Token* token) {
-	SubstitutedToken* s;
-	if ((s = dynamic_cast<SubstitutedToken*>(token)) != nullptr) {
-		try {
-			makeError(type, message, s->resultingToken);
-		} catch (...) {
-		}
-		type = ErrorType::Continuation;
-		errorCount--;
-	}
 	SourceFile* owningFile = token->owningFile;
-	int row = token->getRow();
+	int contentPos = type == ErrorType::ExpectedToFollow ? token->endContentPos : token->endContentPos;
+	int row = owningFile->getRow(contentPos);
 	//print the error
 	char* errorPrefix;
 	switch (type) {
 		case ErrorType::Continuation: errorPrefix = "  --- in \"%s\" at line %d char %d\n"; break;
 		default:                      errorPrefix = "Error in \"%s\" at line %d char %d: "; break;
 	}
-	printf(errorPrefix, owningFile->filename.c_str(), row + 1, token->contentPos - owningFile->rowStarts->get(row) + 1);
+	printf(errorPrefix, owningFile->filename.c_str(), row + 1, contentPos - owningFile->rowStarts->get(row) + 1);
 	switch (type) {
 		case ErrorType::General: puts(message); break;
 		case ErrorType::EndOfFileWhileSearching: printf("reached the end of the file while searching for %s\n", message); break;
 		case ErrorType::EndOfFileWhileReading: printf("reached the end of the file while reading %s\n", message); break;
+		case ErrorType::Expected: printf("expected %s\n", message); break;
+		case ErrorType::ExpectedToFollow: printf("expected %s to follow\n", message); break;
 		case ErrorType::Continuation: break;
 	}
 	showSnippet(token);
 	errorCount++;
-	throw 0;
+	if (token->replacementSource != nullptr)
+		makeError(ErrorType::Continuation, nullptr, token->replacementSource);
+	else
+		throw 0;
 }
 //show the snippet where the error/warning is
 void Error::showSnippet(Token* token) {
@@ -209,7 +215,6 @@ void Error::showSnippet(Token* token) {
 			printf("\n");
 		bool printedSpaces = false;
 		forEach(Token*, t, codeBlock->tokens, ti) {
-			t = Token::getResultingToken(t);
 			DirectiveTitle* dt;
 			if ((dt = dynamic_cast<DirectiveTitle*>(t)) != nullptr && printedSpaces) {
 				printf("\n");
@@ -234,7 +239,7 @@ void Error::showSnippet(Token* token) {
 					printf(")");
 				}
 			} else {
-				printToken(t);
+				printLexToken(t);
 				Separator* separator;
 				if ((separator = dynamic_cast<Separator*>(t)) != nullptr && separator->separatorType == SeparatorType::Semicolon) {
 					printf("\n");
@@ -249,24 +254,33 @@ void Error::showSnippet(Token* token) {
 		if (printedSpaces)
 			printf("\n");
 	}
-	//print the variable definition and its initialization if there is one
-	void Debug::printVariableDefinition(CVariableDefinition* definition, int tabsCount) {
-		printf(definition->type->name.c_str());
-		printf(" ");
-		if (definition->initialization != nullptr)
-			Debug::printTokenTree(definition->initialization, tabsCount, false);
-		else
-			printf(definition->name.c_str());
-		printf(";\n");
-	}
 	//recursively print the contents of the token tree
 	void Debug::printTokenTree(Token* t, int tabsCount, bool printOperatorParentheses) {
-		t = Token::getResultingToken(t);
+		VariableInitialization* v;
 		Operator* o;
 		ParenthesizedExpression* p;
 		FunctionCall* fc;
 		FunctionDefinition* fd;
-		if ((o = dynamic_cast<Operator*>(t)) != nullptr) {
+		if ((v = dynamic_cast<VariableInitialization*>(t)) != nullptr) {
+			bool printComma = false;
+			CDataType* lastDataType = nullptr;
+			forEach(CVariableDefinition*, d, v->variables, di) {
+				if (printComma)
+					printf(", ");
+				else
+					printComma = true;
+				if (d->type != lastDataType) {
+					printf(d->type->name.c_str());
+					printf(" ");
+					lastDataType = d->type;
+				}
+				printf(d->name->name.c_str());
+			}
+			if (v->initialization != nullptr) {
+				printf(" = ");
+				printTokenTree(v->initialization, tabsCount, false);
+			}
+		} else if ((o = dynamic_cast<Operator*>(t)) != nullptr) {
 			Cast* c;
 			if ((c = dynamic_cast<Cast*>(t)) != nullptr) {
 				printf("(");
@@ -281,16 +295,19 @@ void Error::showSnippet(Token* token) {
 					printf("(");
 				if (o->left != nullptr)
 					printTokenTree(o->left, tabsCount, true);
-				printf(" ");
-				printToken(o);
-				printf(" ");
+				if (o->precedence < OperatorTypePrecedence::Prefix) {
+					printf(" ");
+					printLexToken(o);
+					printf(" ");
+				} else
+					printLexToken(o);
 				if (o->right != nullptr)
 					printTokenTree(o->right, tabsCount, true);
 				if (printOperatorParentheses)
 					printf(")");
 			}
 		} else if ((p = dynamic_cast<ParenthesizedExpression*>(t)) != nullptr)
-			printTokenTree(p, tabsCount, true);
+			printTokenTree(p->expression, tabsCount, true);
 		else if ((fc = dynamic_cast<FunctionCall*>(t)) != nullptr) {
 			printTokenTree(fc->function, tabsCount, true);
 			printf("(");
@@ -314,35 +331,122 @@ void Error::showSnippet(Token* token) {
 					printComma = true;
 				printf(parameter->type->name.c_str());
 				printf(" ");
-				printf(parameter->name.c_str());
+				printf(parameter->name->name.c_str());
 			}
 			printf(") (\n");
-			printStatementList(fd->body, tabsCount + 1);
+			forEach(Statement*, s, fd->body, si) {
+				printStatement(s, tabsCount + 1);
+			}
 			for (int i = 0; i < tabsCount; i++)
 				printf("    ");
 			printf(")");
 		} else
-			printToken(t);
+			printLexToken(t);
 	}
-	//print the contents of the statement
-	void Debug::printStatementList(StatementList* sl, int tabsCount) {
-		forEach(CVariableDefinition*, c, sl->variables, ci) {
+	//print the contents of the statement list
+	//if a statement continuation follows, add appropriate whitespace so that it can immediately follow
+	//if not, the statement is over and we need to end on a new line
+	void Debug::printStatementList(Array<Statement*>* a, int tabsCount, bool statementContinuationFollows) {
+		if (a->length == 1 &&
+			(dynamic_cast<ExpressionStatement*>(a->get(0)) != nullptr ||
+				dynamic_cast<ReturnStatement*>(a->get(0)) != nullptr ||
+				dynamic_cast<LoopControlFlowStatement*>(a->get(0)) != nullptr))
+		{
+			printf("\n");
+			printStatement(a->get(0), tabsCount + 1);
+			if (statementContinuationFollows) {
+				for (int i = 0; i < tabsCount; i++)
+					printf("    ");
+			}
+		} else {
+			printf(" (\n");
+			forEach(Statement*, s, a, si) {
+				printStatement(s, tabsCount + 1);
+			}
 			for (int i = 0; i < tabsCount; i++)
 				printf("    ");
-			printVariableDefinition(c, tabsCount);
+			printf(")");
+			if (statementContinuationFollows)
+				printf(" ");
+			else
+				printf("\n");
 		}
-		forEach(Statement*, s, sl->statements, si) {
-			for (int i = 0; i < tabsCount; i++)
-				printf("    ");
-			ExpressionStatement* e;
-			if ((e = dynamic_cast<ExpressionStatement*>(s)) != nullptr)
-				printTokenTree(e->expression, tabsCount, false);
+	}
+	//print the contents of the statement, including a newline after
+	void Debug::printStatement(Statement* s, int tabsCount) {
+		for (int i = 0; i < tabsCount; i++)
+			printf("    ");
+		ExpressionStatement* e;
+		ReturnStatement* r;
+		IfStatement* i;
+		LoopStatement* l;
+		LoopControlFlowStatement* c;
+		if ((e = dynamic_cast<ExpressionStatement*>(s)) != nullptr) {
+			printTokenTree(e->expression, tabsCount, false);
 			printf(";\n");
+		} else if ((r = dynamic_cast<ReturnStatement*>(s)) != nullptr) {
+			printf("return");
+			if (r->expression) {
+				printf(" ");
+				printTokenTree(r->expression, tabsCount, false);
+			}
+			printf(";\n");
+		} else if ((i = dynamic_cast<IfStatement*>(s)) != nullptr) {
+			//loop for multiple if statements
+			while (true) {
+				printf("if (");
+				printTokenTree(i->condition, tabsCount, false);
+				printf(")");
+				Array<Statement*>* elseBody = i->elseBody;
+				printStatementList(i->thenBody, tabsCount, elseBody != nullptr);
+				if (elseBody != nullptr) {
+					printf("else");
+					if (i->elseBody->length == 1 && (i = dynamic_cast<IfStatement*>(elseBody->get(0))) != nullptr) {
+						printf(" ");
+						continue;
+					} else
+						printStatementList(i->elseBody, tabsCount, false);
+				}
+				break;
+			}
+		} else if ((l = dynamic_cast<LoopStatement*>(s)) != nullptr) {
+			if (l->initialization != nullptr || l->increment != nullptr) {
+				printf("for (");
+				if (l->initialization != nullptr)
+					printTokenTree(l->initialization->expression, tabsCount, false);
+				printf("; ");
+				printTokenTree(l->condition, tabsCount, false);
+				printf("; ");
+				if (l->increment != nullptr)
+					printTokenTree(l->increment, tabsCount, false);
+				printf(")");
+				printStatementList(l->body, tabsCount, false);
+			} else if (l->initialConditionCheck) {
+				printf("while (");
+				printTokenTree(l->condition, tabsCount, false);
+				printf(")");
+				printStatementList(l->body, tabsCount, false);
+			} else {
+				printf("do");
+				printStatementList(l->body, tabsCount, true);
+				printf("while (");
+				printTokenTree(l->condition, tabsCount, false);
+				printf(")\n");
+			}
+		} else if ((c = dynamic_cast<LoopControlFlowStatement*>(s)) != nullptr) {
+			printf(c->continueLoop ? "continue" : "break");
+			if (c->levels != nullptr) {
+				printf(" ");
+				printLexToken(c->levels);
+			}
+			printf(";\n");
+		} else {
+			assert(false);
 		}
 	}
 	//if it's an identifier or a string, it might have come from a replace, so print its contents
 	//if it's anything else, use the contentPos and endContentPos to print this token
-	void Debug::printToken(Token* t) {
+	void Debug::printLexToken(Token* t) {
 		assert(dynamic_cast<LexToken*>(t) != nullptr);
 		Identifier* i;
 		StringLiteral* s;

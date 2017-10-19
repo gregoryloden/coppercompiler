@@ -5,9 +5,10 @@ using namespace std;
 class SourceFile;
 class CDirective;
 class BigInt;
-class CType;
+class CDataType;
 class CVariableDefinition;
-class StatementList;
+class Statement;
+class LexToken;
 template <class Type> class Array;
 
 enum class SeparatorType: unsigned char {
@@ -70,7 +71,8 @@ enum class OperatorType: unsigned char {
 //	AssignBooleanOr
 };
 enum class OperatorTypePrecedence: unsigned char {
-	ObjectMember = 14,
+	ObjectMember = 15,
+	ObjectMemberAccess = 14,
 	Postfix = 13,
 	Prefix = 12,
 	Multiplication = 11,
@@ -89,16 +91,15 @@ enum class OperatorTypePrecedence: unsigned char {
 class Token onlyInDebug(: public ObjCounter) {
 protected:
 	Token(onlyWhenTrackingIDs(char* pObjType COMMA) int pContentPos, int pEndContentPos, SourceFile* pOwningFile);
+	Token(Token* cloneSource, Identifier* pReplacementSource);
 public:
 	virtual ~Token();
 
 	int contentPos; //copper: readonly
 	int endContentPos; //copper: readonly
 	SourceFile* owningFile; //copper: readonly
-	CType* dataType; //copper: readonly<Semant>
-
-	int getRow();
-	static Token* getResultingToken(Token* t);
+	Identifier* replacementSource; //copper: readonly
+	CDataType* dataType; //copper: readonly<Semant>
 };
 //For empty contents (ex. errors, between commas or semicolons, etc.)
 class EmptyToken: public Token {
@@ -111,47 +112,64 @@ public:
 class LexToken: public Token {
 protected:
 	LexToken(onlyWhenTrackingIDs(char* pObjType COMMA) int pContentPos, int pEndContentPos, SourceFile* pOwningFile);
+	LexToken(LexToken* cloneSource, Identifier* pReplacementSource): Token(cloneSource, pReplacementSource) {}
 public:
 	virtual ~LexToken();
+
+	virtual LexToken* cloneWithReplacementSource(Identifier* pReplacementSource) = 0;
 };
 class Identifier: public LexToken {
 public:
 	Identifier(string pName, int pContentPos, int pEndContentPos, SourceFile* pOwningFile);
+	Identifier(Identifier* cloneSource, Identifier* pReplacementSource);
 	virtual ~Identifier();
 
 	string name; //copper: readonly
+
+	Identifier* cloneWithReplacementSource(Identifier* pReplacementSource);
 };
 class IntConstant: public LexToken {
 public:
 	IntConstant(int pVal, int pContentPos, int pEndContentPos, SourceFile* pOwningFile);
+	IntConstant(IntConstant* cloneSource, Identifier* pReplacementSource);
 	virtual ~IntConstant();
 
 	int val; //copper: readonly
+
+	IntConstant* cloneWithReplacementSource(Identifier* pReplacementSource);
 };
 class FloatConstant: public LexToken {
 public:
 	FloatConstant(BigInt* pSignificand, int pExponent, int pContentPos, int pEndContentPos, SourceFile* pOwningFile);
+	FloatConstant(FloatConstant* cloneSource, Identifier* pReplacementSource);
 	virtual ~FloatConstant();
 
 //	static const int FLOAT_TOO_BIG_EXPONENT = 0x100000;
 	BigInt* significand; //copper: readonly
 	int exponent; //copper: readonly
+
+	FloatConstant* cloneWithReplacementSource(Identifier* pReplacementSource);
 };
 class StringLiteral: public LexToken {
 public:
 	StringLiteral(string pVal, int pContentPos, int pEndContentPos, SourceFile* pOwningFile);
+	StringLiteral(StringLiteral* cloneSource, Identifier* pReplacementSource);
 	virtual ~StringLiteral();
 
 	string val; //copper: readonly
+
+	StringLiteral* cloneWithReplacementSource(Identifier* pReplacementSource);
 };
 class Separator: public LexToken {
 public:
 	Separator(SeparatorType pSeparatorType, int pContentPos, int pEndContentPos, SourceFile* pOwningFile);
+	Separator(Separator* cloneSource, Identifier* pReplacementSource);
 	virtual ~Separator();
 
 	SeparatorType separatorType; //copper: readonly
 
-	static string separatorName(SeparatorType s);
+	Separator* cloneWithReplacementSource(Identifier* pReplacementSource);
+	static string separatorName(SeparatorType s, bool withIndefiniteArticle);
 };
 class Operator: public LexToken {
 public:
@@ -160,6 +178,7 @@ public:
 	#endif
 	Operator(onlyWhenTrackingIDs(char* pObjType COMMA) OperatorType pOperatorType, int pContentPos, int pEndContentPos,
 		SourceFile* pOwningFile);
+	Operator(Operator* cloneSource, Identifier* pReplacementSource);
 	virtual ~Operator();
 
 	OperatorType operatorType; //copper: readonly
@@ -167,15 +186,20 @@ public:
 	Token* left; //copper: readonly
 	Token* right; //copper: readonly
 
-	bool takesRightHandPrecedence(Operator* other);
+	Operator* cloneWithReplacementSource(Identifier* pReplacementSource);
+	OperatorTypePrecedence getPrecedence(OperatorType pOperatorType);
+	bool takesRightSidePrecedence(Operator* other);
 };
 class DirectiveTitle: public LexToken {
 public:
 	DirectiveTitle(string pTitle, int pContentPos, int pEndContentPos, SourceFile* pOwningFile);
+	DirectiveTitle(DirectiveTitle* cloneSource, Identifier* pReplacementSource);
 	virtual ~DirectiveTitle();
 
 	string title; //copper: readonly
 	CDirective* directive; //copper: readonly<ParseDirectives>
+
+	DirectiveTitle* cloneWithReplacementSource(Identifier* pReplacementSource);
 };
 
 //Tokens used in parsing
@@ -183,25 +207,22 @@ class AbstractCodeBlock: public Token {
 public:
 	AbstractCodeBlock(
 		Array<Token*>* pTokens, Array<CDirective*>* pDirectives, int pContentPos, int pEndContentPos, SourceFile* pOwningFile);
+	AbstractCodeBlock(Array<Token*>* pTokens, AbstractCodeBlock* cloneSource, Identifier* pReplacementSource);
 	virtual ~AbstractCodeBlock();
 
 	Array<Token*>* tokens; //copper: readonly
 	Array<CDirective*>* directives; //copper: readonly
 };
 
-//Tokens used in replacing
-class SubstitutedToken: public Token {
-public:
-	SubstitutedToken(Token* pResultingToken, bool pShouldDelete, Token* tokenBeingReplaced);
-	virtual ~SubstitutedToken();
-
-	Token* resultingToken; //copper: readonly
-	bool shouldDelete;
-
-	void replaceResultingToken(Token* newResultingToken);
-};
-
 //Tokens used in expressions
+class VariableInitialization: public Token {
+public:
+	VariableInitialization(Array<CVariableDefinition*>* pVariables, Token* pInitialization, Token* lastToken);
+	virtual ~VariableInitialization();
+
+	Array<CVariableDefinition*>* variables;
+	Token* initialization;
+};
 class ParenthesizedExpression: public Token {
 public:
 	ParenthesizedExpression(Token* pExpression, AbstractCodeBlock* source);
@@ -211,14 +232,14 @@ public:
 };
 class Cast: public Operator {
 public:
-	Cast(CType* pType, bool pIsRaw, AbstractCodeBlock* source);
+	Cast(CDataType* pType, bool pIsRaw, AbstractCodeBlock* source);
 	virtual ~Cast();
 
 	bool isRaw;
 };
 class FunctionCall: public Token {
 public:
-	FunctionCall(Token* pFunction, Array<Token*>* pArguments);
+	FunctionCall(Token* pFunction, Array<Token*>* pArguments, AbstractCodeBlock* lastToken);
 	virtual ~FunctionCall();
 
 	Token* function;
@@ -226,11 +247,11 @@ public:
 };
 class FunctionDefinition: public Token {
 public:
-	FunctionDefinition(CType* pReturnType, Array<CVariableDefinition*>* pParameters, StatementList* pBody, int pContentPos,
-		int pEndContentPos, SourceFile* pOwningFile);
+	FunctionDefinition(
+		CDataType* pReturnType, Array<CVariableDefinition*>* pParameters, Array<Statement*>* pBody, Token* lastToken);
 	virtual ~FunctionDefinition();
 
-	CType* returnType;
+	CDataType* returnType;
 	Array<CVariableDefinition*>* parameters;
-	StatementList* body;
+	Array<Statement*>* body;
 };
