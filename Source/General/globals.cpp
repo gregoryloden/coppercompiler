@@ -1,6 +1,9 @@
 #include "Project.h"
 
 #define instantiateArrayContentDeleter(type) template class ArrayContentDeleter<type>; template class Deleter<Array<type*>>;
+#ifdef TRACK_OBJ_IDS
+	//**/#define PRINT_OBJ_ADD_OR_REMOVE
+#endif
 
 /*
 Array<Expression*> tokens;
@@ -87,8 +90,10 @@ int Math::max(int a, int b) {
 		objCount++;
 		nextObjID++;
 
+		#ifdef PRINT_OBJ_ADD_OR_REMOVE
+			printf("  Added %s\t%d\t%p,    obj count: %d\n", objType, objID, this, objCount);
+		#endif
 		#ifdef TRACK_OBJ_IDS
-			printf("  Added %s\t%d,\tobj count: %d\n", objType, objID, objCount);
 			if (tailObjCounter != nullptr)
 				tailObjCounter->next = this;
 			tailObjCounter = this;
@@ -98,8 +103,10 @@ int Math::max(int a, int b) {
 	}
 	ObjCounter::~ObjCounter() {
 		objCount--;
+		#ifdef PRINT_OBJ_ADD_OR_REMOVE
+			printf("Deleted %s\t%d\t%p,    obj count: %d\n", objType, objID, this, objCount);
+		#endif
 		#ifdef TRACK_OBJ_IDS
-			printf("Deleted %s\t%d,\tobj count: %d\n", objType, objID, objCount);
 			if (next != nullptr)
 				next->prev = prev;
 			else if (this == tailObjCounter)
@@ -123,7 +130,7 @@ int Math::max(int a, int b) {
 	void ObjCounter::end() {
 		#ifdef TRACK_OBJ_IDS
 			for (; headObjCounter != nullptr; headObjCounter = headObjCounter->next)
-				printf("      Remaining object: %s\t%d\n", headObjCounter->objType, headObjCounter->objID);
+				printf("      Remaining object: %s\t%d\t%p\n", headObjCounter->objType, headObjCounter->objID, headObjCounter);
 		#endif
 		printf("Total remaining objects: %d\n", objCount - untrackedObjCount);
 		printf("Total objects used: %d + %d untracked\n", (nextObjID - untrackedObjCount), untrackedObjCount);
@@ -153,7 +160,41 @@ template <class Type> ArrayContentDeleter<Type>::~ArrayContentDeleter() {
 	if (toDelete != nullptr)
 		toDelete->deleteContents();
 }
-char* Error::snippet = []() -> char* {
+//log an error and throw
+void Error::makeError(ErrorType type, const char* message, Token* token) {
+	token->owningFile->owningPliers->errorMessages->add(buildErrorMessage(type, message, token));
+	throw 0;
+}
+//build an error message list from the given input
+ErrorMessage* Error::buildErrorMessage(ErrorType type, const char* message, Token* token) {
+	return new ErrorMessage(
+		type,
+		message,
+		token->owningFile,
+		type == ErrorType::ExpectedToFollow ? token->endContentPos : token->endContentPos,
+		token->replacementSource != nullptr
+			? buildErrorMessage(ErrorType::Continuation, nullptr, token->replacementSource)
+			: nullptr);
+}
+ErrorMessage::ErrorMessage(
+	ErrorType pType, const char* pMessage, SourceFile* pOwningFile, int pContentPos, ErrorMessage* pContinuation)
+: onlyInDebug(ObjCounter(onlyWhenTrackingIDs("ERORMSG")) COMMA)
+type(pType)
+, message(nullptr)
+, owningFile(pOwningFile)
+, contentPos(pContentPos)
+, continuation(pContinuation) {
+	int messageLength = strlen(pMessage) + 1;
+	char* val = new char[messageLength];
+	memcpy((void*)val, pMessage, messageLength);
+	val[messageLength - 1] = '\0';
+	message = val;
+}
+ErrorMessage::~ErrorMessage() {
+	delete message;
+	delete continuation;
+}
+char* ErrorMessage::snippet = []() -> char* {
 	char* val = new char[SNIPPET_PREFIX_SPACES + SNIPPET_CHARS + 1 + SNIPPET_PREFIX_SPACES + SNIPPET_CHARS / 2 + 2];
 	memset(val, ' ', SNIPPET_PREFIX_SPACES);
 	val[SNIPPET_PREFIX_SPACES + SNIPPET_CHARS] = '\n';
@@ -162,11 +203,8 @@ char* Error::snippet = []() -> char* {
 	val[SNIPPET_PREFIX_SPACES + SNIPPET_CHARS + 1 + SNIPPET_PREFIX_SPACES + SNIPPET_CHARS / 2 + 1] = '\0';
 	return val;
 }();
-int Error::errorCount = 0;
-//print an error and throw
-void Error::makeError(ErrorType type, const char* message, Token* token) {
-	SourceFile* owningFile = token->owningFile;
-	int contentPos = type == ErrorType::ExpectedToFollow ? token->endContentPos : token->endContentPos;
+//print the error of this error message
+void ErrorMessage::printError() {
 	int row = owningFile->getRow(contentPos);
 	//print the error
 	char* errorPrefix;
@@ -183,17 +221,13 @@ void Error::makeError(ErrorType type, const char* message, Token* token) {
 		case ErrorType::ExpectedToFollow: printf("expected %s to follow\n", message); break;
 		case ErrorType::Continuation: break;
 	}
-	showSnippet(token);
-	errorCount++;
-	if (token->replacementSource != nullptr)
-		makeError(ErrorType::Continuation, nullptr, token->replacementSource);
-	else
-		throw 0;
+	showSnippet();
+	if (continuation != nullptr)
+		continuation->printError();
 }
 //show the snippet where the error/warning is
-void Error::showSnippet(Token* token) {
-	SourceFile* owningFile = token->owningFile;
-	int targetStart = token->contentPos - SNIPPET_CHARS / 2;
+void ErrorMessage::showSnippet() {
+	int targetStart = contentPos - SNIPPET_CHARS / 2;
 	int targetEnd = targetStart + SNIPPET_CHARS;
 	int start = Math::max(targetStart, 0);
 	int end = Math::min(targetEnd, owningFile->contentsLength);
@@ -241,7 +275,9 @@ void Error::showSnippet(Token* token) {
 			} else {
 				printLexToken(t);
 				Separator* separator;
-				if ((separator = dynamic_cast<Separator*>(t)) != nullptr && separator->separatorType == SeparatorType::Semicolon) {
+				if ((separator = dynamic_cast<Separator*>(t)) != nullptr &&
+					separator->separatorType == SeparatorType::Semicolon)
+				{
 					printf("\n");
 					printedSpaces = false;
 				}

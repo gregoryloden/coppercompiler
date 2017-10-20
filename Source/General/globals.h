@@ -5,6 +5,8 @@ class Token;
 class AbstractCodeBlock;
 class Statement;
 class VariableInitialization;
+class SourceFile;
+class ErrorMessage;
 template <class Type> class Array;
 
 #define forEach(Type, t, a, ti) ArrayIterator<Type> ti (a); for (Type t = ti.getThis(); ti.hasThis(); t = ti.getNext())
@@ -13,7 +15,7 @@ template <class Type> class Array;
 #ifdef DEBUG
 	#define onlyInDebug(x) x
 	#define assert(x) if (!(x)) { printf("Error: Assertion failure\n"); Debug::crashProgram(); }
-	//**/#define TRACK_OBJ_IDS
+	/**/#define TRACK_OBJ_IDS
 #else
 	#define onlyInDebug(x)
 	#define assert(x)
@@ -129,16 +131,29 @@ enum class ErrorType: unsigned char {
 };
 class Error {
 public:
+	static void makeError(ErrorType type, const char* message, Token* token);
+private:
+	static ErrorMessage* buildErrorMessage(ErrorType type, const char* message, Token* token);
+};
+class ErrorMessage onlyInDebug(: public ObjCounter) {
+public:
+	ErrorMessage(ErrorType pType, const char* pMessage, SourceFile* pOwningFile, int pContentPos, ErrorMessage* pContinuation);
+	~ErrorMessage();
+
 	static const int SNIPPET_PREFIX_SPACES = 4;
 	static const int SNIPPET_CHARS = 0x41;
 private:
 	static char* snippet;
 public:
-	static int errorCount;
+	ErrorType type;
+	const char* message;
+	SourceFile* owningFile;
+	int contentPos;
+	ErrorMessage* continuation;
 
-	static void makeError(ErrorType type, const char* message, Token* token);
+	void printError();
 private:
-	static void showSnippet(Token* token);
+	void showSnippet();
 };
 #ifdef DEBUG
 	class Debug {

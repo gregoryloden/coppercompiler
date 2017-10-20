@@ -6,13 +6,16 @@ thread_local Array<SourceFile*>* Include::allFiles = nullptr;
 thread_local PrefixTrie<char, SourceFile*>* Include::filesByName = nullptr;
 
 //load the file indicated by the given filename, and the files of the file graph it includes
-Array<SourceFile*>* Include::loadFiles(char* baseFileName) {
+Array<SourceFile*>* Include::loadFiles(char* baseFileName, Pliers* owningPliers) {
 	allFiles = new Array<SourceFile*>();
 	filesByName = new PrefixTrie<char, SourceFile*>();
-	SourceFile* baseFile = newSourceFile(baseFileName);
+	SourceFile* baseFile = newSourceFile(baseFileName, owningPliers);
 	for (int filei = 0; filei < allFiles->length; filei++) {
 		SourceFile* nextFile = allFiles->get(filei);
 		ParseDirectives::parseDirectives(nextFile);
+		if (nextFile->abstractContents->directives == nullptr)
+			continue;
+
 		forEach(CDirective*, d, nextFile->abstractContents->directives, di) {
 			CDirectiveInclude* i;
 			if ((i = dynamic_cast<CDirectiveInclude*>(d)) == nullptr)
@@ -22,7 +25,7 @@ Array<SourceFile*>* Include::loadFiles(char* baseFileName) {
 			string includedName = i->filename;
 			SourceFile* includedFile = filesByName->get(includedName.c_str(), includedName.length());
 			if (includedFile == PrefixTrie<char, SourceFile*>::emptyValue)
-				includedFile = newSourceFile(includedName.c_str());
+				includedFile = newSourceFile(includedName.c_str(), owningPliers);
 			nextFile->includedFiles->set(includedFile, true);
 			//if we're including all, add all its included files and add this to its listeners list
 			if (i->includeAll) {
@@ -40,9 +43,9 @@ Array<SourceFile*>* Include::loadFiles(char* baseFileName) {
 	return allFiles;
 }
 //create a new SourceFile, add it to the two collections, and return it
-SourceFile* Include::newSourceFile(const char* fileName) {
+SourceFile* Include::newSourceFile(const char* fileName, Pliers* owningPliers) {
 	//TODO: store by the full file path instead of just the filename string
-	SourceFile* file = new SourceFile(fileName);
+	SourceFile* file = new SourceFile(fileName, owningPliers);
 	allFiles->add(file);
 	filesByName->set(fileName, file->filename.length(), file);
 	//include itself so that we have one place to look for all directives

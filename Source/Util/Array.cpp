@@ -11,6 +11,7 @@ instantiateArrayTypes(AbstractCodeBlock*);
 instantiateArrayTypes(CDirective*);
 instantiateArrayTypes(CDirectiveReplace*);
 instantiateArrayTypes(CVariableDefinition*);
+instantiateArrayTypes(ErrorMessage*);
 instantiateArrayTypes(Identifier*);
 instantiateArrayTypes(LexToken*);
 instantiateArrayTypes(SourceFile*);

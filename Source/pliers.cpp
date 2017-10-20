@@ -3,7 +3,7 @@
 	#include <Windows.h>
 #endif
 
-#define returnIfErrors() if (Error::errorCount > 0) return;
+#define returnIfErrors() if (errorMessages->length > 0) return;
 /*
 //check if tpos is within the tokens
 #define tinbounds() (tpos < tlength)
@@ -22,10 +22,7 @@ int contexts[] = {TVOID , TBOOLEAN , TBYTE , TINT , TSTRING , TFUNCTION , TNONE}
 int tpos = 0;
 Expression** initializations = NULL;
 Array<AssemblySequence*> sequences;
-*/
 
-Array<SourceFile*>* allFiles = nullptr;
-/*
 template <class Key, class Value> void printNode(AVLNode<Key, Value>* node, int spaces) {
 	if (node == nullptr)
 		return;
@@ -125,9 +122,13 @@ int main(int argc, char* argv[]) {
 		puts("You need an input file");
 		return -1;
 	}
-	compile(argv[1]);
-	if (Error::errorCount > 0)
-		printf("Quit with %d errors\n", Error::errorCount);
+	Pliers* p = new Pliers(argv[1]);
+	if (p->errorMessages->length > 0) {
+		forEach(ErrorMessage*, errorMessage, p->errorMessages, ei) {
+			errorMessage->printError();
+		}
+		printf("Quit with %d errors\n", p->errorMessages->length);
+	}
 //printAbstractCodeBlock(mainFile->abstractContents, 0);
 	/*
 	setRowsAndColumns();
@@ -166,17 +167,18 @@ int main(int argc, char* argv[]) {
 	}
 	*/
 	#ifdef DEBUG
-		allFiles->deleteContents();
-		delete allFiles;
+		delete p;
 		ObjCounter::end();
 	#endif
 while(true) {}
 	return 0;
 }
-//run all the compilation steps
-//if any of them fail, stop
-void compile(char* filename) {
-	allFiles = Include::loadFiles(filename);
+//upon initialization, run all the compilation steps
+//if any of them fail, stop and leave this as it is
+Pliers::Pliers(char* fileName)
+: allFiles(nullptr)
+, errorMessages(new Array<ErrorMessage*>()) {
+	allFiles = Include::loadFiles(fileName, this);
 	#ifdef DEBUG
 		forEach(SourceFile*, s, allFiles, si1) {
 			printf("Initial contents for \"%s\":\n", s->filename.c_str());
@@ -209,6 +211,12 @@ void compile(char* filename) {
 		}
 	#endif
 puts("Suspended until the rewrite is complete");
+}
+Pliers::~Pliers() {
+	allFiles->deleteContents();
+	delete allFiles;
+	errorMessages->deleteContents();
+	delete errorMessages;
 }
 /*
 //get the contents of a file as a char*

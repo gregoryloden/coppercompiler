@@ -112,6 +112,7 @@ class AbstractCodeBlock;
 class StatementList;
 class Token;
 class VariableInitialization;
+class Pliers;
 template <class Key, class Value> class AVLTree;
 /*
 
@@ -412,10 +413,11 @@ public:
 //-------------------------------------------------------------------------------------------------------------------------------------------------------------
 class SourceFile onlyInDebug(: public ObjCounter) {
 public:
-	SourceFile(string pFilename);
+	SourceFile(string pFilename, Pliers* pOwningPliers);
 	virtual ~SourceFile();
 
 	string filename; //copper: private<readonly Include>
+	Pliers* owningPliers; //copper: private<readonly Error>
 	char* contents; //copper: private<readonly Lex>
 	int contentsLength; //copper: private<readonly(Lex, ParseDirectives)>
 	Array<int>* rowStarts; //copper: private<readonly Lex>

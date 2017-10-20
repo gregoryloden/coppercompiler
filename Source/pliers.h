@@ -1,7 +1,18 @@
 #include "string"
 using namespace std;
 
-void compile(char* filename);
+class SourceFile;
+class ErrorMessage;
+template <class Type> class Array;
+
+class Pliers {
+public:
+	Pliers(char* fileName);
+	~Pliers();
+
+	Array<SourceFile*>* allFiles;
+	Array<ErrorMessage*>* errorMessages;
+};
 /*
 class Function;
 class Expression;
@@ -19,9 +30,6 @@ void setRowsAndColumns();
 void parseCode();
 VariableData* newVariable(Function* owner, bool param, VariableStack* st);
 int varType(string s);
-*/
-bool isReservedWord(string s);
-/*
 Expression* replace(int loc, Expression* val);
 void advanceToSemicolon(size_t start, bool track, bool includecomma);
 Expression* getInitialization(VariableData* v, Function* owner, VariableStack* st);

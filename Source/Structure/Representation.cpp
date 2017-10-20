@@ -1498,9 +1498,10 @@ MainFunction::MainFunction(Function* f, string s, size_t thecontentpos):
 MainFunction::~MainFunction() {}
 */
 //-------------------------------------------------------------------------------------------------------------------------------------------------------------
-SourceFile::SourceFile(string pFilename)
+SourceFile::SourceFile(string pFilename, Pliers* pOwningPliers)
 : onlyInDebug(ObjCounter(onlyWhenTrackingIDs("SRCFILE")) COMMA)
-filename(pFilename)
+owningPliers(pOwningPliers)
+, filename(pFilename)
 , contents(nullptr)
 , contentsLength(0)
 , rowStarts(new Array<int>())

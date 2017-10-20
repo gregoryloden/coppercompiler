@@ -63,6 +63,8 @@ AbstractCodeBlock* ParseDirectives::parseAbstractCodeBlock(bool endsWithParenthe
 			try {
 				for (int parentheses = 1; parentheses > 0;) {
 					LexToken* next = Lex::lex();
+					if (next == nullptr)
+						throw 0;
 					Separator* s;
 					if ((s = dynamic_cast<Separator*>(next)) != nullptr) {
 						if (s->separatorType == SeparatorType::LeftParenthesis)
