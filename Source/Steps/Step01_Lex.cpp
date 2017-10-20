@@ -465,7 +465,7 @@ LexToken* Lex::lexNumber() {
 				break;
 		} else {
 			char digit = cToDigit();
-			if (digit == -1 || digit > base)
+			if ((unsigned char)digit >= (unsigned char)base)
 				break;
 			if (lexingExponent) {
 //				if (baseExponent < FloatConstant::FLOAT_TOO_BIG_EXPONENT)
@@ -712,6 +712,7 @@ DirectiveTitle* Lex::lexDirectiveTitle() {
 //throw an error at the current position
 void Lex::makeLexError(ErrorType type, char* message) {
 	EmptyToken errorToken (pos, sourceFile);
+	pos++;
 	Error::makeError(type, message, &errorToken);
 }
 /*

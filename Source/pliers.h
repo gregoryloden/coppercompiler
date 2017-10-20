@@ -1,3 +1,4 @@
+#include "General/globals.h"
 #include "string"
 using namespace std;
 
@@ -7,9 +8,11 @@ template <class Type> class Array;
 
 class Pliers {
 public:
-	Pliers(char* fileName);
+	Pliers(const char* pBaseFileName, bool pPrintProgress onlyInDebug(COMMA bool printContents));
 	~Pliers();
 
+	const char* baseFileName;
+	bool printProgress;
 	Array<SourceFile*>* allFiles;
 	Array<ErrorMessage*>* errorMessages;
 };

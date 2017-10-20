@@ -5,10 +5,11 @@
 //	function declaration vs function call or generic type vs lesser/greater comparison
 
 //parse all types in all files
-void ParseTypes::parseTypes(Array<SourceFile*>* files) {
-	forEach(SourceFile*, s, files, si) {
+void ParseTypes::parseTypes(Pliers* pliers) {
+	forEach(SourceFile*, s, pliers->allFiles, si) {
 		try {
-			printf("Parsing types for %s...\n", s->filename.c_str());
+			if (pliers->printProgress)
+				printf("Parsing types for %s...\n", s->filename.c_str());
 			//TODO: parse types
 		} catch (...) {
 		}

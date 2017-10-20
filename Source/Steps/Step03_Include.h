@@ -5,11 +5,11 @@ template <class KeyElement, class Value> class PrefixTrie;
 
 class Include {
 private:
-	static thread_local Array<SourceFile*>* allFiles;
+	static thread_local Pliers* currentPliers;
 	static thread_local PrefixTrie<char, SourceFile*>* filesByName;
 
 public:
-	static Array<SourceFile*>* loadFiles(char* baseFileName, Pliers* owningPliers);
+	static void loadFiles(Pliers* pliers);
 private:
-	static SourceFile* newSourceFile(const char* fileName, Pliers* owningPliers);
+	static SourceFile* newSourceFile(const char* fileName);
 };

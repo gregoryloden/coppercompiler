@@ -14,10 +14,11 @@ const char* ParseExpressions::breakKeyword = "break";
 const char* ParseExpressions::classKeyword = "class";
 const char* ParseExpressions::rawKeyword = "raw";
 //parse all expressions in all files
-void ParseExpressions::parseExpressionsInFiles(Array<SourceFile*>* files) {
-	forEach(SourceFile*, s, files, si) {
+void ParseExpressions::parseExpressionsInFiles(Pliers* pliers) {
+	forEach(SourceFile*, s, pliers->allFiles, si) {
 		try {
-			printf("Parsing expressions for %s...\n", s->filename.c_str());
+			if (pliers->printProgress)
+				printf("Parsing expressions for %s...\n", s->filename.c_str());
 			parseGlobalDefinitions(s);
 		} catch (...) {
 		}

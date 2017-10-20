@@ -29,7 +29,7 @@ private:
 	static const char* rawKeyword;
 
 public:
-	static void parseExpressionsInFiles(Array<SourceFile*>* files);
+	static void parseExpressionsInFiles(Pliers* pliers);
 private:
 	template <class TokenType> static TokenType* parseExpectedToken(
 		ArrayIterator<Token*>* ti, Token* precedingToken, const char* tokenDescription);

@@ -9,7 +9,8 @@ thread_local Token* ParseDirectives::searchOrigin = nullptr;
 //get the list of tokens and directives
 //parse location: EOF
 void ParseDirectives::parseDirectives(SourceFile* newSourceFile) {
-	printf("Parsing directives for %s...\n", newSourceFile->filename.c_str());
+	if (newSourceFile->owningPliers->printProgress)
+		printf("Parsing directives for %s...\n", newSourceFile->filename.c_str());
 	sourceFile = newSourceFile;
 	Lex::initializeLexer(newSourceFile);
 	newSourceFile->abstractContents = parseAbstractCodeBlock(false, 0);

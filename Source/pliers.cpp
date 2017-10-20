@@ -117,12 +117,13 @@ int main(int argc, char* argv[]) {
 	//Start compiling
 	#ifdef DEBUG
 		ObjCounter::start();
+		Test::testFiles();
 	#endif
 	if (argc < 2) {
 		puts("You need an input file");
 		return -1;
 	}
-	Pliers* p = new Pliers(argv[1]);
+	Pliers* p = new Pliers(argv[1], true onlyInDebug(COMMA true));
 	if (p->errorMessages->length > 0) {
 		forEach(ErrorMessage*, errorMessage, p->errorMessages, ei) {
 			errorMessage->printError();
@@ -175,41 +176,50 @@ while(true) {}
 }
 //upon initialization, run all the compilation steps
 //if any of them fail, stop and leave this as it is
-Pliers::Pliers(char* fileName)
-: allFiles(nullptr)
+Pliers::Pliers(const char* pBaseFileName, bool pPrintProgress onlyInDebug(COMMA bool printContents))
+: baseFileName(pBaseFileName)
+, printProgress(pPrintProgress)
+, allFiles(new Array<SourceFile*>())
 , errorMessages(new Array<ErrorMessage*>()) {
-	allFiles = Include::loadFiles(fileName, this);
+	Include::loadFiles(this);
 	#ifdef DEBUG
-		forEach(SourceFile*, s, allFiles, si1) {
-			printf("Initial contents for \"%s\":\n", s->filename.c_str());
-			Debug::printAbstractCodeBlock(s->abstractContents, 1);
-		}
-	#endif
-	returnIfErrors();
-
-	Replace::replaceCodeInFiles(allFiles);
-	#ifdef DEBUG
-		forEach(SourceFile*, s, allFiles, si2) {
-			printf("Replaced contents for \"%s\":\n", s->filename.c_str());
-			Debug::printAbstractCodeBlock(s->abstractContents, 1);
-		}
-	#endif
-	returnIfErrors();
-
-	ParseTypes::parseTypes(allFiles);
-	returnIfErrors();
-
-	ParseExpressions::parseExpressionsInFiles(allFiles);
-	returnIfErrors();
-	#ifdef DEBUG
-		forEach(SourceFile*, s, allFiles, si3) {
-			printf("Global definitions for \"%s\":\n", s->filename.c_str());
-			forEach(VariableInitialization*, initialization, s->globalVariables, di) {
-				Debug::printTokenTree(initialization, 0, false);
-				printf(";\n");
+		if (printContents) {
+			forEach(SourceFile*, s, allFiles, si1) {
+				printf("Initial contents for \"%s\":\n", s->filename.c_str());
+				Debug::printAbstractCodeBlock(s->abstractContents, 1);
 			}
 		}
 	#endif
+	returnIfErrors();
+
+	Replace::replaceCodeInFiles(this);
+	#ifdef DEBUG
+		if (printContents) {
+			forEach(SourceFile*, s, allFiles, si2) {
+				printf("Replaced contents for \"%s\":\n", s->filename.c_str());
+				Debug::printAbstractCodeBlock(s->abstractContents, 1);
+			}
+		}
+	#endif
+	returnIfErrors();
+
+	ParseTypes::parseTypes(this);
+	returnIfErrors();
+
+	ParseExpressions::parseExpressionsInFiles(this);
+	returnIfErrors();
+	#ifdef DEBUG
+		if (printContents) {
+			forEach(SourceFile*, s, allFiles, si3) {
+				printf("Global definitions for \"%s\":\n", s->filename.c_str());
+				forEach(VariableInitialization*, initialization, s->globalVariables, di) {
+					Debug::printTokenTree(initialization, 0, false);
+					printf(";\n");
+				}
+			}
+		}
+	#endif
+if (printProgress)
 puts("Suspended until the rewrite is complete");
 }
 Pliers::~Pliers() {

@@ -1,7 +1,6 @@
-class SourceFile;
-template <class Type> class Array;
+class Pliers;
 
 class ParseTypes {
 public:
-	static void parseTypes(Array<SourceFile*>* files);
+	static void parseTypes(Pliers* pliers);
 };

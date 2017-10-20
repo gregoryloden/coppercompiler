@@ -6,16 +6,20 @@
 	forEach(AbstractCodeBlock*, aa, arguments, aai) { aa->tokens->clear(); delete aa; } delete arguments;
 
 //evaluate all replacements in all files, using the replacements available per file
-void Replace::replaceCodeInFiles(Array<SourceFile*>* files) {
-	forEach(SourceFile*, s, files, si) {
+void Replace::replaceCodeInFiles(Pliers* pliers) {
+	forEach(SourceFile*, s, pliers->allFiles, si) {
 		try {
-			printf("Replacing code in %s...\n", s->filename.c_str());
+			if (pliers->printProgress)
+				printf("Replacing code in %s...\n", s->filename.c_str());
 
 			//find all replace directives
 			PrefixTrie<char, CDirectiveReplace*> replaces;
 			Deleter<Array<AVLNode<SourceFile*, bool>*>> allIncludedEntries (s->includedFiles->entrySet());
-			forEach(AVLNode<SourceFile* COMMA bool>*, includedEntry, allIncludedEntries.retrieve(), includedEntryi)
-				addReplacesToTrie(includedEntry->key->abstractContents, &replaces);
+			forEach(AVLNode<SourceFile* COMMA bool>*, includedEntry, allIncludedEntries.retrieve(), includedEntryi) {
+				Array<CDirective*>* directives = includedEntry->key->abstractContents->directives;
+				if (directives != nullptr)
+					addReplacesToTrie(directives, &replaces);
+			}
 
 			replaceTokens(s->abstractContents->tokens, &replaces);
 		} catch (...) {
@@ -24,8 +28,8 @@ void Replace::replaceCodeInFiles(Array<SourceFile*>* files) {
 }
 //insert any replace directives from the list into the trie, erroring if it's already there
 //may throw
-void Replace::addReplacesToTrie(AbstractCodeBlock* abstractContents, PrefixTrie<char, CDirectiveReplace*>* replaces) {
-	forEach(CDirective*, d, abstractContents->directives, di) {
+void Replace::addReplacesToTrie(Array<CDirective*>* directives, PrefixTrie<char, CDirectiveReplace*>* replaces) {
+	forEach(CDirective*, d, directives, di) {
 		CDirectiveReplace* r;
 		if ((r = dynamic_cast<CDirectiveReplace*>(d)) == nullptr)
 			continue;
@@ -48,9 +52,10 @@ void Replace::replaceTokens(Array<Token*>* tokens, PrefixTrie<char, CDirectiveRe
 		//if it's an abstract code block, we need to replace all its contents with its replaces considered
 		//this is definitely not arguments for backtracking since it would have been used already
 		if ((a = dynamic_cast<AbstractCodeBlock*>(t)) != nullptr) {
-			if (a->directives != nullptr && a->directives->length > 0) {
+			Array<CDirective*>* directives = a->directives;
+			if (directives != nullptr && directives->length > 0) {
 				PrefixTrieUnion<char, CDirectiveReplace*> newReplaces (replaces);
-				addReplacesToTrie(a, &newReplaces);
+				addReplacesToTrie(directives, &newReplaces);
 				replaceTokens(a->tokens, &newReplaces);
 			} else
 				replaceTokens(a->tokens, replaces);
