@@ -184,7 +184,7 @@ Token* ParseExpressions::parseValueExpression(Token* t, ArrayIterator<Token*>* t
 	DirectiveTitle* dt;
 	//try to parse a prefix operator
 	if ((o = dynamic_cast<Operator*>(t)) != nullptr)
-		addToOperator(o, nullptr, ti);
+		return addToOperator(o, nullptr, ti);
 	//parse a parenthesized expression or a cast
 	else if ((a = dynamic_cast<AbstractCodeBlock*>(t)) != nullptr)
 		return evaluateAbstractCodeBlock(a, nullptr, ti);

@@ -14,6 +14,7 @@
 		handling;\
 	}\
 	rowStarts->add(pos + 1);
+#define buildOperatorTrie(trieChar, trieType, baseTrie) {trieChar, trieType, sizeof(baseTrie) / sizeof(baseTrie[0]), baseTrie}
 
 /*
 MainFunction* nextMainFunction();
@@ -32,7 +33,6 @@ struct OperatorTypeTrie {
 	int count;
 	OperatorTypeTrie* tries;
 };
-const int baseOperatorTrieCount = 16;
 OperatorTypeTrie dotOperatorTries[] = {
 	{'.', OperatorType::ObjectMemberAccess, 0, nullptr}
 };
@@ -65,18 +65,18 @@ OperatorTypeTrie shiftLeftOperatorTries[] = {
 	{'=', OperatorType::AssignShiftLeft, 0, nullptr}
 };
 OperatorTypeTrie lessThanOperatorTries[] = {
-	{'<', OperatorType::ShiftLeft, 1, shiftLeftOperatorTries},
+	buildOperatorTrie('<', OperatorType::ShiftLeft, shiftLeftOperatorTries),
 	{'=', OperatorType::LessOrEqual, 0, nullptr}
 };
 OperatorTypeTrie shiftArithmeticRightOperatorTries[] = {
 	{'=', OperatorType::AssignShiftArithmeticRight, 0, nullptr}
 };
 OperatorTypeTrie shiftRightOperatorTries[] = {
-	{'>', OperatorType::ShiftArithmeticRight, 1, shiftArithmeticRightOperatorTries},
+	buildOperatorTrie('>', OperatorType::ShiftArithmeticRight, shiftArithmeticRightOperatorTries),
 	{'=', OperatorType::AssignShiftRight, 0, nullptr}
 };
 OperatorTypeTrie greaterThanOperatorTries[] = {
-	{'>', OperatorType::ShiftRight, 2, shiftRightOperatorTries},
+	buildOperatorTrie('>', OperatorType::ShiftRight, shiftRightOperatorTries),
 	{'=', OperatorType::GreaterOrEqual, 0, nullptr}
 };
 OperatorTypeTrie bitwiseAndOperatorTries[] = {
@@ -94,20 +94,20 @@ OperatorTypeTrie assignOperatorTries[] = {
 	{'=', OperatorType::Equal, 0, nullptr}
 };
 OperatorTypeTrie baseOperatorTries[] = {
-	{'.', OperatorType::Dot, 1, dotOperatorTries},
-	{'+', OperatorType::Add, 2, addOperatorTries},
-	{'-', OperatorType::Subtract, 2, subtractOperatorTries},
-	{'~', OperatorType::BitwiseNot, 3, bitwiseNotOperatorTries},
-	{'!', OperatorType::LogicalNot, 1, logicalNotOperatorTries},
-	{'*', OperatorType::Multiply, 1, multiplyOperatorTries},
-	{'/', OperatorType::Divide, 1, divideOperatorTries},
-	{'%', OperatorType::Modulus, 1, modulusOperatorTries},
-	{'<', OperatorType::LessThan, 2, lessThanOperatorTries},
-	{'>', OperatorType::GreaterThan, 2, greaterThanOperatorTries},
-	{'&', OperatorType::BitwiseAnd, 2, bitwiseAndOperatorTries},
-	{'^', OperatorType::BitwiseXor, 1, bitwiseXorOperatorTries},
-	{'|', OperatorType::BitwiseOr, 1, bitwiseOrOperatorTries},
-	{'=', OperatorType::Assign, 1, assignOperatorTries},
+	buildOperatorTrie('.', OperatorType::Dot, dotOperatorTries),
+	buildOperatorTrie('+', OperatorType::Add, addOperatorTries),
+	buildOperatorTrie('-', OperatorType::Subtract, subtractOperatorTries),
+	buildOperatorTrie('~', OperatorType::BitwiseNot, bitwiseNotOperatorTries),
+	buildOperatorTrie('!', OperatorType::LogicalNot, logicalNotOperatorTries),
+	buildOperatorTrie('*', OperatorType::Multiply, multiplyOperatorTries),
+	buildOperatorTrie('/', OperatorType::Divide, divideOperatorTries),
+	buildOperatorTrie('%', OperatorType::Modulus, modulusOperatorTries),
+	buildOperatorTrie('<', OperatorType::LessThan, lessThanOperatorTries),
+	buildOperatorTrie('>', OperatorType::GreaterThan, greaterThanOperatorTries),
+	buildOperatorTrie('&', OperatorType::BitwiseAnd, bitwiseAndOperatorTries),
+	buildOperatorTrie('^', OperatorType::BitwiseXor, bitwiseXorOperatorTries),
+	buildOperatorTrie('|', OperatorType::BitwiseOr, bitwiseOrOperatorTries),
+	buildOperatorTrie('=', OperatorType::Assign, assignOperatorTries),
 	{':', OperatorType::Colon, 0, nullptr},
 	{'?', OperatorType::QuestionMark, 0, nullptr}
 };
@@ -668,7 +668,7 @@ Operator* Lex::lexOperator() {
 	int begin = pos;
 	OperatorType type = OperatorType::Dot;
 	OperatorTypeTrie* tries = baseOperatorTries;
-	int count = baseOperatorTrieCount;
+	int count = sizeof(baseOperatorTries) / sizeof(baseOperatorTries[0]);
 	bool found = false;
 	for (int i = 0; i < count; i++) {
 		if (tries[i].operatorChar == c) {

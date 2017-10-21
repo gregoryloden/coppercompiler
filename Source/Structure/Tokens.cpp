@@ -220,6 +220,7 @@ bool Operator::takesRightSidePrecedence(Operator* other) {
 			//since we never steal the right side of a question mark, we can only get here on an error
 			} else
 				Error::makeError(ErrorType::General, "ternary expression missing conditional", this);
+		case OperatorTypePrecedence::ObjectMemberAccess:
 		case OperatorTypePrecedence::BooleanAnd:
 		case OperatorTypePrecedence::BooleanOr:
 		case OperatorTypePrecedence::Assignment:

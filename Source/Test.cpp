@@ -2,12 +2,17 @@
 
 #ifdef DEBUG
 	void Test::testFiles() {
-		testFile("Test/test0001_lex.cu", 0);
-		testFile("Test/test0002_badLex.cu", 10);
+		testFile("Test/Step01_Lex_lex.cu", 0);
+		testFile("Test/Step01_Lex_badLex.cu", 10);
 	}
 	void Test::testFile(const char* fileName, int errorsExpected) {
-		Pliers* p = new Pliers(fileName, false onlyInDebug(COMMA false));
-		assert(p->errorMessages->length == errorsExpected);
+		Pliers* p = new Pliers(fileName, false, false);
+		if (p->errorMessages->length != errorsExpected) {
+			forEach(ErrorMessage*, errorMessage, p->errorMessages, ei) {
+				errorMessage->printError();
+			}
+			assert(false);
+		}
 		delete p;
 	}
 #endif

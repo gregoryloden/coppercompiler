@@ -7,11 +7,13 @@ PrefixTrie<char, CDataType*>* CDataType::globalDataTypes = []() -> PrefixTrie<ch
 		new CIntegerPrimitive("byte", 8),
 		new CIntegerPrimitive("short", 16),
 		new CIntegerPrimitive("int", 32),
+		new CFloatingPointPrimitive("float", 32),
 		new CFunctionType(),
 		new CClass("String")
 	};
+	const int typesArrayCount = sizeof(typesArray) / sizeof(typesArray[0]);
 	PrefixTrie<char, CDataType*>* val = new PrefixTrie<char, CDataType*>();
-	for (int i = 0; i < 7; i++) {
+	for (int i = 0; i < typesArrayCount; i++) {
 		CDataType* cdt = typesArray[i];
 		val->set(cdt->name.c_str(), cdt->name.length(), cdt);
 	}
