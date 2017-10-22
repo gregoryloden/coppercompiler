@@ -23,88 +23,6 @@ int tpos = 0;
 Expression** initializations = NULL;
 Array<AssemblySequence*> sequences;
 
-template <class Key, class Value> void printNode(AVLNode<Key, Value>* node, int spaces) {
-	if (node == nullptr)
-		return;
-	printNode(node->left, spaces + 1);
-	for (int i = 0; i < spaces; i++)
-		printf("  ");
-	printf("%d -> %d\n", (int)(node->key), (int)(node->value));
-	printNode(node->right, spaces + 1);
-}
-template <class Key, class Value> void validateHeights(AVLNode<Key, Value>* node) {
-	if (node == nullptr)
-		return;
-	char leftHeight = AVLNode<Key, Value>::nodeHeight(node->left);
-	char rightHeight = AVLNode<Key, Value>::nodeHeight(node->right);
-	if (leftHeight < node->height - 2 || leftHeight >= node->height)
-		puts("eror bad left height");
-	if (rightHeight < node->height - 2 || rightHeight >= node->height)
-		puts("eror bad left height");
-	if (leftHeight != node->height - 1 && rightHeight != node->height - 1)
-		puts("eror mismatched heights");
-}
-template <class Key, class Value> void setAndValidate(AVLTree<Key, Value>* tree, Key key, Value value) {
-	tree->set(key, value);
-	if (tree->get(key) != value)
-		puts("eror bad value");
-	validateHeights(tree->root);
-	printNode(tree->root, 0);
-	puts("");
-}
-
-template void validateHeights(AVLNode<int, int>* node);
-template void setAndValidate(AVLTree<int, int>* tree, int key, int value);
-template void printNode(AVLNode<int, int>* node, int spaces);
-template void validateHeights(AVLNode<char, char>* node);
-template void setAndValidate(AVLTree<char, char>* tree, char key, char value);
-template void printNode(AVLNode<char, char>* node, int spaces);
-
-int avltreetest = []() {
-	AVLTree<int, int>* tree1 = new AVLTree<int, int>();
-	setAndValidate(tree1, 1, 1);
-	setAndValidate(tree1, 2, 1);
-	setAndValidate(tree1, 3, 1);
-	setAndValidate(tree1, 4, 1);
-	setAndValidate(tree1, 5, 10);
-	setAndValidate(tree1, 6, 1);
-	setAndValidate(tree1, 7, 1);
-	setAndValidate(tree1, 8, 1);
-	setAndValidate(tree1, 9, 1);
-	setAndValidate(tree1, 10, 15);
-	setAndValidate(tree1, 11, 1);
-	setAndValidate(tree1, 12, 1);
-	setAndValidate(tree1, 13, 1);
-	setAndValidate(tree1, 14, 1);
-	setAndValidate(tree1, 15, 19);
-	setAndValidate(tree1, 9, 19);
-	AVLTree<char, char>* tree2 = new AVLTree<char, char>();
-	setAndValidate(tree2, (char)15, (char)1);
-	setAndValidate(tree2, (char)14, (char)1);
-	setAndValidate(tree2, (char)13, (char)13);
-	setAndValidate(tree2, (char)12, (char)1);
-	setAndValidate(tree2, (char)11, (char)51);
-	setAndValidate(tree2, (char)10, (char)1);
-	setAndValidate(tree2, (char)9, (char)19);
-	setAndValidate(tree2, (char)8, (char)1);
-	setAndValidate(tree2, (char)7, (char)1);
-	setAndValidate(tree2, (char)6, (char)1);
-	setAndValidate(tree2, (char)5, (char)12);
-	setAndValidate(tree2, (char)4, (char)1);
-	setAndValidate(tree2, (char)3, (char)81);
-	setAndValidate(tree2, (char)2, (char)1);
-	setAndValidate(tree2, (char)1, (char)1);
-	AVLTree<char, char>* tree3 = new AVLTree<char, char>();
-	setAndValidate(tree3, (char)6, (char)1);
-	setAndValidate(tree3, (char)7, (char)2);
-	setAndValidate(tree3, (char)2, (char)3);
-	setAndValidate(tree3, (char)1, (char)4);
-	setAndValidate(tree3, (char)4, (char)5);
-	setAndValidate(tree3, (char)5, (char)6);
-	setAndValidate(tree3, (char)3, (char)7);
-	printf("Heights: %d, %d, %d\n", (int)(tree1->root->height), (int)(tree2->root->height), (int)(tree3->root->height));
-	return 0;
-}();
 */
 int main(int argc, char* argv[]) {
 	puts("Pliers Copper Compiler v0.0");
@@ -117,7 +35,7 @@ int main(int argc, char* argv[]) {
 	//Start compiling
 	#ifdef DEBUG
 		ObjCounter::start();
-		Test::testFiles();
+		Test::testAll();
 	#endif
 	if (argc < 2) {
 		puts("You need an input file");
@@ -130,7 +48,6 @@ int main(int argc, char* argv[]) {
 		}
 		printf("Quit with %d errors\n", p->errorMessages->length);
 	}
-//printAbstractCodeBlock(mainFile->abstractContents, 0);
 	/*
 	setRowsAndColumns();
 	//prepare the error snippet

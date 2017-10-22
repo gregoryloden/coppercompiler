@@ -10,8 +10,10 @@ public:
 	static const Value emptyValue;
 private:
 	static thread_local Value oldValue;
-	AVLNode<Key, Value>* root;
+public:
+	AVLNode<Key, Value>* root; //copper: private<readonly Test>
 
+private:
 	static void deleteTree(AVLNode<Key, Value>* node);
 public:
 	Value set(Key key, Value value);

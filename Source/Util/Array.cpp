@@ -19,6 +19,8 @@ instantiateArrayTypes(Statement*);
 instantiateArrayTypes(Token*);
 instantiateArrayTypes(VariableInitialization*);
 instantiateArrayTypes(Array<Token*>*);
+instantiateArrayTypes(AVLNode<char COMMA char>*);
+instantiateArrayTypes(AVLNode<int COMMA int>*);
 instantiateArrayTypes(AVLNode<SourceFile* COMMA bool>*);
 instantiateNonPointerArrayTypes(char);
 instantiateNonPointerArrayTypes(int);

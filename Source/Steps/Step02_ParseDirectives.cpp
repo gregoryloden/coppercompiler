@@ -3,8 +3,9 @@
 //comletely parses all directives, evaluates some
 //	(builds #replace, evaluates #buildSetting, groups code for #if, #enable, etc.)
 
-thread_local SourceFile* ParseDirectives::sourceFile;
+thread_local SourceFile* ParseDirectives::sourceFile = nullptr;
 thread_local Token* ParseDirectives::searchOrigin = nullptr;
+thread_local int ParseDirectives::expectedFallbackParentheses = 1;
 
 //get the list of tokens and directives
 //parse location: EOF
@@ -62,7 +63,7 @@ AbstractCodeBlock* ParseDirectives::parseAbstractCodeBlock(bool endsWithParenthe
 		//try to balance parentheses
 		if (endsWithParenthesis) {
 			try {
-				for (int parentheses = 1; parentheses > 0;) {
+				for (int parentheses = expectedFallbackParentheses; parentheses > 0;) {
 					LexToken* next = Lex::lex();
 					if (next == nullptr)
 						throw 0;
@@ -78,6 +79,7 @@ AbstractCodeBlock* ParseDirectives::parseAbstractCodeBlock(bool endsWithParenthe
 			} catch (...) {
 				// well we tried, just return what we've got
 			}
+			expectedFallbackParentheses = 1;
 		}
 	}
 	return new AbstractCodeBlock(tokens, directives, contentPos, endContentPos, sourceFile);
@@ -153,6 +155,7 @@ Array<string>* ParseDirectives::parseReplaceParameters(Identifier* endOfFileErro
 	Deleter<Array<string>> namesDeleter (names);
 	int parenthesisPos = parseSeparator(
 		SeparatorType::LeftParenthesis, "a left parenthesis for the replace-input parameters", endOfFileErrorToken);
+	expectedFallbackParentheses++;
 	LexToken* initial = Lex::lex();
 	if (initial == nullptr)
 		Error::makeError(ErrorType::EndOfFileWhileSearching, "the replace-input parameters", endOfFileErrorToken);
@@ -164,6 +167,7 @@ Array<string>* ParseDirectives::parseReplaceParameters(Identifier* endOfFileErro
 			Error::makeError(ErrorType::Expected, "an identifier or right parenthesis", initial);
 		}
 		delete s;
+		expectedFallbackParentheses--;
 		return namesDeleter.release();
 	}
 	char* expectedTokenTypeName = "a comma or right parenthesis";
@@ -172,9 +176,10 @@ Array<string>* ParseDirectives::parseReplaceParameters(Identifier* endOfFileErro
 		delete identifier;
 		Separator* s = parseToken<Separator>(expectedTokenTypeName, endOfFileErrorToken);
 		Deleter<Separator> sDeleter (s);
-		if (s->separatorType == SeparatorType::RightParenthesis)
+		if (s->separatorType == SeparatorType::RightParenthesis) {
+			expectedFallbackParentheses--;
 			return namesDeleter.release();
-		else if (s->separatorType != SeparatorType::Comma)
+		} else if (s->separatorType != SeparatorType::Comma)
 			Error::makeError(ErrorType::Expected, expectedTokenTypeName, s);
 		identifier = parseToken<Identifier>("a replace-input parameter", endOfFileErrorToken);
 	}

@@ -9,6 +9,8 @@
 	instantiateAVLTree(type1, PrefixTrie<type1 COMMA type2>*, nullptr);\
 	template <> AVLNode<type1, PrefixTrie<type1, type2>*>::~AVLNode() { delete value; }
 
+instantiateAVLTree(char, char, 0);
+instantiateAVLTree(int, int, 0);
 instantiateAVLTree(SourceFile*, bool, false);
 instantiatePrefixTrieAVLTree(char, CDirectiveReplace*);
 instantiatePrefixTrieAVLTree(char, CDataType*);

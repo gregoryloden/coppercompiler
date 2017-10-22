@@ -47,6 +47,7 @@ void ParseExpressions::parseGlobalDefinitions(SourceFile* sf) {
 			Deleter<Token> tDeleter (t);
 			Identifier* i;
 			DirectiveTitle* dt;
+			Separator* s;
 			if ((i = dynamic_cast<Identifier*>(t)) != nullptr) {
 				CDataType* cdt;
 				if (i->name == classKeyword) {
@@ -61,6 +62,8 @@ void ParseExpressions::parseGlobalDefinitions(SourceFile* sf) {
 				}
 			} else if ((dt = dynamic_cast<DirectiveTitle*>(t)) != nullptr)
 				//TODO: handle #enable directives
+				continue;
+			else if ((s = dynamic_cast<Separator*>(s)) != nullptr && s->separatorType == SeparatorType::Semicolon)
 				continue;
 			Error::makeError(ErrorType::Expected, "a type or variable definition", t);
 		} catch (...) {
