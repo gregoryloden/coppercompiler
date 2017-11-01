@@ -8,6 +8,7 @@
 	instantiateAVLTreeTestFunctions(int, int);
 	instantiateAVLTreeTestFunctions(char, char);
 
+	int Test::filesTested = 0;
 	void Test::testAll() {
 		testFiles();
 		testUtil();
@@ -34,6 +35,8 @@
 		testFile("Test/Step02_ParseDirectives_replaceInputParametersEOF.cu", 1);
 		testFile("Test/Step02_ParseDirectives_replaceInputParametersCommaEOF.cu", 1);
 		testFile("Test/Step02_ParseDirectives_replaceInputSecondParameterEOF.cu", 1);
+		testFile("Test/Step04_Replace_replace.cu", 0);
+		printf("Testing: %d total files tested\n", filesTested);
 	}
 	void Test::testFile(const char* fileName, int errorsExpected) {
 		Pliers* p = new Pliers(fileName, false, false);
@@ -45,6 +48,7 @@
 			assert(false);
 		}
 		delete p;
+		filesTested++;
 	}
 	void Test::testUtil() {
 		AVLTree<int, int>* tree1 = new AVLTree<int, int>();

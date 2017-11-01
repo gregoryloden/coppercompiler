@@ -162,8 +162,12 @@ template <class Type> ArrayContentDeleter<Type>::~ArrayContentDeleter() {
 }
 //log an error and throw
 void Error::makeError(ErrorType type, const char* message, Token* token) {
-	token->owningFile->owningPliers->errorMessages->add(buildErrorMessage(type, message, token));
+	logError(type, message, token);
 	throw 0;
+}
+//add an error to the error list without throwing
+void Error::logError(ErrorType type, const char* message, Token* token) {
+	token->owningFile->owningPliers->errorMessages->add(buildErrorMessage(type, message, token));
 }
 //build an error message list from the given input
 ErrorMessage* Error::buildErrorMessage(ErrorType type, const char* message, Token* token) {

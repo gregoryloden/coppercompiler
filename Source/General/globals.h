@@ -132,6 +132,7 @@ enum class ErrorType: unsigned char {
 class Error {
 public:
 	static void makeError(ErrorType type, const char* message, Token* token);
+	static void logError(ErrorType type, const char* message, Token* token);
 private:
 	static ErrorMessage* buildErrorMessage(ErrorType type, const char* message, Token* token);
 };

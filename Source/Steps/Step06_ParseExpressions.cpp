@@ -63,7 +63,7 @@ void ParseExpressions::parseGlobalDefinitions(SourceFile* sf) {
 			} else if ((dt = dynamic_cast<DirectiveTitle*>(t)) != nullptr)
 				//TODO: handle #enable directives
 				continue;
-			else if ((s = dynamic_cast<Separator*>(s)) != nullptr && s->separatorType == SeparatorType::Semicolon)
+			else if ((s = dynamic_cast<Separator*>(t)) != nullptr && s->separatorType == SeparatorType::Semicolon)
 				continue;
 			Error::makeError(ErrorType::Expected, "a type or variable definition", t);
 		} catch (...) {

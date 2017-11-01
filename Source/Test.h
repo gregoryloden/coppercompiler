@@ -4,6 +4,8 @@
 
 	class Test {
 	public:
+		static int filesTested;
+
 		static void testAll();
 	private:
 		static void testFiles();
