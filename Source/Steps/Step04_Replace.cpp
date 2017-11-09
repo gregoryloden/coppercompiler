@@ -8,26 +8,22 @@
 //evaluate all replacements in all files, using the replacements available per file
 void Replace::replaceCodeInFiles(Pliers* pliers) {
 	forEach(SourceFile*, s, pliers->allFiles, si) {
-		try {
-			if (pliers->printProgress)
-				printf("Replacing code in %s...\n", s->filename.c_str());
+		if (pliers->printProgress)
+			printf("Replacing code in %s...\n", s->filename.c_str());
 
-			//find all replace directives
-			PrefixTrie<char, CDirectiveReplace*> replaces;
-			Deleter<Array<AVLNode<SourceFile*, bool>*>> allIncludedEntries (s->includedFiles->entrySet());
-			forEach(AVLNode<SourceFile* COMMA bool>*, includedEntry, allIncludedEntries.retrieve(), includedEntryi) {
-				Array<CDirective*>* directives = includedEntry->key->abstractContents->directives;
-				if (directives != nullptr)
-					addReplacesToTrie(directives, &replaces);
-			}
-
-			replaceTokens(s->abstractContents->tokens, &replaces);
-		} catch (...) {
+		//find all replace directives
+		PrefixTrie<char, CDirectiveReplace*> replaces;
+		Deleter<Array<AVLNode<SourceFile*, bool>*>> allIncludedEntries (s->includedFiles->entrySet());
+		forEach(AVLNode<SourceFile* COMMA bool>*, includedEntry, allIncludedEntries.retrieve(), includedEntryi) {
+			Array<CDirective*>* directives = includedEntry->key->abstractContents->directives;
+			if (directives != nullptr)
+				addReplacesToTrie(directives, &replaces);
 		}
+
+		replaceTokens(s->abstractContents->tokens, &replaces);
 	}
 }
 //insert any replace directives from the list into the trie, erroring if it's already there
-//may throw
 void Replace::addReplacesToTrie(Array<CDirective*>* directives, PrefixTrie<char, CDirectiveReplace*>* replaces) {
 	forEach(CDirective*, d, directives, di) {
 		CDirectiveReplace* r;
@@ -36,7 +32,7 @@ void Replace::addReplacesToTrie(Array<CDirective*>* directives, PrefixTrie<char,
 
 		if (replaces->set(r->toReplace->name.c_str(), r->toReplace->name.length(), r) !=
 				PrefixTrie<char, CDirectiveReplace*>::emptyValue)
-			Error::makeError(ErrorType::General, "replacement has already been defined", r->toReplace);
+			Error::logError(ErrorType::General, "replacement has already been defined", r->toReplace);
 	}
 }
 //search through all of the tokens in the file to look for ones to replace
@@ -78,8 +74,7 @@ void Replace::replaceTokens(Array<Token*>* tokens, PrefixTrie<char, CDirectiveRe
 			if (ti >= tokens->length) {
 				Error::logError(ErrorType::ExpectedToFollow, "a replace-input argument list", i);
 				break;
-			}
-			if ((a = dynamic_cast<AbstractCodeBlock*>(t = tokens->get(ti))) == nullptr) {
+			} else if ((a = dynamic_cast<AbstractCodeBlock*>(t = tokens->get(ti))) == nullptr) {
 				Error::logError(ErrorType::Expected, "a replace-input argument list", t);
 				continue;
 			}

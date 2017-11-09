@@ -177,7 +177,7 @@ ErrorMessage* Error::buildErrorMessage(ErrorType type, const char* message, Toke
 		token->owningFile,
 		type == ErrorType::ExpectedToFollow ? token->endContentPos : token->endContentPos,
 		token->replacementSource != nullptr
-			? buildErrorMessage(ErrorType::Continuation, nullptr, token->replacementSource)
+			? buildErrorMessage(ErrorType::Continuation, "", token->replacementSource)
 			: nullptr);
 }
 ErrorMessage::ErrorMessage(

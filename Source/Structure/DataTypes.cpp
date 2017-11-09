@@ -1,5 +1,7 @@
 #include "Project.h"
 
+//classes defined within other classes have owning class
+
 PrefixTrie<char, CDataType*>* CDataType::globalDataTypes = []() -> PrefixTrie<char, CDataType*>* {
 	CDataType* typesArray[] = {
 		new CVoid(),

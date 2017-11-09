@@ -10,10 +10,13 @@
 
 	int Test::filesTested = 0;
 	void Test::testAll() {
+		printf("\nBegin testing\n");
 		testFiles();
 		testUtil();
+		printf("\nTesting complete\n\n");
 	}
 	void Test::testFiles() {
+		printf("  Testing files\n");
 		testFile("Test/Step01_Lex_lex.cu", 0);
 		testFile("Test/Step01_Lex_badLex.cu", 10);
 		testFile("Test/Step01_Lex_blockCommentEOF.cu", 1);
@@ -36,9 +39,11 @@
 		testFile("Test/Step02_ParseDirectives_replaceInputParametersCommaEOF.cu", 1);
 		testFile("Test/Step02_ParseDirectives_replaceInputSecondParameterEOF.cu", 1);
 		testFile("Test/Step04_Replace_replace.cu", 0);
-		printf("Testing: %d total files tested\n", filesTested);
+		testFile("Test/Step04_Replace_badReplace.cu", 6);
+		printf("  Finished testing files: %d total files tested\n", filesTested);
 	}
 	void Test::testFile(const char* fileName, int errorsExpected) {
+		printf("    Testing %s...\n", fileName);
 		Pliers* p = new Pliers(fileName, false, false);
 		assert(p->allFiles->get(0)->contentsLength > 0);
 		if (p->errorMessages->length != errorsExpected) {
@@ -51,6 +56,7 @@
 		filesTested++;
 	}
 	void Test::testUtil() {
+		printf("  Testing util\n");
 		AVLTree<int, int>* tree1 = new AVLTree<int, int>();
 		setAndValidate(tree1, 1, 1);
 		setAndValidate(tree1, 2, 1);
@@ -95,9 +101,12 @@
 		setAndValidate(tree3, (char)5, (char)6);
 		setAndValidate(tree3, (char)3, (char)7);
 		delete tree3;
+		printf("  Finished testing util\n");
 	}
 	template <class Key, class Value> void Test::setAndValidate(AVLTree<Key, Value>* tree, Key key, Value value) {
-		tree->set(key, value);
+		Value oldValue = tree->get(key);
+		Value oldValue2 = tree->set(key, value);
+		assert(oldValue == oldValue2);
 		assert(tree->get(key) == value);
 		validateHeights(tree->root);
 	}
