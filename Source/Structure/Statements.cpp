@@ -26,10 +26,14 @@ IfStatement::IfStatement(Token* pCondition, Array<Statement*>* pThenBody, Array<
 }
 IfStatement::~IfStatement() {
 	delete condition;
-	thenBody->deleteContents();
-	delete thenBody;
-	elseBody->deleteContents();
-	delete elseBody;
+	if (thenBody != nullptr) {
+		thenBody->deleteContents();
+		delete thenBody;
+	}
+	if (elseBody != nullptr) {
+		elseBody->deleteContents();
+		delete elseBody;
+	}
 }
 LoopStatement::LoopStatement(ExpressionStatement* pInitialization, Token* pCondition, Token* pIncrement,
 	Array<Statement*>* pBody, bool pInitialConditionCheck)
@@ -52,4 +56,6 @@ LoopControlFlowStatement::LoopControlFlowStatement(bool pContinueLoop, IntConsta
 , continueLoop(pContinueLoop)
 , levels(pLevels) {
 }
-LoopControlFlowStatement::~LoopControlFlowStatement() {}
+LoopControlFlowStatement::~LoopControlFlowStatement() {
+	delete levels;
+}

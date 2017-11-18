@@ -117,7 +117,8 @@ VariableInitialization* ParseExpressions::completeVariableInitialization(
 }
 //this is the main loop of parsing
 //return the expression that starts at the current token
-//fully expects a non-empty expression and nothing else- other functions will find things like parameters or keywords
+//fully expects a non-empty expression and nothing else-
+//	other functions will find things like parameters, keywords, or empty statements
 //does not accept variable initializations
 //parse location: one of the ending separator types | the end of the token array if we can end on a right parenthesis
 //may throw

@@ -13,7 +13,7 @@
 		printf("\nBegin testing\n");
 		testFiles();
 		testUtil();
-		printf("\nTesting complete\n\n");
+		printf("Testing complete\n\n");
 	}
 	void Test::testFiles() {
 		printf("  Testing files\n");
@@ -40,6 +40,7 @@
 		testFile("Test/Step02_ParseDirectives_replaceInputSecondParameterEOF.cu", 1);
 		testFile("Test/Step04_Replace_replace.cu", 0);
 		testFile("Test/Step04_Replace_badReplace.cu", 6);
+		testFile("Test/Step05_ParseExpressions_parseExpressions.cu", 0);
 		printf("  Finished testing files: %d total files tested\n", filesTested);
 	}
 	void Test::testFile(const char* fileName, int errorsExpected) {
