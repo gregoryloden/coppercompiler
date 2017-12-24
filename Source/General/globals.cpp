@@ -58,7 +58,6 @@ template class Deleter<Token>;
 template class Deleter<VariableInitialization>;
 template class Deleter<Array<AVLNode<SourceFile*, bool>*>>;
 template class Deleter<Array<string>>;
-template class Deleter<Array<Token*>>;
 template class Deleter<PrefixTrie<char, CDirectiveReplace*>>;
 template class Deleter<PrefixTrieUnion<char, CDirectiveReplace*>>;
 instantiateArrayContentDeleter(CVariableDefinition);
@@ -175,7 +174,7 @@ ErrorMessage* Error::buildErrorMessage(ErrorType type, const char* message, Toke
 		type,
 		message,
 		token->owningFile,
-		type == ErrorType::ExpectedToFollow ? token->endContentPos : token->endContentPos,
+		type == ErrorType::ExpectedToFollow ? token->endContentPos : token->contentPos,
 		token->replacementSource != nullptr
 			? buildErrorMessage(ErrorType::Continuation, "", token->replacementSource)
 			: nullptr);
@@ -480,7 +479,9 @@ void ErrorMessage::showSnippet() {
 				printLexToken(c->levels);
 			}
 			printf(";\n");
-		} else {
+		} else if (dynamic_cast<EmptyStatement*>(s) != nullptr)
+			;
+		else {
 			assert(false);
 		}
 	}

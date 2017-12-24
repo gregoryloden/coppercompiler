@@ -112,6 +112,8 @@ OperatorTypeTrie baseOperatorTries[] = {
 	{'?', OperatorType::QuestionMark, 0, nullptr}
 };
 
+const char* Lex::trueKeyword = "true";
+const char* Lex::falseKeyword = "false";
 thread_local SourceFile* Lex::sourceFile;
 thread_local char* Lex::contents;
 thread_local int Lex::contentsLength = 0;
@@ -403,10 +405,10 @@ LexToken* Lex::lexIdentifier() {
 	}
 	string s (contents + begin, pos - begin);
 
-	if (s.compare("true") == 0)
-		return new IntConstant(1, begin, pos, sourceFile);
-	else if (s.compare("false") == 0)
-		return new IntConstant(0, begin, pos, sourceFile);
+	if (s.compare(trueKeyword) == 0)
+		return new IntConstant(true, begin, pos, sourceFile);
+	else if (s.compare(falseKeyword) == 0)
+		return new IntConstant(false, begin, pos, sourceFile);
 	else
 		return new Identifier(s, begin, pos, sourceFile);
 }

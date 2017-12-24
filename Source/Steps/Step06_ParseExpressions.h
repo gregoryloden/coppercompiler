@@ -10,6 +10,7 @@ class Token;
 class Statement;
 class Identifier;
 class ExpressionStatement;
+class DirectiveTitle;
 template <class Type> class Array;
 template <class Type> class ArrayIterator;
 enum class SeparatorType: unsigned char;
@@ -36,8 +37,12 @@ private:
 	static void parseGlobalDefinitions(SourceFile* sf);
 	static VariableInitialization* completeVariableInitialization(
 		Identifier* typeToken, CDataType* type, Identifier* name, ArrayIterator<Token*>* ti, SeparatorType endingSeparatorType);
-	static Token* parseExpression(ArrayIterator<Token*>* ti, unsigned char endingSeparatorTypes,
-		ErrorType expectedExpressionErrorType, const char* expectedExpressionErrorMessage, Token* expectedExpressionErrorToken);
+	static Token* parseExpression(
+		ArrayIterator<Token*>* ti,
+		unsigned char endingSeparatorTypes,
+		ErrorType expectedExpressionErrorType,
+		const char* expectedExpressionErrorMessage,
+		Token* expectedExpressionErrorToken);
 	static Token* parseValueExpression(Token* t, ArrayIterator<Token*>* ti);
 	static Token* addToOperator(Operator* o, Token* activeExpression, ArrayIterator<Token*>* ti);
 	static Token* evaluateAbstractCodeBlock(AbstractCodeBlock* a, Token* activeExpression, ArrayIterator<Token*>* ti);
@@ -45,14 +50,15 @@ private:
 	static Token* completeParenthesizedExpression(AbstractCodeBlock* a, bool wrapExpression);
 	static Token* completeFunctionDefinition(CDataType* type, AbstractCodeBlock* parametersBlock, ArrayIterator<Token*>* ti);
 	static Token* completeFunctionCall(Token* function, AbstractCodeBlock* argumentsBlock);
-	static Array<Statement*>* parseStatementList(
-		ArrayIterator<Token*>* ti, Token* noValueErrorToken, const char* statementDescription, bool acceptSingleStatement);
+	static Array<Statement*>* parseStatementOrStatementList(
+		ArrayIterator<Token*>* ti, Token* noValueErrorToken, const char* statementDescription);
 	static Statement* parseStatement(ArrayIterator<Token*>* ti);
+	static Statement* parseDirectiveTitleStatementList(ArrayIterator<Token*>* ti);
 	static Statement* parseKeywordStatement(ArrayIterator<Token*>* ti);
 	static ExpressionStatement* parseExpressionStatement(ArrayIterator<Token*>* ti);
 	//helpers
 	static Token* getLastToken(Token* t);
 	static bool hasSemicolon(AbstractCodeBlock* a);
-	static bool isKeyword(string s);
+//	static bool isKeyword(string s);
 	static string buildExpectedSeparatorErrorMessage(unsigned char expectedSeparatorTypesMask, bool concludeList);
 };

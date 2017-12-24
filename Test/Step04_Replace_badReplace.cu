@@ -8,6 +8,11 @@ int d;
 echo;
 (echo);
 echo(,);
+echo(a,);
+echo(,b);
+echo(a,b);
 
 #replace-input concat(a, b) (ab)
 concat(3, 4);
+concat(a3, 4);
+concat(3, b4);

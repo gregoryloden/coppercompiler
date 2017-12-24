@@ -120,10 +120,15 @@ VariableInitialization* ParseExpressions::completeVariableInitialization(
 //fully expects a non-empty expression and nothing else-
 //	other functions will find things like parameters, keywords, or empty statements
 //does not accept variable initializations
+//if an initial expression is provided, this will take care of deleting it
 //parse location: one of the ending separator types | the end of the token array if we can end on a right parenthesis
 //may throw
-Token* ParseExpressions::parseExpression(ArrayIterator<Token*>* ti, unsigned char endingSeparatorTypes,
-	ErrorType expectedExpressionErrorType, const char* expectedExpressionErrorMessage, Token* expectedExpressionErrorToken)
+Token* ParseExpressions::parseExpression(
+	ArrayIterator<Token*>* ti,
+	unsigned char endingSeparatorTypes,
+	ErrorType expectedExpressionErrorType,
+	const char* expectedExpressionErrorMessage,
+	Token* expectedExpressionErrorToken)
 {
 	Token* activeExpression = nullptr;
 	try {
@@ -260,7 +265,7 @@ Token* ParseExpressions::addToOperator(Operator* o, Token* activeExpression, Arr
 //complete whatever expression we have using the abstract code block
 //if there is no active expression, this could be a cast or a value expression
 //if there is, this could be a function call or function parameters
-//but it's not a statement list
+//whatever it is, it's not a statement list
 //parse location: the last token of whatever expression uses this abstract code block
 //may throw
 Token* ParseExpressions::evaluateAbstractCodeBlock(AbstractCodeBlock* a, Token* activeExpression, ArrayIterator<Token*>* ti) {
@@ -385,9 +390,16 @@ Token* ParseExpressions::completeFunctionDefinition(
 		parameters->add(new CVariableDefinition(cdt, variableNameDeleter.release()));
 	}
 	if (comma != nullptr)
-		Error::makeError(ErrorType::General, "trailing comma in parentheses list", comma);
-	Array<Statement*>* statements = parseStatementList(ti, parametersBlock, "a function body", false);
-	return new FunctionDefinition(type, parametersDeleter.release(), statements, ti->getThis());
+		Error::makeError(ErrorType::General, "trailing comma in parameters list", comma);
+	AbstractCodeBlock* a = parseExpectedToken<AbstractCodeBlock>(ti, parametersBlock, "a function body");
+	Array<Statement*>* statements = new Array<Statement*>();
+	ArrayContentDeleter<Statement> statementsDeleter (statements);
+	forEach(Token*, st, a->tokens, ai) {
+		Statement* s;
+		if ((s = parseStatement(&ai)) != nullptr)
+			statements->add(s);
+	}
+	return new FunctionDefinition(type, parametersDeleter.release(), statementsDeleter.release(), ti->getThis());
 }
 //convert the given arguments into a list of arguments
 //parse location: no change (the location of the given abstract code block)
@@ -406,52 +418,80 @@ Token* ParseExpressions::completeFunctionCall(Token* function, AbstractCodeBlock
 	}
 	return new FunctionCall(function, argumentsDeleter.release(), argumentsBlock);
 }
-//get a statement list, erroring if there's nothing left
-//if it's a single statement and we accept those, return just that
-//if it's a single statement and we don't accept it, error because we require a parenthesized statement list
+//get a single statement or a statement list, erroring if there's nothing left
 //parse location: the statement list (statement list) | the semicolon of the statement (single statement)
 //may throw
-Array<Statement*>* ParseExpressions::parseStatementList(
-	ArrayIterator<Token*>* ti, Token* noValueErrorToken, const char* statementDescription, bool acceptSingleStatement)
+Array<Statement*>* ParseExpressions::parseStatementOrStatementList(
+	ArrayIterator<Token*>* ti, Token* noValueErrorToken, const char* statementDescription)
 {
 	Token* t = parseExpectedToken<Token>(ti, noValueErrorToken, statementDescription);
 	Array<Statement*>* statements = new Array<Statement*>();
 	ArrayContentDeleter<Statement> statementsDeleter (statements);
-	//if this is not an abstract code block or it is but it lacks semicolons, then this is a single statement
+	//if the next token is an abstract code block, it might be a statement list
 	AbstractCodeBlock* a;
-	if ((a = dynamic_cast<AbstractCodeBlock*>(t)) == nullptr || (!hasSemicolon(a) && a->tokens->length > 0)) {
-		if (acceptSingleStatement) {
-			Statement* s;
-			if ((s = parseStatement(ti)) != nullptr)
-				statements->add(s);
+	Statement* firstStatement = nullptr;
+	if ((a = dynamic_cast<AbstractCodeBlock*>(t)) != nullptr) {
+		//we have a statement list if
+		//	-it's empty OR
+		//	-it has a semicolon OR
+		//	-it starts with a directive title statement OR
+		//	-it starts with a keyword statement
+		ArrayIterator<Token*> ai (a->tokens);
+		if (a->tokens->length == 0 ||
+			hasSemicolon(a) ||
+			(firstStatement = parseDirectiveTitleStatementList(&ai)) != nullptr ||
+			(firstStatement = parseKeywordStatement(&ai)) != nullptr)
+		{
+			if (firstStatement != nullptr) {
+				statements->add(firstStatement);
+				ai.getNext();
+			}
+			forEachContinued(Token*, t2, (&ai)) {
+				Statement* s;
+				if ((s = parseStatement(&ai)) != nullptr)
+					statements->add(s);
+			}
 			return statementsDeleter.release();
-		} else
-			Error::makeError(ErrorType::Expected, statementDescription, t);
+		}
 	}
-	//we do have an abstract code block and it represents a statement list
-	forEach(Token*, t, a->tokens, ai) {
-		Statement* s;
-		if ((s = parseStatement(&ai)) != nullptr)
-			statements->add(s);
-	}
+	//since we got here, it's a single statement
+	Statement* s;
+	if ((s = parseStatement(ti)) != nullptr)
+		statements->add(s);
 	return statementsDeleter.release();
 }
 //parse a single statement starting at the current token
-//includes expression statements, keyword statements and empty statements (which return null)
+//includes expression statements, keyword statements and empty statements
 //assumes there is a token available
 //parse location: the last token of the statement
+//may return null (for empty statements)
 //may throw
 Statement* ParseExpressions::parseStatement(ArrayIterator<Token*>* ti) {
-	DirectiveTitle* dt;
-	if ((dt = dynamic_cast<DirectiveTitle*>(ti->getThis())) != nullptr) {
-		//TODO: handle #enable stuff
-		return nullptr;
-	}
-	Statement* keywordStatement = parseKeywordStatement(ti);
-	return keywordStatement != nullptr ? keywordStatement : parseExpressionStatement(ti);
+	Statement* result;
+	if ((result = parseDirectiveTitleStatementList(ti)) == nullptr &&
+			(result = parseKeywordStatement(ti)) == nullptr)
+		result = parseExpressionStatement(ti);
+	return result;
 }
-//parse a statement if the current token is a keyword identifier, return null if not
+//parse a statement if the current token is a statement-surrounding directive title
+//parse location: no change | the last token of the directive title
+//may return null (if we're not at a directive title statement)
+//may throw
+Statement* ParseExpressions::parseDirectiveTitleStatementList(ArrayIterator<Token*>* ti) {
+	DirectiveTitle* dt;
+	if ((dt = dynamic_cast<DirectiveTitle*>(ti->getThis())) == nullptr)
+		return nullptr;
+
+	CDirective* directive = dt->directive;
+	//these directives are valid syntactically but they don't do anything as statements
+	if (dynamic_cast<CDirectiveReplace*>(directive) != nullptr)
+		return new EmptyStatement();
+	//TODO: handle #enable stuff
+	return nullptr;
+}
+//parse a statement if the current token is a keyword identifier
 //parse location: no change | the last token of the keyword statement
+//may return null (if we're not at a keyword statement)
 //may throw
 Statement* ParseExpressions::parseKeywordStatement(ArrayIterator<Token*>* ti) {
 	Identifier* keywordToken;
@@ -469,12 +509,12 @@ Statement* ParseExpressions::parseKeywordStatement(ArrayIterator<Token*>* ti) {
 	} else if (keyword == ifKeyword) {
 		AbstractCodeBlock* conditionBlock = parseExpectedToken<AbstractCodeBlock>(ti, keywordToken, "a condition expression");
 		Deleter<Token> condition (completeParenthesizedExpression(conditionBlock, false));
-		Deleter<Array<Statement*>> thenBody (parseStatementList(ti, conditionBlock, "if-statement body", true));
+		ArrayContentDeleter<Statement> thenBody (parseStatementOrStatementList(ti, conditionBlock, "if-statement body"));
 		Array<Statement*>* elseBody = nullptr;
 		Token* elseToken = ti->getNext();
 		Identifier* i;
 		if (ti->hasThis() && (i = dynamic_cast<Identifier*>(elseToken)) != nullptr && i->name == elseKeyword)
-			elseBody = parseStatementList(ti, i, "else-statement body", true);
+			elseBody = parseStatementOrStatementList(ti, i, "else-statement body");
 		//go back if it's not an else keyword
 		else
 			ti->getPrevious();
@@ -495,33 +535,35 @@ Statement* ParseExpressions::parseKeywordStatement(ArrayIterator<Token*>* ti) {
 			initializationSemicolon));
 		ai.getNext();
 		Token* increment = ai.hasThis()
-			? parseExpression(&ai, (unsigned char)SeparatorType::RightParenthesis, ErrorType::General, nullptr, nullptr)
+			? parseExpression(
+				&ai, (unsigned char)SeparatorType::RightParenthesis, ErrorType::General, nullptr, nullptr)
 			: nullptr;
 		Deleter<Token> incrementDeleter (increment);
-		Array<Statement*>* body = parseStatementList(ti, conditionBlock, "a for-loop body", true);
+		Array<Statement*>* body = parseStatementOrStatementList(ti, conditionBlock, "a for-loop body");
 		return new LoopStatement(initialization.release(), condition.release(), incrementDeleter.release(), body, true);
 	} else if (keyword == whileKeyword) {
 		AbstractCodeBlock* conditionBlock = parseExpectedToken<AbstractCodeBlock>(ti, keywordToken, "a condition expression");
 		Deleter<Token> condition (completeParenthesizedExpression(conditionBlock, false));
-		Array<Statement*>* body = parseStatementList(ti, conditionBlock, "a while-loop body", true);
+		Array<Statement*>* body = parseStatementOrStatementList(ti, conditionBlock, "a while-loop body");
 		return new LoopStatement(nullptr, condition.release(), nullptr, body, true);
 	} else if (keyword == doKeyword) {
-		ArrayContentDeleter<Statement> body (parseStatementList(ti, keywordToken, "a do-while-loop body", true));
-		Identifier* whileToken = parseExpectedToken<Identifier>(ti, ti->getThis(), "a \"while\" keyword");
+		ArrayContentDeleter<Statement> body (parseStatementOrStatementList(ti, keywordToken, "a do-while-loop body"));
+		Identifier* whileToken = parseExpectedToken<Identifier>(ti, keywordToken, "a while-condition");
 		if (whileToken->name != whileKeyword)
 			Error::makeError(ErrorType::Expected, "a \"while\" keyword", whileToken);
 		AbstractCodeBlock* conditionBlock = parseExpectedToken<AbstractCodeBlock>(ti, whileToken, "a condition expression");
 		Token* condition = completeParenthesizedExpression(conditionBlock, false);
 		return new LoopStatement(nullptr, condition, nullptr, body.release(), false);
 	} else if ((continueLoop = (keyword == continueKeyword)) || keyword == breakKeyword) {
-		Token* t = parseExpectedToken<Token>(ti, keywordToken, "a semicolon or integer");
+		Token* t = parseExpectedToken<Token>(ti, keywordToken, "a semicolon or integer literal");
 		IntConstant* levels;
-		if ((levels = dynamic_cast<IntConstant*>(t)) == nullptr)
+		if ((levels = dynamic_cast<IntConstant*>(t)) == nullptr) {
 			ti->getPrevious();
-		else
+			t = keywordToken;
+		} else
 			ti->replaceThis(nullptr);
 		Deleter<IntConstant> levelsDeleter (levels);
-		Separator* s = parseExpectedToken<Separator>(ti, ti->getThis(), "a semicolon");
+		Separator* s = parseExpectedToken<Separator>(ti, t, "a semicolon");
 		if (s->separatorType != SeparatorType::Semicolon)
 			Error::makeError(ErrorType::Expected, "a semicolon", s);
 		return new LoopControlFlowStatement(continueLoop, levelsDeleter.release());
@@ -529,8 +571,8 @@ Statement* ParseExpressions::parseKeywordStatement(ArrayIterator<Token*>* ti) {
 		return nullptr;
 }
 //parse a single expression statement starting at the current token, including any variable definitions
-//returns null for empty statements
-//parse location: the end semicolon/right parenthesis of the statement
+//parse location: the end semicolon of the statement
+//may return null (for empty statements)
 //may throw
 ExpressionStatement* ParseExpressions::parseExpressionStatement(ArrayIterator<Token*>* ti) {
 	Token* t = ti->getThis();
@@ -558,7 +600,6 @@ ExpressionStatement* ParseExpressions::parseExpressionStatement(ArrayIterator<To
 	//we don't have to worry about an empty expression error message
 	return new ExpressionStatement(
 		parseExpression(ti, (unsigned char)SeparatorType::Semicolon, ErrorType::General, nullptr, nullptr));
-	return nullptr;
 }
 //get the right-most token of an operator tree, if there is one
 Token* ParseExpressions::getLastToken(Token* t) {
@@ -576,6 +617,7 @@ bool ParseExpressions::hasSemicolon(AbstractCodeBlock* a) {
 	}
 	return false;
 }
+/*
 //check if the string is a keyword
 bool ParseExpressions::isKeyword(string s) {
 	return
@@ -620,6 +662,7 @@ bool ParseExpressions::isKeyword(string s) {
 		s.compare("partial") == 0 ||
 		s.compare("abstract") == 0;
 }
+*/
 //construct a comma-separated list of separator type names from the given mask
 string ParseExpressions::buildExpectedSeparatorErrorMessage(unsigned char expectedSeparatorTypesMask, bool concludeList) {
 	SeparatorType separatorTypes[] = {

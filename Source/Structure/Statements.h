@@ -12,6 +12,11 @@ protected:
 public:
 	virtual ~Statement();
 };
+class EmptyStatement: public Statement {
+public:
+	EmptyStatement();
+	virtual ~EmptyStatement();
+};
 class ExpressionStatement: public Statement {
 public:
 	ExpressionStatement(Token* pExpression);
@@ -37,7 +42,11 @@ public:
 };
 class LoopStatement: public Statement {
 public:
-	LoopStatement(ExpressionStatement* pInitialization, Token* pCondition, Token* pIncrement, Array<Statement*>* pBody,
+	LoopStatement(
+		ExpressionStatement* pInitialization,
+		Token* pCondition,
+		Token* pIncrement,
+		Array<Statement*>* pBody,
 		bool pInitialConditionCheck);
 	virtual ~LoopStatement();
 

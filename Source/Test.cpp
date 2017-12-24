@@ -39,8 +39,9 @@
 		testFile("Test/Step02_ParseDirectives_replaceInputParametersCommaEOF.cu", 1);
 		testFile("Test/Step02_ParseDirectives_replaceInputSecondParameterEOF.cu", 1);
 		testFile("Test/Step04_Replace_replace.cu", 0);
-		testFile("Test/Step04_Replace_badReplace.cu", 6);
-		testFile("Test/Step05_ParseExpressions_parseExpressions.cu", 0);
+		testFile("Test/Step04_Replace_badReplace.cu", 11);
+		testFile("Test/Step06_ParseExpressions_parseExpressions.cu", 0);
+		testFile("Test/Step06_ParseExpressions_badParseExpressions.cu", 49);
 		printf("  Finished testing files: %d total files tested\n", filesTested);
 	}
 	void Test::testFile(const char* fileName, int errorsExpected) {

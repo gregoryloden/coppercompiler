@@ -1,4 +1,4 @@
-#include "Test/Step05_ParseExpressions_parseExpressions.cu"
+#include "Test/Step06_ParseExpressions_parseExpressions.cu"
 ;
 String a;
 int b = f();
@@ -10,11 +10,11 @@ Function main = void() (
 	int g = (int h = 1);
 	#replace nothing ()
 	if (g == g)
-		g = 4;
+		g = true ? 4 : 4;
 	if (g > g) (
-		g = 4;
+		g = false ? 4 : true ? 4 : 4;
 	) else (
-		h = 4;
+		h = true ? true ? 4 : 4 : 4;
 	)
 	if (g != 4)
 		if (h == 4)
@@ -54,4 +54,18 @@ Function i = int(int j) (
 );
 Function k = int(int l, int m) (
 	return l + m;
+);
+Function n = void() (
+	if (true) (
+	)
+	if (true) (
+		if (true) ()
+	) else if (false) (
+		Function o = void () ();
+	) else (
+		int p = q () ();
+	)
+);
+Function q = Function() (
+	return f;
 );

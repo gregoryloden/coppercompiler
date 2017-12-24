@@ -131,10 +131,12 @@ public:
 class IntConstant: public LexToken {
 public:
 	IntConstant(int pVal, int pContentPos, int pEndContentPos, SourceFile* pOwningFile);
+	IntConstant(bool pVal, int pContentPos, int pEndContentPos, SourceFile* pOwningFile);
 	IntConstant(IntConstant* cloneSource, Identifier* pReplacementSource);
 	virtual ~IntConstant();
 
 	int val; //copper: readonly
+	bool isBool; //copper: readonly
 
 	IntConstant* cloneWithReplacementSource(Identifier* pReplacementSource);
 };
@@ -176,7 +178,11 @@ public:
 	#ifdef TRACK_OBJ_IDS
 		Operator(OperatorType pOperatorType, int pContentPos, int pEndContentPos, SourceFile* pOwningFile);
 	#endif
-	Operator(onlyWhenTrackingIDs(char* pObjType COMMA) OperatorType pOperatorType, int pContentPos, int pEndContentPos,
+	Operator(
+		onlyWhenTrackingIDs(char* pObjType COMMA)
+		OperatorType pOperatorType,
+		int pContentPos,
+		int pEndContentPos,
 		SourceFile* pOwningFile);
 	Operator(Operator* cloneSource, Identifier* pReplacementSource);
 	virtual ~Operator();

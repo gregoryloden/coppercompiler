@@ -42,11 +42,18 @@ Identifier::~Identifier() {}
 cloneWithReplacementSourceForType(Identifier)
 IntConstant::IntConstant(int pVal, int pContentPos, int pEndContentPos, SourceFile* pOwningFile)
 : LexToken(onlyWhenTrackingIDs("INTCNST" COMMA) pContentPos, pEndContentPos, pOwningFile)
-, val(pVal) {
+, val(pVal)
+, isBool(false) {
+}
+IntConstant::IntConstant(bool pVal, int pContentPos, int pEndContentPos, SourceFile* pOwningFile)
+: LexToken(onlyWhenTrackingIDs("INTCNST" COMMA) pContentPos, pEndContentPos, pOwningFile)
+, val(pVal ? 1 : 0)
+, isBool(true) {
 }
 IntConstant::IntConstant(IntConstant* cloneSource, Identifier* pReplacementSource)
 : LexToken(cloneSource, pReplacementSource)
-, val(cloneSource->val) {
+, val(cloneSource->val)
+, isBool(cloneSource->isBool) {
 }
 IntConstant::~IntConstant() {}
 cloneWithReplacementSourceForType(IntConstant)
@@ -99,7 +106,11 @@ string Separator::separatorName(SeparatorType s, bool withIndefiniteArticle) {
 	: Operator("OPERATR", pOperatorType, pContentPos, pEndContentPos, pOwningFile) {
 	}
 #endif
-Operator::Operator(onlyWhenTrackingIDs(char* pObjType COMMA) OperatorType pOperatorType, int pContentPos, int pEndContentPos,
+Operator::Operator(
+	onlyWhenTrackingIDs(char* pObjType COMMA)
+	OperatorType pOperatorType,
+	int pContentPos,
+	int pEndContentPos,
 	SourceFile* pOwningFile)
 : LexToken(onlyWhenTrackingIDs(pObjType COMMA) pContentPos, pEndContentPos, pOwningFile)
 , operatorType(pOperatorType)

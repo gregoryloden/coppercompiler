@@ -10,6 +10,8 @@ template <class Type> class Array;
 
 class Lex {
 private:
+	static const char* trueKeyword;
+	static const char* falseKeyword;
 	static thread_local SourceFile* sourceFile;
 	static thread_local char* contents;
 	static thread_local int contentsLength;

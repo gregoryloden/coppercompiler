@@ -4,6 +4,10 @@ Statement::Statement(onlyWhenTrackingIDs(char* pObjType))
 onlyInDebug(: ObjCounter(onlyWhenTrackingIDs(pObjType))) {
 }
 Statement::~Statement() {}
+EmptyStatement::EmptyStatement()
+: Statement(onlyWhenTrackingIDs("EMPSTMT")) {
+}
+EmptyStatement::~EmptyStatement() {}
 ExpressionStatement::ExpressionStatement(Token* pExpression)
 : Statement(onlyWhenTrackingIDs("EXPSTMT"))
 , expression(pExpression) {
@@ -35,9 +39,13 @@ IfStatement::~IfStatement() {
 		delete elseBody;
 	}
 }
-LoopStatement::LoopStatement(ExpressionStatement* pInitialization, Token* pCondition, Token* pIncrement,
-	Array<Statement*>* pBody, bool pInitialConditionCheck)
-: Statement(onlyWhenTrackingIDs("LPSTMT"))
+LoopStatement::LoopStatement(
+	ExpressionStatement* pInitialization,
+	Token* pCondition,
+	Token* pIncrement,
+	Array<Statement*>* pBody,
+	bool pInitialConditionCheck)
+: Statement(onlyWhenTrackingIDs("LOPSTMT"))
 , initialization(pInitialization)
 , condition(pCondition)
 , increment(pIncrement)

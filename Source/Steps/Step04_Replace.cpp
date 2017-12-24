@@ -139,8 +139,12 @@ Array<AbstractCodeBlock*>* Replace::collectArguments(
 }
 //recursively clone the replacement body, and substitute any other tokens under the parent token being replaced
 //if there is input and a string or identifier matches one of the parameters, replace it
-void Replace::buildReplacement(Array<Token*>* tokensOutput, AbstractCodeBlock* replacementBody,
-	Array<AbstractCodeBlock*>* arguments, Array<string>* input, Identifier* replacementSource)
+void Replace::buildReplacement(
+	Array<Token*>* tokensOutput,
+	AbstractCodeBlock* replacementBody,
+	Array<AbstractCodeBlock*>* arguments,
+	Array<string>* input,
+	Identifier* replacementSource)
 {
 	bool hasInput = input != nullptr && input->length > 0;
 	forEach(Token*, t, replacementBody->tokens, ti) {
@@ -195,8 +199,12 @@ StringLiteral* Replace::replaceStringLiteral(
 	return s;
 }
 //replace any sections of the identifier that match a parameter with the corresponding arguments
-void Replace::replaceIdentifier(Array<Token*>* tokensOutput, Identifier* i, Array<AbstractCodeBlock*>* arguments,
-	Array<string>* input, Identifier* replacementSource)
+void Replace::replaceIdentifier(
+	Array<Token*>* tokensOutput,
+	Identifier* i,
+	Array<AbstractCodeBlock*>* arguments,
+	Array<string>* input,
+	Identifier* replacementSource)
 {
 	int nameLength = i->name.length();
 	Identifier* newI = i->cloneWithReplacementSource(replacementSource);
