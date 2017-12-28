@@ -1,7 +1,6 @@
 #include "string"
 using namespace std;
 
-class SourceFile;
 class AbstractCodeBlock;
 class CDataType;
 class VariableInitialization;
@@ -34,9 +33,9 @@ public:
 private:
 	template <class TokenType> static TokenType* parseExpectedToken(
 		ArrayIterator<Token*>* ti, Token* precedingToken, const char* tokenDescription);
-	static void parseGlobalDefinitions(SourceFile* sf);
+	static void parseGlobalDefinitions(AbstractCodeBlock* a);
 	static VariableInitialization* completeVariableInitialization(
-		Identifier* typeToken, CDataType* type, Identifier* name, ArrayIterator<Token*>* ti, SeparatorType endingSeparatorType);
+		CDataType* type, Identifier* name, ArrayIterator<Token*>* ti, SeparatorType endingSeparatorType);
 	static Token* parseExpression(
 		ArrayIterator<Token*>* ti,
 		unsigned char endingSeparatorTypes,

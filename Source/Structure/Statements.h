@@ -19,29 +19,35 @@ public:
 };
 class ExpressionStatement: public Statement {
 public:
+	Token* expression;
+
 	ExpressionStatement(Token* pExpression);
 	virtual ~ExpressionStatement();
-
-	Token* expression;
 };
 class ReturnStatement: public Statement {
 public:
+	Token* expression;
+
 	ReturnStatement(Token* pExpression);
 	virtual ~ReturnStatement();
-
-	Token* expression;
 };
 class IfStatement: public Statement {
 public:
-	IfStatement(Token* pCondition, Array<Statement*>* pThenBody, Array<Statement*>* pElseBody);
-	virtual ~IfStatement();
-
 	Token* condition;
 	Array<Statement*>* thenBody;
 	Array<Statement*>* elseBody;
+
+	IfStatement(Token* pCondition, Array<Statement*>* pThenBody, Array<Statement*>* pElseBody);
+	virtual ~IfStatement();
 };
 class LoopStatement: public Statement {
 public:
+	ExpressionStatement* initialization;
+	Token* condition;
+	Token* increment;
+	Array<Statement*>* body;
+	bool initialConditionCheck;
+
 	LoopStatement(
 		ExpressionStatement* pInitialization,
 		Token* pCondition,
@@ -49,18 +55,12 @@ public:
 		Array<Statement*>* pBody,
 		bool pInitialConditionCheck);
 	virtual ~LoopStatement();
-
-	ExpressionStatement* initialization;
-	Token* condition;
-	Token* increment;
-	Array<Statement*>* body;
-	bool initialConditionCheck;
 };
 class LoopControlFlowStatement: public Statement {
 public:
-	LoopControlFlowStatement(bool pContinueLoop, IntConstant* pLevels);
-	virtual ~LoopControlFlowStatement();
-
 	bool continueLoop;
 	IntConstant* levels;
+
+	LoopControlFlowStatement(bool pContinueLoop, IntConstant* pLevels);
+	virtual ~LoopControlFlowStatement();
 };

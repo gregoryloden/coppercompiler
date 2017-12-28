@@ -77,6 +77,20 @@ public:
 };
 #ifdef DEBUG
 	class ObjCounter {
+	private:
+		static int objCount;
+		static int untrackedObjCount;
+		static int nextObjID;
+		#ifdef TRACK_OBJ_IDS
+			static ObjCounter* headObjCounter;
+			static ObjCounter* tailObjCounter;
+
+			char* objType;
+			int objID;
+			ObjCounter* prev;
+			ObjCounter* next;
+		#endif
+
 	public:
 		ObjCounter(onlyWhenTrackingIDs(char* pObjType));
 		#ifdef TRACK_OBJ_IDS
@@ -84,20 +98,6 @@ public:
 		#endif
 		virtual ~ObjCounter();
 
-	private:
-		#ifdef TRACK_OBJ_IDS
-			char* objType;
-			int objID;
-			ObjCounter* prev;
-			ObjCounter* next;
-			static ObjCounter* headObjCounter;
-			static ObjCounter* tailObjCounter;
-		#endif
-		static int objCount;
-		static int untrackedObjCount;
-		static int nextObjID;
-
-	public:
 		static void start();
 		static void end();
 	};
@@ -105,14 +105,13 @@ public:
 //used to delete objects during a throw
 //should always be stack allocated
 template <class Type> class Deleter onlyInDebug(: public ObjCounter) {
-public:
-	Deleter(Type* pToDelete);
-	virtual ~Deleter();
-
 protected:
 	Type* toDelete;
 
 public:
+	Deleter(Type* pToDelete);
+	virtual ~Deleter();
+
 	Type* release();
 	Type* retrieve();
 };
@@ -138,19 +137,20 @@ private:
 };
 class ErrorMessage onlyInDebug(: public ObjCounter) {
 public:
-	ErrorMessage(ErrorType pType, const char* pMessage, SourceFile* pOwningFile, int pContentPos, ErrorMessage* pContinuation);
-	~ErrorMessage();
-
 	static const int SNIPPET_PREFIX_SPACES = 4;
 	static const int SNIPPET_CHARS = 0x41;
 private:
 	static char* snippet;
-public:
+
 	ErrorType type;
 	const char* message;
 	SourceFile* owningFile;
 	int contentPos;
 	ErrorMessage* continuation;
+
+public:
+	ErrorMessage(ErrorType pType, const char* pMessage, SourceFile* pOwningFile, int pContentPos, ErrorMessage* pContinuation);
+	~ErrorMessage();
 
 	void printError();
 private:

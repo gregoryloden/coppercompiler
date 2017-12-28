@@ -413,9 +413,6 @@ public:
 //-------------------------------------------------------------------------------------------------------------------------------------------------------------
 class SourceFile onlyInDebug(: public ObjCounter) {
 public:
-	SourceFile(string pFilename, Pliers* pOwningPliers);
-	virtual ~SourceFile();
-
 	string filename; //copper: private<readonly Include>
 	Pliers* owningPliers; //copper: private<readonly Error>
 	char* contents; //copper: private<readonly Lex>
@@ -429,13 +426,17 @@ public:
 	//Array<??????????> typesDefined;
 //	Array<CClass*>* classes;
 
+	SourceFile(string pFilename, Pliers* pOwningPliers);
+	virtual ~SourceFile();
+
 	int getRow(int contentPos);
 };
 class CVariableDefinition onlyInDebug(: public ObjCounter) {
 public:
-	CVariableDefinition(CDataType* pType, Identifier* pName);
-	virtual ~CVariableDefinition();
-
 	CDataType* type;
 	Identifier* name;
+	//CClass* owningClass;
+
+	CVariableDefinition(CDataType* pType, Identifier* pName);
+	virtual ~CVariableDefinition();
 };

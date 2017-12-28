@@ -4,14 +4,14 @@ template <class Key, class Value> class AVLNode;
 
 template <class Key, class Value> class AVLTree onlyInDebug(: public ObjCounter) {
 public:
-	AVLTree();
-	virtual ~AVLTree();
-
 	static const Value emptyValue;
 private:
 	static thread_local Value oldValue;
 public:
 	AVLNode<Key, Value>* root; //copper: private<readonly Test>
+
+	AVLTree();
+	virtual ~AVLTree();
 
 private:
 	static void deleteTree(AVLNode<Key, Value>* node);
@@ -31,14 +31,14 @@ private:
 };
 template <class Key, class Value> class AVLNode onlyInDebug(: public ObjCounter) {
 public:
-	AVLNode(Key pKey, Value pValue);
-	virtual ~AVLNode();
-
 	Key key; //copper: private<readonly AVLTree>
 	Value value; //copper: private<AVLTree>
 	char height; //copper: private<AVLTree>
 	AVLNode* left; //copper: private<AVLTree>
 	AVLNode* right; //copper: private<AVLTree>
+
+	AVLNode(Key pKey, Value pValue);
+	virtual ~AVLNode();
 
 	static char nodeHeight(AVLNode<Key, Value>* node);
 };

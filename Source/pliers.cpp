@@ -136,6 +136,9 @@ Pliers::Pliers(const char* pBaseFileName, bool pPrintProgress onlyInDebug(COMMA 
 			}
 		}
 	#endif
+
+	Semant::semant(this);
+	returnIfErrors();
 if (printProgress)
 puts("Suspended until the rewrite is complete");
 }

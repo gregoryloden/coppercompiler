@@ -2,15 +2,17 @@
 
 //classes defined within other classes have owning class
 
+CFunctionType* CDataType::functionType = new CFunctionType();
+CVoid* CDataType::voidType = new CVoid();
 PrefixTrie<char, CDataType*>* CDataType::globalDataTypes = []() -> PrefixTrie<char, CDataType*>* {
 	CDataType* typesArray[] = {
-		new CVoid(),
+		voidType,
 		new CIntegerPrimitive("bool", 1),
 		new CIntegerPrimitive("byte", 8),
 		new CIntegerPrimitive("short", 16),
 		new CIntegerPrimitive("int", 32),
 		new CFloatingPointPrimitive("float", 32),
-		new CFunctionType(),
+		functionType,
 		new CClass("String")
 	};
 	const int typesArrayCount = sizeof(typesArray) / sizeof(typesArray[0]);
@@ -35,12 +37,12 @@ CPrimitive::CPrimitive(onlyWhenTrackingIDs(char* pObjType COMMA) string pName, s
 , bitSize(pBitSize) {
 }
 CPrimitive::~CPrimitive() {}
-CIntegerPrimitive::CIntegerPrimitive(string pName, int pByteSize)
-: CPrimitive(onlyWhenTrackingIDs("INTPMTP" COMMA) pName, pByteSize) {
+CIntegerPrimitive::CIntegerPrimitive(string pName, int pBitSize)
+: CPrimitive(onlyWhenTrackingIDs("INTPMTP" COMMA) pName, pBitSize) {
 }
 CIntegerPrimitive::~CIntegerPrimitive() {}
-CFloatingPointPrimitive::CFloatingPointPrimitive(string pName, int pByteSize)
-: CPrimitive(onlyWhenTrackingIDs("FLTPMTP" COMMA) pName, pByteSize) {
+CFloatingPointPrimitive::CFloatingPointPrimitive(string pName, int pBitSize)
+: CPrimitive(onlyWhenTrackingIDs("FLTPMTP" COMMA) pName, pBitSize) {
 }
 CFloatingPointPrimitive::~CFloatingPointPrimitive() {}
 CFunctionType::CFunctionType()

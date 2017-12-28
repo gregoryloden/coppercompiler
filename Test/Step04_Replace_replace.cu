@@ -48,8 +48,7 @@ insertSRiG(t, n) r = "r";
 echo() echo(String s) = "s";
 echo(String t = "t");
 
-int dummy = int() (
+Function main = void() (
 	#replace-input aba(a, ba, b, ab) (aba u = "bab")
 	aba(Str, ing, int, k);
-	return 0;
-)();
+);

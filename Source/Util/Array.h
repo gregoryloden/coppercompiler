@@ -2,15 +2,15 @@
 
 template <class Type> class Array onlyInDebug(: public ObjCounter) {
 public:
-	Array();
-	virtual ~Array();
-
 	int length; //copper: readonly
 private:
 	Type* inner;
 	int innerLength;
 
 public:
+	Array();
+	virtual ~Array();
+
 	void deleteContents();
 private:
 	void resize(int scale);
@@ -33,15 +33,14 @@ public:
 	void clear();
 };
 template <class Type> class ArrayIterator onlyInDebug(: public ObjCounter) {
-public:
-	ArrayIterator(Array<Type>* pA);
-	virtual ~ArrayIterator();
-
 private:
 	int index;
 	Array<Type>* a;
 
 public:
+	ArrayIterator(Array<Type>* pA);
+	virtual ~ArrayIterator();
+
 	Type getFirst();
 	Type getNext();
 	Type getThis();

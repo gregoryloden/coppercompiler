@@ -89,17 +89,18 @@ enum class OperatorTypePrecedence: unsigned char {
 };
 
 class Token onlyInDebug(: public ObjCounter) {
-protected:
-	Token(onlyWhenTrackingIDs(char* pObjType COMMA) int pContentPos, int pEndContentPos, SourceFile* pOwningFile);
-	Token(Token* cloneSource, Identifier* pReplacementSource);
 public:
-	virtual ~Token();
-
 	int contentPos; //copper: readonly
 	int endContentPos; //copper: readonly
 	SourceFile* owningFile; //copper: readonly
 	Identifier* replacementSource; //copper: readonly
 	CDataType* dataType; //copper: readonly<Semant>
+
+protected:
+	Token(onlyWhenTrackingIDs(char* pObjType COMMA) int pContentPos, int pEndContentPos, SourceFile* pOwningFile);
+	Token(Token* cloneSource, Identifier* pReplacementSource);
+public:
+	virtual ~Token();
 };
 //For empty contents (ex. errors, between commas or semicolons, etc.)
 class EmptyToken: public Token {
@@ -120,61 +121,68 @@ public:
 };
 class Identifier: public LexToken {
 public:
+	string name; //copper: readonly
+	CVariableDefinition* variable; //copper: private<Semant>
+
 	Identifier(string pName, int pContentPos, int pEndContentPos, SourceFile* pOwningFile);
 	Identifier(Identifier* cloneSource, Identifier* pReplacementSource);
 	virtual ~Identifier();
-
-	string name; //copper: readonly
 
 	Identifier* cloneWithReplacementSource(Identifier* pReplacementSource);
 };
 class IntConstant: public LexToken {
 public:
+	int val; //copper: readonly
+	bool isBool; //copper: readonly
+
 	IntConstant(int pVal, int pContentPos, int pEndContentPos, SourceFile* pOwningFile);
 	IntConstant(bool pVal, int pContentPos, int pEndContentPos, SourceFile* pOwningFile);
 	IntConstant(IntConstant* cloneSource, Identifier* pReplacementSource);
 	virtual ~IntConstant();
 
-	int val; //copper: readonly
-	bool isBool; //copper: readonly
-
 	IntConstant* cloneWithReplacementSource(Identifier* pReplacementSource);
 };
 class FloatConstant: public LexToken {
 public:
+//	static const int FLOAT_TOO_BIG_EXPONENT = 0x100000;
+
+	BigInt* significand; //copper: readonly
+	int exponent; //copper: readonly
+
 	FloatConstant(BigInt* pSignificand, int pExponent, int pContentPos, int pEndContentPos, SourceFile* pOwningFile);
 	FloatConstant(FloatConstant* cloneSource, Identifier* pReplacementSource);
 	virtual ~FloatConstant();
-
-//	static const int FLOAT_TOO_BIG_EXPONENT = 0x100000;
-	BigInt* significand; //copper: readonly
-	int exponent; //copper: readonly
 
 	FloatConstant* cloneWithReplacementSource(Identifier* pReplacementSource);
 };
 class StringLiteral: public LexToken {
 public:
+	string val; //copper: readonly
+
 	StringLiteral(string pVal, int pContentPos, int pEndContentPos, SourceFile* pOwningFile);
 	StringLiteral(StringLiteral* cloneSource, Identifier* pReplacementSource);
 	virtual ~StringLiteral();
-
-	string val; //copper: readonly
 
 	StringLiteral* cloneWithReplacementSource(Identifier* pReplacementSource);
 };
 class Separator: public LexToken {
 public:
+	SeparatorType separatorType; //copper: readonly
+
 	Separator(SeparatorType pSeparatorType, int pContentPos, int pEndContentPos, SourceFile* pOwningFile);
 	Separator(Separator* cloneSource, Identifier* pReplacementSource);
 	virtual ~Separator();
-
-	SeparatorType separatorType; //copper: readonly
 
 	Separator* cloneWithReplacementSource(Identifier* pReplacementSource);
 	static string separatorName(SeparatorType s, bool withIndefiniteArticle);
 };
 class Operator: public LexToken {
 public:
+	OperatorType operatorType; //copper: readonly
+	OperatorTypePrecedence precedence; //copper: readonly
+	Token* left; //copper: readonly
+	Token* right; //copper: readonly
+
 	#ifdef TRACK_OBJ_IDS
 		Operator(OperatorType pOperatorType, int pContentPos, int pEndContentPos, SourceFile* pOwningFile);
 	#endif
@@ -187,23 +195,18 @@ public:
 	Operator(Operator* cloneSource, Identifier* pReplacementSource);
 	virtual ~Operator();
 
-	OperatorType operatorType; //copper: readonly
-	OperatorTypePrecedence precedence; //copper: readonly
-	Token* left; //copper: readonly
-	Token* right; //copper: readonly
-
 	Operator* cloneWithReplacementSource(Identifier* pReplacementSource);
 	OperatorTypePrecedence getPrecedence(OperatorType pOperatorType);
 	bool takesRightSidePrecedence(Operator* other);
 };
 class DirectiveTitle: public LexToken {
 public:
+	string title; //copper: readonly
+	CDirective* directive; //copper: readonly<ParseDirectives>
+
 	DirectiveTitle(string pTitle, int pContentPos, int pEndContentPos, SourceFile* pOwningFile);
 	DirectiveTitle(DirectiveTitle* cloneSource, Identifier* pReplacementSource);
 	virtual ~DirectiveTitle();
-
-	string title; //copper: readonly
-	CDirective* directive; //copper: readonly<ParseDirectives>
 
 	DirectiveTitle* cloneWithReplacementSource(Identifier* pReplacementSource);
 };
@@ -211,53 +214,53 @@ public:
 //Tokens used in parsing
 class AbstractCodeBlock: public Token {
 public:
+	Array<Token*>* tokens; //copper: readonly
+	Array<CDirective*>* directives; //copper: readonly
+
 	AbstractCodeBlock(
 		Array<Token*>* pTokens, Array<CDirective*>* pDirectives, int pContentPos, int pEndContentPos, SourceFile* pOwningFile);
 	AbstractCodeBlock(Array<Token*>* pTokens, AbstractCodeBlock* cloneSource, Identifier* pReplacementSource);
 	virtual ~AbstractCodeBlock();
-
-	Array<Token*>* tokens; //copper: readonly
-	Array<CDirective*>* directives; //copper: readonly
 };
 
 //Tokens used in expressions
 class VariableInitialization: public Token {
 public:
-	VariableInitialization(Array<CVariableDefinition*>* pVariables, Token* pInitialization, Token* lastToken);
-	virtual ~VariableInitialization();
-
 	Array<CVariableDefinition*>* variables;
 	Token* initialization;
+
+	VariableInitialization(Array<CVariableDefinition*>* pVariables, Token* pInitialization, Token* lastToken);
+	virtual ~VariableInitialization();
 };
 class ParenthesizedExpression: public Token {
 public:
+	Token* expression;
+
 	ParenthesizedExpression(Token* pExpression, AbstractCodeBlock* source);
 	virtual ~ParenthesizedExpression();
-
-	Token* expression;
 };
 class Cast: public Operator {
 public:
+	bool isRaw;
+
 	Cast(CDataType* pType, bool pIsRaw, AbstractCodeBlock* source);
 	virtual ~Cast();
-
-	bool isRaw;
 };
 class FunctionCall: public Token {
 public:
-	FunctionCall(Token* pFunction, Array<Token*>* pArguments, AbstractCodeBlock* lastToken);
-	virtual ~FunctionCall();
-
 	Token* function;
 	Array<Token*>* arguments;
+
+	FunctionCall(Token* pFunction, Array<Token*>* pArguments, AbstractCodeBlock* lastToken);
+	virtual ~FunctionCall();
 };
 class FunctionDefinition: public Token {
 public:
-	FunctionDefinition(
-		CDataType* pReturnType, Array<CVariableDefinition*>* pParameters, Array<Statement*>* pBody, Token* lastToken);
-	virtual ~FunctionDefinition();
-
 	CDataType* returnType;
 	Array<CVariableDefinition*>* parameters;
 	Array<Statement*>* body;
+
+	FunctionDefinition(
+		CDataType* pReturnType, Array<CVariableDefinition*>* pParameters, Array<Statement*>* pBody, Token* lastToken);
+	virtual ~FunctionDefinition();
 };

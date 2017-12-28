@@ -8,13 +8,13 @@ template <class Type> class Array;
 
 class Pliers {
 public:
-	Pliers(const char* pBaseFileName, bool pPrintProgress onlyInDebug(COMMA bool printContents));
-	~Pliers();
-
 	const char* baseFileName;
 	bool printProgress;
 	Array<SourceFile*>* allFiles;
 	Array<ErrorMessage*>* errorMessages;
+
+	Pliers(const char* pBaseFileName, bool pPrintProgress onlyInDebug(COMMA bool printContents));
+	~Pliers();
 };
 /*
 class Function;

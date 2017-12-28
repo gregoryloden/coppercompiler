@@ -19,7 +19,7 @@ void ParseExpressions::parseExpressionsInFiles(Pliers* pliers) {
 		try {
 			if (pliers->printProgress)
 				printf("Parsing expressions for %s...\n", s->filename.c_str());
-			parseGlobalDefinitions(s);
+			parseGlobalDefinitions(s->abstractContents);
 		} catch (...) {
 		}
 	}
@@ -40,8 +40,8 @@ template <class TokenType> TokenType* ParseExpressions::parseExpectedToken(
 }
 //parse all the definitions in the source file and store them in it
 //parse location: EOF
-void ParseExpressions::parseGlobalDefinitions(SourceFile* sf) {
-	forEach(Token*, t, sf->abstractContents->tokens, ti) {
+void ParseExpressions::parseGlobalDefinitions(AbstractCodeBlock* a) {
+	forEach(Token*, t, a->tokens, ti) {
 		try {
 			ti.replaceThis(nullptr);
 			Deleter<Token> tDeleter (t);
@@ -56,8 +56,8 @@ void ParseExpressions::parseGlobalDefinitions(SourceFile* sf) {
 					//make sure this is a variable definition
 					Identifier* variableName = parseExpectedToken<Identifier>(&ti, t, "a variable name");
 					ti.replaceThis(nullptr);
-					sf->globalVariables->add(
-						completeVariableInitialization(i, cdt, variableName, &ti, SeparatorType::Semicolon));
+					a->owningFile->globalVariables->add(
+						completeVariableInitialization(cdt, variableName, &ti, SeparatorType::Semicolon));
 					continue;
 				}
 			} else if ((dt = dynamic_cast<DirectiveTitle*>(t)) != nullptr)
@@ -71,10 +71,11 @@ void ParseExpressions::parseGlobalDefinitions(SourceFile* sf) {
 	}
 }
 //we parsed a type name and a variable name, now get any other variables defined, possibly with an initialization
+//type and name will be deleted here if needed
 //parse location: the semicolon after the variable definitions/initialization | the end of the token array
 //may throw
 VariableInitialization* ParseExpressions::completeVariableInitialization(
-	Identifier* typeToken, CDataType* type, Identifier* name, ArrayIterator<Token*>* ti, SeparatorType endingSeparatorType)
+	CDataType* type, Identifier* name, ArrayIterator<Token*>* ti, SeparatorType endingSeparatorType)
 {
 	Array<CVariableDefinition*>* variables = new Array<CVariableDefinition*>();
 	ArrayContentDeleter<CVariableDefinition> variablesDeleter (variables);
@@ -344,7 +345,7 @@ Token* ParseExpressions::completeParenthesizedExpression(AbstractCodeBlock* a, b
 		ai.getNext();
 		ai.replaceThis(nullptr);
 		VariableInitialization* variableInitialization =
-			completeVariableInitialization(typeName, cdt, variableName, &ai, SeparatorType::RightParenthesis);
+			completeVariableInitialization(cdt, variableName, &ai, SeparatorType::RightParenthesis);
 		//in an expression, declared variables must be initialized
 		if (variableInitialization->initialization == nullptr) {
 			Deleter<VariableInitialization> variableInitializationDeleter (variableInitialization);
@@ -590,8 +591,7 @@ ExpressionStatement* ParseExpressions::parseExpressionStatement(ArrayIterator<To
 		//if a variable name followed, create a variable initialization
 		if (ti->hasThis() && (variableName = dynamic_cast<Identifier*>(t)) != nullptr) {
 			ti->replaceThis(nullptr);
-			return new ExpressionStatement(
-				completeVariableInitialization(i, cdt, variableName, ti, SeparatorType::Semicolon));
+			return new ExpressionStatement(completeVariableInitialization(cdt, variableName, ti, SeparatorType::Semicolon));
 		//otherwise, go back so that we can parse an expression
 		} else
 			ti->getPrevious();

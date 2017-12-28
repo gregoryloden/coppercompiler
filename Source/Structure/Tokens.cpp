@@ -32,13 +32,17 @@ LexToken::LexToken(onlyWhenTrackingIDs(char* pObjType COMMA) int pContentPos, in
 LexToken::~LexToken() {}
 Identifier::Identifier(string pName, int pContentPos, int pEndContentPos, SourceFile* pOwningFile)
 : LexToken(onlyWhenTrackingIDs("IDNTFR" COMMA) pContentPos, pEndContentPos, pOwningFile)
-, name(pName) {
+, name(pName)
+, variable(nullptr) {
 }
 Identifier::Identifier(Identifier* cloneSource, Identifier* pReplacementSource)
 : LexToken(cloneSource, pReplacementSource)
-, name(cloneSource->name) {
+, name(cloneSource->name)
+, variable(nullptr) {
 }
-Identifier::~Identifier() {}
+Identifier::~Identifier() {
+	//don't delete variable because it's owned by something else
+}
 cloneWithReplacementSourceForType(Identifier)
 IntConstant::IntConstant(int pVal, int pContentPos, int pEndContentPos, SourceFile* pOwningFile)
 : LexToken(onlyWhenTrackingIDs("INTCNST" COMMA) pContentPos, pEndContentPos, pOwningFile)
