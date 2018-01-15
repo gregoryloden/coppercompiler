@@ -1,6 +1,6 @@
 #include "Project.h"
 
-#define instantiateArrayContentDeleter(type) template class ArrayContentDeleter<type>; template class Deleter<Array<type*>>;
+#define instantiateArrayDeleters(type) template class ArrayContentDeleter<type>; template class Deleter<Array<type*>>;
 #ifdef TRACK_OBJ_IDS
 	//**/#define PRINT_OBJ_ADD_OR_REMOVE
 #endif
@@ -54,15 +54,17 @@ template class Deleter<Identifier>;
 template class Deleter<IntConstant>;
 template class Deleter<LexToken>;
 template class Deleter<Separator>;
+template class Deleter<StaticOperator>;
 template class Deleter<Token>;
-template class Deleter<VariableInitialization>;
-template class Deleter<Array<AVLNode<SourceFile*, bool>*>>;
+template class Deleter<VariableDefinitionList>;
 template class Deleter<Array<string>>;
 template class Deleter<PrefixTrie<char, CDirectiveReplace*>>;
 template class Deleter<PrefixTrieUnion<char, CDirectiveReplace*>>;
-instantiateArrayContentDeleter(CVariableDefinition);
-instantiateArrayContentDeleter(Statement);
-instantiateArrayContentDeleter(Token);
+instantiateArrayDeleters(AVLNode<SourceFile* COMMA bool>);
+instantiateArrayDeleters(CDataType);
+instantiateArrayDeleters(CVariableDefinition);
+instantiateArrayDeleters(Statement);
+instantiateArrayDeleters(Token);
 
 int Math::min(int a, int b) {
 	return a < b ? a : b;
@@ -206,9 +208,13 @@ char* ErrorMessage::snippet = []() -> char* {
 	val[SNIPPET_PREFIX_SPACES + SNIPPET_CHARS + 1 + SNIPPET_PREFIX_SPACES + SNIPPET_CHARS / 2 + 1] = '\0';
 	return val;
 }();
+//get the row index of this error message
+int ErrorMessage::getRow() {
+	return owningFile->getRow(contentPos);
+}
 //print the error of this error message
 void ErrorMessage::printError() {
-	int row = owningFile->getRow(contentPos);
+	int row = getRow();
 	//print the error
 	char* errorPrefix;
 	switch (type) {
@@ -295,12 +301,12 @@ void ErrorMessage::showSnippet() {
 	}
 	//recursively print the contents of the token tree
 	void Debug::printTokenTree(Token* t, int tabsCount, bool printOperatorParentheses) {
-		VariableInitialization* v;
+		VariableDefinitionList* v;
 		Operator* o;
 		ParenthesizedExpression* p;
 		FunctionCall* fc;
 		FunctionDefinition* fd;
-		if ((v = dynamic_cast<VariableInitialization*>(t)) != nullptr) {
+		if ((v = dynamic_cast<VariableDefinitionList*>(t)) != nullptr) {
 			bool printComma = false;
 			CDataType* lastDataType = nullptr;
 			forEach(CVariableDefinition*, d, v->variables, di) {
@@ -314,10 +320,6 @@ void ErrorMessage::showSnippet() {
 					lastDataType = d->type;
 				}
 				printf(d->name->name.c_str());
-			}
-			if (v->initialization != nullptr) {
-				printf(" = ");
-				printTokenTree(v->initialization, tabsCount, false);
 			}
 		} else if ((o = dynamic_cast<Operator*>(t)) != nullptr) {
 			Cast* c;

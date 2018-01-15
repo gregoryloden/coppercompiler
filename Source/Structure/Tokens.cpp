@@ -46,18 +46,11 @@ Identifier::~Identifier() {
 cloneWithReplacementSourceForType(Identifier)
 IntConstant::IntConstant(int pVal, int pContentPos, int pEndContentPos, SourceFile* pOwningFile)
 : LexToken(onlyWhenTrackingIDs("INTCNST" COMMA) pContentPos, pEndContentPos, pOwningFile)
-, val(pVal)
-, isBool(false) {
-}
-IntConstant::IntConstant(bool pVal, int pContentPos, int pEndContentPos, SourceFile* pOwningFile)
-: LexToken(onlyWhenTrackingIDs("INTCNST" COMMA) pContentPos, pEndContentPos, pOwningFile)
-, val(pVal ? 1 : 0)
-, isBool(true) {
+, val(pVal) {
 }
 IntConstant::IntConstant(IntConstant* cloneSource, Identifier* pReplacementSource)
 : LexToken(cloneSource, pReplacementSource)
-, val(cloneSource->val)
-, isBool(cloneSource->isBool) {
+, val(cloneSource->val) {
 }
 IntConstant::~IntConstant() {}
 cloneWithReplacementSourceForType(IntConstant)
@@ -77,6 +70,16 @@ FloatConstant::~FloatConstant() {
 	delete significand;
 }
 cloneWithReplacementSourceForType(FloatConstant)
+BoolConstant::BoolConstant(bool pVal, int pContentPos, int pEndContentPos, SourceFile* pOwningFile)
+: LexToken(onlyWhenTrackingIDs("BOLCNST" COMMA) pContentPos, pEndContentPos, pOwningFile)
+, val(pVal) {
+}
+BoolConstant::BoolConstant(BoolConstant* cloneSource, Identifier* pReplacementSource)
+: LexToken(cloneSource, pReplacementSource)
+, val(cloneSource->val) {
+}
+BoolConstant::~BoolConstant() {}
+cloneWithReplacementSourceForType(BoolConstant)
 StringLiteral::StringLiteral(string pVal, int pContentPos, int pEndContentPos, SourceFile* pOwningFile)
 : LexToken(onlyWhenTrackingIDs("STRING" COMMA) pContentPos, pEndContentPos, pOwningFile)
 , val(pVal) {
@@ -122,6 +125,10 @@ Operator::Operator(
 , right(nullptr) {
 	switch (pOperatorType) {
 //		case OperatorType::None:
+		case OperatorType::StaticDot:
+		case OperatorType::StaticMemberAccess:
+			precedence = OperatorTypePrecedence::StaticMember;
+			break;
 		case OperatorType::Dot:
 			precedence = OperatorTypePrecedence::ObjectMember;
 			break;
@@ -202,6 +209,9 @@ Operator::Operator(
 //		case OperatorType::AssignBooleanOr:
 			precedence = OperatorTypePrecedence::Assignment;
 			break;
+		default:
+			assert(false);
+			break;
 	}
 }
 Operator::Operator(Operator* cloneSource, Identifier* pReplacementSource)
@@ -276,17 +286,14 @@ AbstractCodeBlock::~AbstractCodeBlock() {
 		delete directives;
 	}
 }
-VariableInitialization::VariableInitialization(
-	Array<CVariableDefinition*>* pVariables, Token* pInitialization, Token* lastToken)
-: Token(onlyWhenTrackingIDs("VARINIT" COMMA) lastToken->endContentPos, lastToken->endContentPos, lastToken->owningFile)
-, variables(pVariables)
-, initialization(pInitialization) {
-	replacementSource = lastToken->replacementSource;
+VariableDefinitionList::VariableDefinitionList(Array<CVariableDefinition*>* pVariables, Identifier* firstType)
+: Token(onlyWhenTrackingIDs("VRDFLST" COMMA) firstType->contentPos, firstType->endContentPos, firstType->owningFile)
+, variables(pVariables) {
+	replacementSource = firstType->replacementSource;
 }
-VariableInitialization::~VariableInitialization() {
+VariableDefinitionList::~VariableDefinitionList() {
 	variables->deleteContents();
 	delete variables;
-	delete initialization;
 }
 ParenthesizedExpression::ParenthesizedExpression(Token* pExpression, AbstractCodeBlock* source)
 : Token(onlyWhenTrackingIDs("PNTHEXP" COMMA) source->contentPos, source->endContentPos, source->owningFile)
@@ -303,6 +310,14 @@ Cast::Cast(CDataType* pType, bool pIsRaw, AbstractCodeBlock* source)
 	replacementSource = source->replacementSource;
 }
 Cast::~Cast() {}
+StaticOperator::StaticOperator(CDataType* pOwnerType, OperatorType pType, Operator* source)
+: Operator(onlyWhenTrackingIDs("STCOPER" COMMA) pType, source->contentPos, source->endContentPos, source->owningFile)
+, ownerType(pOwnerType) {
+	replacementSource = source->replacementSource;
+}
+StaticOperator::~StaticOperator() {
+	//don't delete ownerType since it's owned by something else
+}
 FunctionCall::FunctionCall(
 	Token* pFunction, Array<Token*>* pArguments, AbstractCodeBlock* lastToken)
 : Token(onlyWhenTrackingIDs("FNCALL" COMMA) lastToken->contentPos, lastToken->endContentPos, lastToken->owningFile)
@@ -316,12 +331,12 @@ FunctionCall::~FunctionCall() {
 	delete arguments;
 }
 FunctionDefinition::FunctionDefinition(
-	CDataType* pReturnType, Array<CVariableDefinition*>* pParameters, Array<Statement*>* pBody, Token* lastToken)
-: Token(onlyWhenTrackingIDs("FNDEF" COMMA) lastToken->endContentPos, lastToken->endContentPos, lastToken->owningFile)
+	CDataType* pReturnType, Array<CVariableDefinition*>* pParameters, Array<Statement*>* pBody, Identifier* typeToken)
+: Token(onlyWhenTrackingIDs("FNDEF" COMMA) typeToken->contentPos, typeToken->endContentPos, typeToken->owningFile)
 , returnType(pReturnType)
 , parameters(pParameters)
 , body(pBody) {
-	replacementSource = lastToken->replacementSource;
+	replacementSource = typeToken->replacementSource;
 }
 FunctionDefinition::~FunctionDefinition() {
 	//don't delete the return type since it's owned by something else

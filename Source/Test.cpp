@@ -17,6 +17,7 @@
 	}
 	void Test::testFiles() {
 		printf("  Testing files\n");
+		filesTested = 0;
 		testFile("Test/Step01_Lex_lex.cu", 0);
 		testFile("Test/Step01_Lex_badLex.cu", 10);
 		testFile("Test/Step01_Lex_blockCommentEOF.cu", 1);
@@ -41,18 +42,27 @@
 		testFile("Test/Step04_Replace_replace.cu", 0);
 		testFile("Test/Step04_Replace_badReplace.cu", 11);
 		testFile("Test/Step06_ParseExpressions_parseExpressions.cu", 0);
-		testFile("Test/Step06_ParseExpressions_badParseExpressions.cu", 49);
+		testFile("Test/Step06_ParseExpressions_badParseExpressions.cu", 64);
 		printf("  Finished testing files: %d total files tested\n", filesTested);
 	}
 	void Test::testFile(const char* fileName, int errorsExpected) {
 		printf("    Testing %s...\n", fileName);
 		Pliers* p = new Pliers(fileName, false, false);
-		assert(p->allFiles->get(0)->contentsLength > 0);
-		if (p->errorMessages->length != errorsExpected) {
+		assert(p->allFiles->length == 1);
+		assert(p->allFiles->first()->contentsLength > 0);
+		bool wrongLines = false;
+		for (int errorMessageI = 0; errorMessageI < p->errorMessages->length; errorMessageI++) {
+			if (p->errorMessages->get(errorMessageI)->getRow() != errorMessageI) {
+				wrongLines = true;
+				break;
+			}
+		}
+		if (p->errorMessages->length != errorsExpected || wrongLines) {
 			forEach(ErrorMessage*, errorMessage, p->errorMessages, ei) {
 				errorMessage->printError();
 			}
-			assert(false);
+			assert(p->errorMessages->length == errorsExpected);
+			assert(!wrongLines);
 		}
 		delete p;
 		filesTested++;

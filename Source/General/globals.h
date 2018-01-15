@@ -152,6 +152,7 @@ public:
 	ErrorMessage(ErrorType pType, const char* pMessage, SourceFile* pOwningFile, int pContentPos, ErrorMessage* pContinuation);
 	~ErrorMessage();
 
+	int getRow();
 	void printError();
 private:
 	void showSnippet();

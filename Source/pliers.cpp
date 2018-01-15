@@ -35,6 +35,9 @@ int main(int argc, char* argv[]) {
 	//Start compiling
 	#ifdef DEBUG
 		ObjCounter::start();
+	#endif
+	CDataType::initializeGlobalDataTypes();
+	#ifdef DEBUG
 		Test::testAll();
 	#endif
 	if (argc < 2) {
@@ -86,6 +89,7 @@ int main(int argc, char* argv[]) {
 	*/
 	#ifdef DEBUG
 		delete p;
+		CDataType::deleteGlobalDataTypes();
 		ObjCounter::end();
 	#endif
 while(true) {}
@@ -129,8 +133,8 @@ Pliers::Pliers(const char* pBaseFileName, bool pPrintProgress onlyInDebug(COMMA 
 		if (printContents) {
 			forEach(SourceFile*, s, allFiles, si3) {
 				printf("Global definitions for \"%s\":\n", s->filename.c_str());
-				forEach(VariableInitialization*, initialization, s->globalVariables, di) {
-					Debug::printTokenTree(initialization, 0, false);
+				forEach(Token*, t, s->globalVariables, ti) {
+					Debug::printTokenTree(t, 0, false);
 					printf(";\n");
 				}
 			}

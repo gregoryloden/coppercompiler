@@ -1509,7 +1509,7 @@ owningPliers(pOwningPliers)
 , includedFiles(new AVLTree<SourceFile*, bool>())
 , inclusionListeners(new Array<SourceFile*>())
 , replacedTokens(new Array<Token*>())
-, globalVariables(new Array<VariableInitialization*>()) {
+, globalVariables(new Array<Token*>()) {
 	//load the file
 	FILE* file = nullptr;
 	fopen_s(&file, filename.c_str(), "rb");

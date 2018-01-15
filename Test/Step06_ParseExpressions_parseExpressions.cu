@@ -58,14 +58,16 @@ Function k = int(int l, int m) (
 Function n = void() (
 	if (true) (
 	)
+	if (false)
+		;
 	if (true) (
 		if (true) ()
 	) else if (false) (
 		Function o = void () ();
 	) else (
-		int p = q () ();
+		int p = (Function<Function<int()>()>) q () ();
 	)
 );
-Function q = Function() (
+Function q = Function<int()>() (
 	return f;
 );

@@ -1,5 +1,6 @@
 #include "../General/globals.h"
 
+template <class Type> class Array;
 template <class Key, class Value> class AVLNode;
 
 template <class Key, class Value> class AVLTree onlyInDebug(: public ObjCounter) {
@@ -7,6 +8,7 @@ public:
 	static const Value emptyValue;
 private:
 	static thread_local Value oldValue;
+
 public:
 	AVLNode<Key, Value>* root; //copper: private<readonly Test>
 

@@ -8,6 +8,7 @@
 	template <> void Array<type>::deleteContents() {}
 
 instantiateArrayTypes(AbstractCodeBlock*);
+instantiateArrayTypes(CDataType*);
 instantiateArrayTypes(CDirective*);
 instantiateArrayTypes(CDirectiveReplace*);
 instantiateArrayTypes(CVariableDefinition*);
@@ -17,7 +18,7 @@ instantiateArrayTypes(LexToken*);
 instantiateArrayTypes(SourceFile*);
 instantiateArrayTypes(Statement*);
 instantiateArrayTypes(Token*);
-instantiateArrayTypes(VariableInitialization*);
+instantiateArrayTypes(VariableDefinitionList*);
 instantiateArrayTypes(Array<Token*>*);
 instantiateArrayTypes(AVLNode<char COMMA char>*);
 instantiateArrayTypes(AVLNode<int COMMA int>*);

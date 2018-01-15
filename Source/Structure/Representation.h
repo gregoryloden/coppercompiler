@@ -111,7 +111,6 @@ template <class Type> class Array;
 class AbstractCodeBlock;
 class StatementList;
 class Token;
-class VariableInitialization;
 class Pliers;
 template <class Key, class Value> class AVLTree;
 /*
@@ -422,7 +421,7 @@ public:
 	AVLTree<SourceFile*, bool>* includedFiles; //copper: private<readonly Include>
 	Array<SourceFile*>* inclusionListeners; //copper: private<readonly Include>
 	Array<Token*>* replacedTokens; //copper: private<readonly Replace>
-	Array<VariableInitialization*>* globalVariables; //copper: private<ParseExpressions>
+	Array<Token*>* globalVariables; //copper: private<ParseExpressions>
 	//Array<??????????> typesDefined;
 //	Array<CClass*>* classes;
 

@@ -2,22 +2,25 @@
 #include "string"
 using namespace std;
 
-class CFunctionType;
-class CVoid;
 template <class Key, class Value> class PrefixTrie;
+template <class Type> class Array;
 
 class CDataType onlyInDebug(: public ObjCounter) {
 public:
-	static CFunctionType* functionType;
-	static CVoid* voidType;
 	static PrefixTrie<char, CDataType*>* globalDataTypes;
+private:
+	static Array<CDataType*>* typesToDelete;
 
+public:
 	string name;
 
 protected:
 	CDataType(onlyWhenTrackingIDs(char* pObjType COMMA) string pName);
 public:
 	virtual ~CDataType();
+
+	static void initializeGlobalDataTypes();
+	static void deleteGlobalDataTypes();
 };
 class CVoid: public CDataType {
 public:
@@ -43,10 +46,19 @@ public:
 	CFloatingPointPrimitive(string pName, int pBitSize);
 	virtual ~CFloatingPointPrimitive();
 };
-class CFunctionType: public CDataType {
+class CGenericFunction: public CDataType {
 public:
-	CFunctionType();
-	virtual ~CFunctionType();
+	CGenericFunction();
+	virtual ~CGenericFunction();
+};
+class CSpecificFunction: public CDataType {
+private:
+	CDataType* returnType;
+	Array<CDataType*>* parameterTypes;
+
+public:
+	CSpecificFunction(string pName, CDataType* pReturnType, Array<CDataType*>* pParameterTypes);
+	virtual ~CSpecificFunction();
 };
 class CClass: public CDataType {
 public:

@@ -406,9 +406,9 @@ LexToken* Lex::lexIdentifier() {
 	string s (contents + begin, pos - begin);
 
 	if (s.compare(trueKeyword) == 0)
-		return new IntConstant(true, begin, pos, sourceFile);
+		return new BoolConstant(true, begin, pos, sourceFile);
 	else if (s.compare(falseKeyword) == 0)
-		return new IntConstant(false, begin, pos, sourceFile);
+		return new BoolConstant(false, begin, pos, sourceFile);
 	else
 		return new Identifier(s, begin, pos, sourceFile);
 }

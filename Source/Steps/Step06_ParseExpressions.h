@@ -3,13 +3,14 @@ using namespace std;
 
 class AbstractCodeBlock;
 class CDataType;
-class VariableInitialization;
+class VariableDefinitionList;
 class CVariableDefinition;
 class Token;
 class Statement;
 class Identifier;
 class ExpressionStatement;
 class DirectiveTitle;
+class FunctionDefinition;
 template <class Type> class Array;
 template <class Type> class ArrayIterator;
 enum class SeparatorType: unsigned char;
@@ -33,9 +34,11 @@ public:
 private:
 	template <class TokenType> static TokenType* parseExpectedToken(
 		ArrayIterator<Token*>* ti, Token* precedingToken, const char* tokenDescription);
-	static void parseGlobalDefinitions(AbstractCodeBlock* a);
-	static VariableInitialization* completeVariableInitialization(
-		CDataType* type, Identifier* name, ArrayIterator<Token*>* ti, SeparatorType endingSeparatorType);
+	static void parseNamespaceDefinitions(AbstractCodeBlock* a, Array<Token*>* definitionList);
+	static CDataType* parseType(Identifier* i, ArrayIterator<Token*>* ti);
+	static Token* parseCommaInParenthesizedList(ArrayIterator<Token*>* ti);
+	static VariableDefinitionList* completeVariableDefinitionList(
+		CDataType* type, Identifier* typeToken, Identifier* name, ArrayIterator<Token*>* ti);
 	static Token* parseExpression(
 		ArrayIterator<Token*>* ti,
 		unsigned char endingSeparatorTypes,
@@ -44,17 +47,18 @@ private:
 		Token* expectedExpressionErrorToken);
 	static Token* parseValueExpression(Token* t, ArrayIterator<Token*>* ti);
 	static Token* addToOperator(Operator* o, Token* activeExpression, ArrayIterator<Token*>* ti);
-	static Token* evaluateAbstractCodeBlock(AbstractCodeBlock* a, Token* activeExpression, ArrayIterator<Token*>* ti);
-	static Token* completeCast(CDataType* type, AbstractCodeBlock* castBody, ArrayIterator<Token*>* ti);
-	static Token* completeParenthesizedExpression(AbstractCodeBlock* a, bool wrapExpression);
-	static Token* completeFunctionDefinition(CDataType* type, AbstractCodeBlock* parametersBlock, ArrayIterator<Token*>* ti);
-	static Token* completeFunctionCall(Token* function, AbstractCodeBlock* argumentsBlock);
+	static Token* completeExpressionStartingWithType(CDataType* type, Identifier* typeToken, ArrayIterator<Token*>* ti);
+	static Token* completeParenthesizedExpression(AbstractCodeBlock* a, ArrayIterator<Token*>* castI);
+	static FunctionDefinition* completeFunctionDefinition(
+		CDataType* type, Identifier* typeToken, AbstractCodeBlock* parametersBlock, ArrayIterator<Token*>* ti);
+	static Token* completeFunctionCall(Token* activeExpression, AbstractCodeBlock* argumentsBlock);
+	static Token* completeCast(CDataType* type, bool rawCast, AbstractCodeBlock* castBody, ArrayIterator<Token*>* ti);
 	static Array<Statement*>* parseStatementOrStatementList(
 		ArrayIterator<Token*>* ti, Token* noValueErrorToken, const char* statementDescription);
-	static Statement* parseStatement(ArrayIterator<Token*>* ti);
-	static Statement* parseDirectiveTitleStatementList(ArrayIterator<Token*>* ti);
-	static Statement* parseKeywordStatement(ArrayIterator<Token*>* ti);
-	static ExpressionStatement* parseExpressionStatement(ArrayIterator<Token*>* ti);
+	static Statement* parseStatement(Token* t, ArrayIterator<Token*>* ti, bool permitDirectiveStatementList);
+	static Statement* parseDirectiveStatementList(Token* t, ArrayIterator<Token*>* ti);
+	static Statement* parseKeywordStatement(Token* t, ArrayIterator<Token*>* ti);
+	static ExpressionStatement* parseExpressionStatement(Token* t, ArrayIterator<Token*>* ti);
 	//helpers
 	static Token* getLastToken(Token* t);
 	static bool hasSemicolon(AbstractCodeBlock* a);

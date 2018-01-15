@@ -2,32 +2,41 @@
 
 //classes defined within other classes have owning class
 
-CFunctionType* CDataType::functionType = new CFunctionType();
-CVoid* CDataType::voidType = new CVoid();
-PrefixTrie<char, CDataType*>* CDataType::globalDataTypes = []() -> PrefixTrie<char, CDataType*>* {
+PrefixTrie<char, CDataType*>* CDataType::globalDataTypes = nullptr;
+Array<CDataType*>* CDataType::typesToDelete = nullptr;
+CDataType::CDataType(onlyWhenTrackingIDs(char* pObjType COMMA) string pName)
+: onlyInDebug(ObjCounter(onlyWhenTrackingIDs(pObjType)) COMMA)
+name(pName) {
+	typesToDelete->add(this);
+}
+CDataType::~CDataType() {}
+//build the trie of data types here so that we can track deleting them properly
+void CDataType::initializeGlobalDataTypes() {
+	typesToDelete = new Array<CDataType*>();
 	CDataType* typesArray[] = {
-		voidType,
+		new CVoid(),
 		new CIntegerPrimitive("bool", 1),
 		new CIntegerPrimitive("byte", 8),
 		new CIntegerPrimitive("short", 16),
 		new CIntegerPrimitive("int", 32),
 		new CFloatingPointPrimitive("float", 32),
-		functionType,
+		new CGenericFunction(),
 		new CClass("String")
 	};
 	const int typesArrayCount = sizeof(typesArray) / sizeof(typesArray[0]);
-	PrefixTrie<char, CDataType*>* val = new PrefixTrie<char, CDataType*>();
+	globalDataTypes = new PrefixTrie<char, CDataType*>();
 	for (int i = 0; i < typesArrayCount; i++) {
 		CDataType* cdt = typesArray[i];
-		val->set(cdt->name.c_str(), cdt->name.length(), cdt);
+		globalDataTypes->set(cdt->name.c_str(), cdt->name.length(), cdt);
 	}
-	return val;
-}();
-CDataType::CDataType(onlyWhenTrackingIDs(char* pObjType COMMA) string pName)
-: onlyInDebug(ObjCounter(onlyWhenTrackingIDs(pObjType)) COMMA)
-name(pName) {
 }
-CDataType::~CDataType() {}
+//delete all the data types
+void CDataType::deleteGlobalDataTypes() {
+	typesToDelete->deleteContents();
+	delete typesToDelete;
+	delete globalDataTypes;
+	globalDataTypes = nullptr;
+}
 CVoid::CVoid()
 : CDataType(onlyWhenTrackingIDs("VOIDTYP" COMMA) "void") {
 }
@@ -38,17 +47,26 @@ CPrimitive::CPrimitive(onlyWhenTrackingIDs(char* pObjType COMMA) string pName, s
 }
 CPrimitive::~CPrimitive() {}
 CIntegerPrimitive::CIntegerPrimitive(string pName, int pBitSize)
-: CPrimitive(onlyWhenTrackingIDs("INTPMTP" COMMA) pName, pBitSize) {
+: CPrimitive(onlyWhenTrackingIDs("INPMTYP" COMMA) pName, pBitSize) {
 }
 CIntegerPrimitive::~CIntegerPrimitive() {}
 CFloatingPointPrimitive::CFloatingPointPrimitive(string pName, int pBitSize)
-: CPrimitive(onlyWhenTrackingIDs("FLTPMTP" COMMA) pName, pBitSize) {
+: CPrimitive(onlyWhenTrackingIDs("FLPMTYP" COMMA) pName, pBitSize) {
 }
 CFloatingPointPrimitive::~CFloatingPointPrimitive() {}
-CFunctionType::CFunctionType()
-: CDataType(onlyWhenTrackingIDs("FUNCTYP" COMMA) "Function") {
+CGenericFunction::CGenericFunction()
+: CDataType(onlyWhenTrackingIDs("GNFNTYP" COMMA) "Function") {
 }
-CFunctionType::~CFunctionType() {}
+CGenericFunction::~CGenericFunction() {}
+CSpecificFunction::CSpecificFunction(string pName, CDataType* pReturnType, Array<CDataType*>* pParameterTypes)
+: CDataType(onlyWhenTrackingIDs("SPFNTYP" COMMA) pName)
+, returnType(pReturnType)
+, parameterTypes(pParameterTypes) {
+}
+CSpecificFunction::~CSpecificFunction() {
+	//don't delete returnType or the parameter types since they're owned by the global types trie
+	delete parameterTypes;
+}
 CClass::CClass(string pName)
 : CDataType(onlyWhenTrackingIDs("CLSSTYP" COMMA) pName) {
 }

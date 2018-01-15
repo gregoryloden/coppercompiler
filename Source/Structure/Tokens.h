@@ -19,6 +19,8 @@ enum class SeparatorType: unsigned char {
 };
 enum class OperatorType: unsigned char {
 //	None,
+	StaticDot,
+	StaticMemberAccess,
 	Dot,
 	ObjectMemberAccess,
 	Increment,
@@ -71,6 +73,7 @@ enum class OperatorType: unsigned char {
 //	AssignBooleanOr
 };
 enum class OperatorTypePrecedence: unsigned char {
+	StaticMember = 16,
 	ObjectMember = 15,
 	ObjectMemberAccess = 14,
 	Postfix = 13,
@@ -133,10 +136,8 @@ public:
 class IntConstant: public LexToken {
 public:
 	int val; //copper: readonly
-	bool isBool; //copper: readonly
 
 	IntConstant(int pVal, int pContentPos, int pEndContentPos, SourceFile* pOwningFile);
-	IntConstant(bool pVal, int pContentPos, int pEndContentPos, SourceFile* pOwningFile);
 	IntConstant(IntConstant* cloneSource, Identifier* pReplacementSource);
 	virtual ~IntConstant();
 
@@ -154,6 +155,16 @@ public:
 	virtual ~FloatConstant();
 
 	FloatConstant* cloneWithReplacementSource(Identifier* pReplacementSource);
+};
+class BoolConstant: public LexToken {
+public:
+	bool val; //copper: readonly
+
+	BoolConstant(bool pVal, int pContentPos, int pEndContentPos, SourceFile* pOwningFile);
+	BoolConstant(BoolConstant* cloneSource, Identifier* pReplacementSource);
+	virtual ~BoolConstant();
+
+	BoolConstant* cloneWithReplacementSource(Identifier* pReplacementSource);
 };
 class StringLiteral: public LexToken {
 public:
@@ -224,13 +235,12 @@ public:
 };
 
 //Tokens used in expressions
-class VariableInitialization: public Token {
+class VariableDefinitionList: public Token {
 public:
 	Array<CVariableDefinition*>* variables;
-	Token* initialization;
 
-	VariableInitialization(Array<CVariableDefinition*>* pVariables, Token* pInitialization, Token* lastToken);
-	virtual ~VariableInitialization();
+	VariableDefinitionList(Array<CVariableDefinition*>* pVariables, Identifier* firstType);
+	virtual ~VariableDefinitionList();
 };
 class ParenthesizedExpression: public Token {
 public:
@@ -245,6 +255,13 @@ public:
 
 	Cast(CDataType* pType, bool pIsRaw, AbstractCodeBlock* source);
 	virtual ~Cast();
+};
+class StaticOperator: public Operator {
+public:
+	CDataType* ownerType;
+
+	StaticOperator(CDataType* pOwnerType, OperatorType pType, Operator* source);
+	virtual ~StaticOperator();
 };
 class FunctionCall: public Token {
 public:
@@ -261,6 +278,6 @@ public:
 	Array<Statement*>* body;
 
 	FunctionDefinition(
-		CDataType* pReturnType, Array<CVariableDefinition*>* pParameters, Array<Statement*>* pBody, Token* lastToken);
+		CDataType* pReturnType, Array<CVariableDefinition*>* pParameters, Array<Statement*>* pBody, Identifier* typeToken);
 	virtual ~FunctionDefinition();
 };
