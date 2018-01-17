@@ -26,8 +26,9 @@ instantiateArrayTypes(AVLNode<SourceFile* COMMA bool>*);
 instantiateNonPointerArrayTypes(char);
 instantiateNonPointerArrayTypes(int);
 instantiateNonPointerArrayTypes(string);
-instantiatePrefixTrieAVLNodeArrayTypes(char, CDirectiveReplace*);
 instantiatePrefixTrieAVLNodeArrayTypes(char, CDataType*);
+instantiatePrefixTrieAVLNodeArrayTypes(char, CDirectiveReplace*);
+instantiatePrefixTrieAVLNodeArrayTypes(char, CVariableDefinition*);
 instantiatePrefixTrieAVLNodeArrayTypes(char, SourceFile*);
 
 template <class Type> Array<Type>::Array()

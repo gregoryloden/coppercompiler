@@ -334,9 +334,9 @@ Token* ParseExpressions::addToOperator(Operator* o, Token* activeExpression, Arr
 	//if so, we need to go through and reassign
 	//this handles postfix operators since their right side is nullptr
 	Operator* oNext;
-	if ((oNext = dynamic_cast<Operator*>(activeExpression)) != nullptr && o->takesRightSidePrecedence(oNext)) {
+	if ((oNext = dynamic_cast<Operator*>(activeExpression)) != nullptr && newOperatorTakesRightSidePrecedence(o, oNext)) {
 		Operator* oParent = oNext;
-		while ((oNext = dynamic_cast<Operator*>(oParent->right)) != nullptr && o->takesRightSidePrecedence(oNext))
+		while ((oNext = dynamic_cast<Operator*>(oParent->right)) != nullptr && newOperatorTakesRightSidePrecedence(o, oNext))
 			oParent = oNext;
 		o->left = oParent->right;
 		oParent->right = o;
@@ -394,7 +394,7 @@ Token* ParseExpressions::completeParenthesizedExpression(AbstractCodeBlock* a, A
 		CDataType* cdt;
 		//starts with "raw", this must be a cast
 		if (i->name == rawKeyword) {
-			//statements do not expect a cast and will not pass an iterator since there are no potentially valid extra tokens
+			//statements don't expect a cast and will not pass an iterator since there are no potentially valid extra tokens
 			if (castI == nullptr)
 				Error::makeError(ErrorType::Expected, "a value", i);
 			i = parseExpectedToken<Identifier>(&ai, i, "a type name");
@@ -409,7 +409,7 @@ Token* ParseExpressions::completeParenthesizedExpression(AbstractCodeBlock* a, A
 			ai.getNext();
 			//a cast does not have any tokens following it
 			if (!ai.hasThis()) {
-				//statements do not expect a cast and will not pass an iterator since there are no potentially valid extra tokens
+				//statements don't expect a cast and will not pass an iterator since there are no potentially valid extra tokens
 				if (castI == nullptr)
 					Error::makeError(ErrorType::Expected, "a value", i);
 				return completeCast(cdt, false, a, castI);
@@ -678,10 +678,37 @@ Statement* ParseExpressions::parseKeywordStatement(Token* t, ArrayIterator<Token
 //may throw
 ExpressionStatement* ParseExpressions::parseExpressionStatement(Token* t, ArrayIterator<Token*>* ti) {
 	Separator* s;
-	return (s = dynamic_cast<Separator*>(t)) != nullptr && s->separatorType == SeparatorType::Semicolon
-		? nullptr
-		: new ExpressionStatement(
-			parseExpression(ti, (unsigned char)SeparatorType::Semicolon, ErrorType::General, nullptr, nullptr));
+	if ((s = dynamic_cast<Separator*>(t)) != nullptr && s->separatorType == SeparatorType::Semicolon)
+		return nullptr;
+	return new ExpressionStatement(
+		parseExpression(ti, (unsigned char)SeparatorType::Semicolon, ErrorType::General, nullptr, nullptr));
+}
+//determine if the new operator should steal the right side of the old operator
+//may throw
+bool ParseExpressions::newOperatorTakesRightSidePrecedence(Operator* oNew, Operator* oOld) {
+	if (oNew->precedence != oOld->precedence)
+		return oNew->precedence > oOld->precedence;
+	//some operators group on the right, whereas most operators group on the left
+	switch (oNew->precedence) {
+		case OperatorTypePrecedence::Ternary:
+			//beginning of a ternary, always group on the right
+			if (oNew->operatorType == OperatorType::QuestionMark)
+				return true;
+			//this is a colon and the other one is a question mark- steal the right side if there isn't a colon already
+			else if (oOld->operatorType == OperatorType::QuestionMark) {
+				Operator* o;
+				return (o = dynamic_cast<Operator*>(oOld->right)) == nullptr || o->operatorType != OperatorType::Colon;
+			//this is a colon and the other one is a colon too
+			//since we never steal the right side of a question mark, this is an error, but we will handle this in Semant
+			} else
+				return true;
+		case OperatorTypePrecedence::ObjectMemberAccess:
+		case OperatorTypePrecedence::BooleanAnd:
+		case OperatorTypePrecedence::BooleanOr:
+		case OperatorTypePrecedence::Assignment:
+			return true;
+	}
+	return false;
 }
 //get the right-most token of an operator tree, if there is one
 Token* ParseExpressions::getLastToken(Token* t) {

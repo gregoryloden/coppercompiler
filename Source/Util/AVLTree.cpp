@@ -12,8 +12,9 @@
 instantiateAVLTree(char, char, 0);
 instantiateAVLTree(int, int, 0);
 instantiateAVLTree(SourceFile*, bool, false);
-instantiatePrefixTrieAVLTree(char, CDirectiveReplace*);
 instantiatePrefixTrieAVLTree(char, CDataType*);
+instantiatePrefixTrieAVLTree(char, CDirectiveReplace*);
+instantiatePrefixTrieAVLTree(char, CVariableDefinition*);
 instantiatePrefixTrieAVLTree(char, SourceFile*);
 
 template <class Key, class Value> AVLTree<Key, Value>::AVLTree()

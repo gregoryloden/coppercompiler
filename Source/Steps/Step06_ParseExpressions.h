@@ -11,6 +11,7 @@ class Identifier;
 class ExpressionStatement;
 class DirectiveTitle;
 class FunctionDefinition;
+class Operator;
 template <class Type> class Array;
 template <class Type> class ArrayIterator;
 enum class SeparatorType: unsigned char;
@@ -60,6 +61,7 @@ private:
 	static Statement* parseKeywordStatement(Token* t, ArrayIterator<Token*>* ti);
 	static ExpressionStatement* parseExpressionStatement(Token* t, ArrayIterator<Token*>* ti);
 	//helpers
+	static bool newOperatorTakesRightSidePrecedence(Operator* oNew, Operator* oOld);
 	static Token* getLastToken(Token* t);
 	static bool hasSemicolon(AbstractCodeBlock* a);
 //	static bool isKeyword(string s);

@@ -6,8 +6,9 @@
 
 template class PrefixTrieUnion<char, CDirectiveReplace*>;
 
-instantiatePrefixTrie(char, CDirectiveReplace*, nullptr);
 instantiatePrefixTrie(char, CDataType*, nullptr);
+instantiatePrefixTrie(char, CDirectiveReplace*, nullptr);
+instantiatePrefixTrie(char, CVariableDefinition*, nullptr);
 instantiatePrefixTrie(char, SourceFile*, nullptr);
 
 template <class KeyElement, class Value> PrefixTrie<KeyElement, Value>::PrefixTrie(

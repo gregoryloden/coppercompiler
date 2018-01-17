@@ -208,7 +208,6 @@ public:
 
 	Operator* cloneWithReplacementSource(Identifier* pReplacementSource);
 	OperatorTypePrecedence getPrecedence(OperatorType pOperatorType);
-	bool takesRightSidePrecedence(Operator* other);
 };
 class DirectiveTitle: public LexToken {
 public:

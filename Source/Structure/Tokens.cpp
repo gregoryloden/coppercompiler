@@ -226,33 +226,6 @@ Operator::~Operator() {
 	delete right;
 }
 cloneWithReplacementSourceForType(Operator)
-//determine if this operator should steal the right side of the other operator
-//may throw
-bool Operator::takesRightSidePrecedence(Operator* other) {
-	if (precedence != other->precedence)
-		return precedence > other->precedence;
-	//some operators group on the right, whereas most operators group on the left
-	switch (precedence) {
-		case OperatorTypePrecedence::Ternary:
-			//beginning of a ternary, always group on the right
-			if (operatorType == OperatorType::QuestionMark)
-				return true;
-			//this is a colon and the other one is a question mark- steal the right side if there isn't a colon already
-			else if (other->operatorType == OperatorType::QuestionMark) {
-				Operator* o;
-				return (o = dynamic_cast<Operator*>(other->right)) == nullptr || o->operatorType != OperatorType::Colon;
-			//this is a colon and the other one is a colon too
-			//since we never steal the right side of a question mark, we can only get here on an error
-			} else
-				Error::makeError(ErrorType::General, "ternary expression missing conditional", this);
-		case OperatorTypePrecedence::ObjectMemberAccess:
-		case OperatorTypePrecedence::BooleanAnd:
-		case OperatorTypePrecedence::BooleanOr:
-		case OperatorTypePrecedence::Assignment:
-			return true;
-	}
-	return false;
-}
 DirectiveTitle::DirectiveTitle(string pTitle, int pContentPos, int pEndContentPos, SourceFile* pOwningFile)
 : LexToken(onlyWhenTrackingIDs("DCTVTTL" COMMA) pContentPos, pEndContentPos, pOwningFile)
 , title(pTitle)
