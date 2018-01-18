@@ -34,7 +34,7 @@ void Semant::addVariablesToTrie(VariableDefinitionList* v, PrefixTrie<char, CVar
 		if (old != nullptr) {
 			variables->set(old->name->name.c_str(), old->name->name.length(), old);
 			string errorMessage = "\"" + old->name->name + "\" has already been defined";
-			Error::makeError(ErrorType::General, errorMessage.c_str(), c->name);
+			Error::logError(ErrorType::General, errorMessage.c_str(), c->name);
 		}
 	}
 }
@@ -57,8 +57,7 @@ void Semant::semantFile(SourceFile* sourceFile, PrefixTrie<char, CVariableDefini
 	}
 }
 //the heart of semantic analysis
-//verify that this token has the right type, and that anything it relies on is also valid
-//checks types
+//verify that this token has the right type, and that anything under it is also valid
 void Semant::semantToken(Token* t, PrefixTrie<char, CVariableDefinition*>* variables) {
 
 }

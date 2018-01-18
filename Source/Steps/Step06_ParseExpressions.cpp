@@ -699,7 +699,7 @@ bool ParseExpressions::newOperatorTakesRightSidePrecedence(Operator* oNew, Opera
 				Operator* o;
 				return (o = dynamic_cast<Operator*>(oOld->right)) == nullptr || o->operatorType != OperatorType::Colon;
 			//this is a colon and the other one is a colon too
-			//since we never steal the right side of a question mark, this is an error, but we will handle this in Semant
+			//since we never steal the right side of a question mark, this is an error, but we'll handle this in Semant
 			} else
 				return true;
 		case OperatorTypePrecedence::ObjectMemberAccess:
