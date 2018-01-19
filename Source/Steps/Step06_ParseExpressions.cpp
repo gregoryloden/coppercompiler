@@ -78,7 +78,7 @@ CDataType* ParseExpressions::parseType(Identifier* i, ArrayIterator<Token*>* ti)
 		return cdt;
 	}
 
-	if (dynamic_cast<CGenericFunction*>(cdt) != nullptr) {
+	if (cdt == CDataType::functionType) {
 		//get the return type
 		Identifier* returnTypeToken = parseExpectedToken<Identifier>(ti, o, "a return type argument");
 		CDataType* returnType = parseType(returnTypeToken, ti);

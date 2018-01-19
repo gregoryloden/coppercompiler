@@ -3,6 +3,14 @@
 //classes defined within other classes have owning class
 
 PrefixTrie<char, CDataType*>* CDataType::globalDataTypes = nullptr;
+CVoid* CDataType::voidType = nullptr;
+CIntegerPrimitive* CDataType::boolType = nullptr;
+CIntegerPrimitive* CDataType::byteType = nullptr;
+CIntegerPrimitive* CDataType::shortType = nullptr;
+CIntegerPrimitive* CDataType::intType = nullptr;
+CFloatingPointPrimitive* CDataType::floatType = nullptr;
+CGenericFunction* CDataType::functionType = nullptr;
+CClass* CDataType::stringType = nullptr;
 Array<CDataType*>* CDataType::typesToDelete = nullptr;
 CDataType::CDataType(onlyWhenTrackingIDs(char* pObjType COMMA) string pName)
 : onlyInDebug(ObjCounter(onlyWhenTrackingIDs(pObjType)) COMMA)
@@ -14,14 +22,14 @@ CDataType::~CDataType() {}
 void CDataType::initializeGlobalDataTypes() {
 	typesToDelete = new Array<CDataType*>();
 	CDataType* typesArray[] = {
-		new CVoid(),
-		new CIntegerPrimitive("bool", 1),
-		new CIntegerPrimitive("byte", 8),
-		new CIntegerPrimitive("short", 16),
-		new CIntegerPrimitive("int", 32),
-		new CFloatingPointPrimitive("float", 32),
-		new CGenericFunction(),
-		new CClass("String")
+		(voidType = new CVoid()),
+		(boolType = new CIntegerPrimitive("bool", 1)),
+		(byteType = new CIntegerPrimitive("byte", 8)),
+		(shortType = new CIntegerPrimitive("short", 16)),
+		(intType = new CIntegerPrimitive("int", 32)),
+		(floatType = new CFloatingPointPrimitive("float", 32)),
+		(functionType = new CGenericFunction()),
+		(stringType = new CClass("String"))
 	};
 	const int typesArrayCount = sizeof(typesArray) / sizeof(typesArray[0]);
 	globalDataTypes = new PrefixTrie<char, CDataType*>();
@@ -32,6 +40,14 @@ void CDataType::initializeGlobalDataTypes() {
 }
 //delete all the data types
 void CDataType::deleteGlobalDataTypes() {
+	voidType = nullptr;
+	boolType = nullptr;
+	byteType = nullptr;
+	shortType = nullptr;
+	intType = nullptr;
+	floatType = nullptr;
+	functionType = nullptr;
+	stringType = nullptr;
 	typesToDelete->deleteContents();
 	delete typesToDelete;
 	delete globalDataTypes;

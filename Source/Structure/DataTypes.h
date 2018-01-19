@@ -2,12 +2,26 @@
 #include "string"
 using namespace std;
 
+class CVoid;
+class CIntegerPrimitive;
+class CFloatingPointPrimitive;
+class CGenericFunction;
+class CSpecificFunction;
+class CClass;
 template <class Key, class Value> class PrefixTrie;
 template <class Type> class Array;
 
 class CDataType onlyInDebug(: public ObjCounter) {
 public:
 	static PrefixTrie<char, CDataType*>* globalDataTypes;
+	static CVoid* voidType;
+	static CIntegerPrimitive* boolType;
+	static CIntegerPrimitive* byteType;
+	static CIntegerPrimitive* shortType;
+	static CIntegerPrimitive* intType;
+	static CFloatingPointPrimitive* floatType;
+	static CGenericFunction* functionType;
+	static CClass* stringType;
 private:
 	static Array<CDataType*>* typesToDelete;
 

@@ -59,7 +59,52 @@ void Semant::semantFile(SourceFile* sourceFile, PrefixTrie<char, CVariableDefini
 //the heart of semantic analysis
 //verify that this token has the right type, and that anything under it is also valid
 void Semant::semantToken(Token* t, PrefixTrie<char, CVariableDefinition*>* variables) {
-
+	Identifier* i;
+	IntConstant* ic;
+	FloatConstant* f;
+	BoolConstant* b;
+	StringLiteral* s;
+	Operator* o;
+	DirectiveTitle* d;
+	if ((i = dynamic_cast<Identifier*>(t)) != nullptr)
+		semantIdentifier(i, variables);
+	else if ((ic = dynamic_cast<IntConstant*>(t)) != nullptr)
+		semantIntConstant(ic, variables);
+	else if ((f = dynamic_cast<FloatConstant*>(t)) != nullptr)
+		semantFloatConstant(f, variables);
+	else if ((b = dynamic_cast<BoolConstant*>(t)) != nullptr)
+		semantBoolConstant(b, variables);
+	else if ((s = dynamic_cast<StringLiteral*>(t)) != nullptr)
+		semantStringLiteral(s, variables);
+	else if ((o = dynamic_cast<Operator*>(t)) != nullptr)
+		semantOperator(o, variables);
+	else if ((d = dynamic_cast<DirectiveTitle*>(t)) != nullptr)
+		semantDirectiveTitle(d, variables);
+	else {
+		assert(false);
+	}
+}
+//verify that this identifier ????????????????
+void Semant::semantIdentifier(Identifier* i, PrefixTrie<char, CVariableDefinition*>* variables) {
+}
+//verify that this int constant ????????????????
+void Semant::semantIntConstant(IntConstant* i, PrefixTrie<char, CVariableDefinition*>* variables) {
+}
+//verify that this float constant ????????????????
+void Semant::semantFloatConstant(FloatConstant* f, PrefixTrie<char, CVariableDefinition*>* variables) {
+}
+//verify that this bool constant ????????????????
+void Semant::semantBoolConstant(BoolConstant* b, PrefixTrie<char, CVariableDefinition*>* variables) {
+}
+//verify that this string literal ????????????????
+void Semant::semantStringLiteral(StringLiteral* s, PrefixTrie<char, CVariableDefinition*>* variables) {
+}
+//verify that this operator ????????????????
+void Semant::semantOperator(Operator* o, PrefixTrie<char, CVariableDefinition*>* variables) {
+}
+//verify that this directive title ????????????????
+void Semant::semantDirectiveTitle(DirectiveTitle* d, PrefixTrie<char, CVariableDefinition*>* variables) {
+	assert(false); //TODO: do something with directive titles
 }
 
 //TODO:

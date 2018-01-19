@@ -73,6 +73,7 @@ cloneWithReplacementSourceForType(FloatConstant)
 BoolConstant::BoolConstant(bool pVal, int pContentPos, int pEndContentPos, SourceFile* pOwningFile)
 : LexToken(onlyWhenTrackingIDs("BOLCNST" COMMA) pContentPos, pEndContentPos, pOwningFile)
 , val(pVal) {
+	dataType = CDataType::boolType;
 }
 BoolConstant::BoolConstant(BoolConstant* cloneSource, Identifier* pReplacementSource)
 : LexToken(cloneSource, pReplacementSource)
@@ -83,6 +84,7 @@ cloneWithReplacementSourceForType(BoolConstant)
 StringLiteral::StringLiteral(string pVal, int pContentPos, int pEndContentPos, SourceFile* pOwningFile)
 : LexToken(onlyWhenTrackingIDs("STRING" COMMA) pContentPos, pEndContentPos, pOwningFile)
 , val(pVal) {
+	dataType = CDataType::stringType;
 }
 StringLiteral::StringLiteral(StringLiteral* cloneSource, Identifier* pReplacementSource)
 : LexToken(cloneSource, pReplacementSource)
