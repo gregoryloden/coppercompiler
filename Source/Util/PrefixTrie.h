@@ -28,6 +28,7 @@ public:
 
 	virtual Value set(const KeyElement* key, int keyLength, Value value);
 	virtual Value get(const KeyElement* key, int keyLength);
+	void deleteValues();
 };
 template <class KeyElement, class Value> class PrefixTrieUnion: public PrefixTrie<KeyElement, Value> {
 private:

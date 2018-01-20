@@ -665,7 +665,6 @@ ExpressionStatement* ParseExpressions::parseExpressionStatement(Token* t, ArrayI
 		parseExpression(ti, (unsigned char)SeparatorType::Semicolon, ErrorType::General, nullptr, nullptr));
 }
 //determine if the new operator should steal the right side of the old operator
-//may throw
 bool ParseExpressions::newOperatorTakesRightSidePrecedence(Operator* oNew, Operator* oOld) {
 	if (oNew->precedence != oOld->precedence)
 		return oNew->precedence > oOld->precedence;

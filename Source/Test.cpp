@@ -44,7 +44,7 @@
 		testFile("Test/Step06_ParseExpressions_parseExpressions.cu", 0);
 		testFile("Test/Step06_ParseExpressions_badParseExpressions.cu", 64);
 		testFile("Test/Step07_Semant_semant.cu", 0);
-		testFile("Test/Step07_Semant_badSemant.cu", 3);
+		testFile("Test/Step07_Semant_badSemant.cu", 4);
 		printf("  Finished testing files: %d total files tested\n", filesTested);
 	}
 	void Test::testFile(const char* fileName, int errorsExpected) {

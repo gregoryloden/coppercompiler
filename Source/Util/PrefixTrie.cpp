@@ -2,9 +2,8 @@
 
 #define instantiatePrefixTrie(type1, type2, value) \
 	template class PrefixTrie<type1, type2>;\
+	template class PrefixTrieUnion<type1, type2>;\
 	type2 const PrefixTrie<char, type2>::emptyValue = value;
-
-template class PrefixTrieUnion<char, CDirectiveReplace*>;
 
 instantiatePrefixTrie(char, CDataType*, nullptr);
 instantiatePrefixTrie(char, CDirectiveReplace*, nullptr);
@@ -134,6 +133,18 @@ template <class KeyElement, class Value> Value PrefixTrie<KeyElement, Value>::ge
 			keyIndex++;
 		}
 	}
+}
+//delete all the values in the trie
+template <class KeyElement, class Value> void PrefixTrie<KeyElement, Value>::deleteValues() {
+	if (value != emptyValue)
+		delete value;
+	if (nextTree == nullptr)
+		return;
+	Array<AVLNode<KeyElement, PrefixTrie<KeyElement, Value>*>*>* entrySet = nextTree->entrySet();
+	forEach(AVLNode<KeyElement COMMA PrefixTrie<KeyElement COMMA Value>*>*, entry, entrySet, ei) {
+		entry->value->deleteValues();
+	}
+	delete entrySet;
 }
 template <class KeyElement, class Value> PrefixTrieUnion<KeyElement, Value>::PrefixTrieUnion(
 	PrefixTrie<KeyElement, Value>* pNext)

@@ -23,10 +23,8 @@ public:
 	static CFloatingPointPrimitive* floatType;
 	static CGenericFunction* functionType;
 	static CClass* stringType;
-private:
-	static Array<CDataType*>* typesToDelete;
+	static CClass* mainType;
 
-public:
 	string name;
 
 protected:

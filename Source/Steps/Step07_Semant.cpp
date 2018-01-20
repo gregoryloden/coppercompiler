@@ -34,6 +34,8 @@ void Semant::semant(Pliers* pliers) {
 			printf("Analyzing semantics for %s...\n", s->filename.c_str());
 		semantFile(s, &allGlobalVariables, &allGlobalVariableData);
 	}
+
+	allGlobalVariableData.deleteValues();
 }
 //add variables from the definition list into the trie
 void Semant::addVariablesToTrie(VariableDefinitionList* v, PrefixTrie<char, CVariableDefinition*>* variables) {
@@ -53,14 +55,16 @@ void Semant::semantFile(
 	forEach(Token*, t, sourceFile->globalVariables, ti) {
 		Operator* o;
 		VariableDefinitionList* v;
-		if ((o = dynamic_cast<Operator*>(t)) == nullptr || o->operatorType != OperatorType::Assign) {
+		if ((v = dynamic_cast<VariableDefinitionList*>(t)) != nullptr)
+			continue;
+		else if ((o = dynamic_cast<Operator*>(t)) == nullptr || o->operatorType != OperatorType::Assign) {
 			Error::logError(ErrorType::Expected, "a variable initalization", t);
 			continue;
 		} else if ((v = dynamic_cast<VariableDefinitionList*>(o->left)) == nullptr) {
 			Error::logError(ErrorType::Expected, "a variable declaration list", t);
 			continue;
 		}
-		semantToken(o, variables, variableData, nullptr);
+		semantToken(o, variables, variableData, nullptr, true);
 	}
 }
 //the heart of semantic analysis
@@ -69,29 +73,42 @@ void Semant::semantToken(
 	Token* t,
 	PrefixTrie<char, CVariableDefinition*>* variables,
 	PrefixTrie<char, CVariableData*>* variableData,
-	CDataType* typeExpected)
+	CDataType* typeExpected,
+	bool baseToken)
 {
 	Identifier* i;
 	IntConstant* ic;
 	FloatConstant* f;
-	BoolConstant* b;
-	StringLiteral* s;
 	Operator* o;
 	DirectiveTitle* d;
+	ParenthesizedExpression* p;
+	Cast* c;
+	StaticOperator* s;
+	FunctionCall* fc;
+	FunctionDefinition* fd;
+	Group* g;
 	if ((i = dynamic_cast<Identifier*>(t)) != nullptr)
-		semantIdentifier(i, variables, variableData, typeExpected);
+		semantIdentifier(i, variables, variableData, typeExpected, baseToken);
 	else if ((ic = dynamic_cast<IntConstant*>(t)) != nullptr)
-		semantIntConstant(ic, variables, variableData, typeExpected);
+		semantIntConstant(ic, variables, variableData, typeExpected, baseToken);
 	else if ((f = dynamic_cast<FloatConstant*>(t)) != nullptr)
-		semantFloatConstant(f, variables, variableData, typeExpected);
-	else if ((b = dynamic_cast<BoolConstant*>(t)) != nullptr)
-		semantBoolConstant(b, variables, variableData, typeExpected);
-	else if ((s = dynamic_cast<StringLiteral*>(t)) != nullptr)
-		semantStringLiteral(s, variables, variableData, typeExpected);
+		semantFloatConstant(f, variables, variableData, typeExpected, baseToken);
 	else if ((o = dynamic_cast<Operator*>(t)) != nullptr)
-		semantOperator(o, variables, variableData, typeExpected);
+		semantOperator(o, variables, variableData, typeExpected, baseToken);
 	else if ((d = dynamic_cast<DirectiveTitle*>(t)) != nullptr)
-		semantDirectiveTitle(d, variables, variableData, typeExpected);
+		semantDirectiveTitle(d, variables, variableData, typeExpected, baseToken);
+	else if ((p = dynamic_cast<ParenthesizedExpression*>(t)) != nullptr)
+		semantToken(p->expression, variables, variableData, typeExpected, true);
+	else if ((c = dynamic_cast<Cast*>(t)) != nullptr)
+		semantCast(c, variables, variableData, typeExpected, baseToken);
+	else if ((s = dynamic_cast<StaticOperator*>(t)) != nullptr)
+		semantStaticOperator(s, variables, variableData, typeExpected, baseToken);
+	else if ((fc = dynamic_cast<FunctionCall*>(t)) != nullptr)
+		semantFunctionCall(fc, variables, variableData, typeExpected, baseToken);
+	else if ((fd = dynamic_cast<FunctionDefinition*>(t)) != nullptr)
+		semantFunctionDefinition(fd, variables, variableData, typeExpected, baseToken);
+	else if ((g = dynamic_cast<Group*>(t)) != nullptr)
+		semantGroup(g, variables, variableData, typeExpected, baseToken);
 	else {
 		assert(false);
 	}
@@ -101,7 +118,8 @@ void Semant::semantIdentifier(
 	Identifier* i,
 	PrefixTrie<char, CVariableDefinition*>* variables,
 	PrefixTrie<char, CVariableData*>* variableData,
-	CDataType* typeExpected)
+	CDataType* typeExpected,
+	bool baseToken)
 {
 }
 //verify that this int constant ????????????????
@@ -109,7 +127,8 @@ void Semant::semantIntConstant(
 	IntConstant* i,
 	PrefixTrie<char, CVariableDefinition*>* variables,
 	PrefixTrie<char, CVariableData*>* variableData,
-	CDataType* typeExpected)
+	CDataType* typeExpected,
+	bool baseToken)
 {
 }
 //verify that this float constant ????????????????
@@ -117,23 +136,8 @@ void Semant::semantFloatConstant(
 	FloatConstant* f,
 	PrefixTrie<char, CVariableDefinition*>* variables,
 	PrefixTrie<char, CVariableData*>* variableData,
-	CDataType* typeExpected)
-{
-}
-//verify that this bool constant ????????????????
-void Semant::semantBoolConstant(
-	BoolConstant* b,
-	PrefixTrie<char, CVariableDefinition*>* variables,
-	PrefixTrie<char, CVariableData*>* variableData,
-	CDataType* typeExpected)
-{
-}
-//verify that this string literal ????????????????
-void Semant::semantStringLiteral(
-	StringLiteral* s,
-	PrefixTrie<char, CVariableDefinition*>* variables,
-	PrefixTrie<char, CVariableData*>* variableData,
-	CDataType* typeExpected)
+	CDataType* typeExpected,
+	bool baseToken)
 {
 }
 //verify that this operator ????????????????
@@ -141,7 +145,8 @@ void Semant::semantOperator(
 	Operator* o,
 	PrefixTrie<char, CVariableDefinition*>* variables,
 	PrefixTrie<char, CVariableData*>* variableData,
-	CDataType* typeExpected)
+	CDataType* typeExpected,
+	bool baseToken)
 {
 }
 //verify that this directive title ????????????????
@@ -149,9 +154,56 @@ void Semant::semantDirectiveTitle(
 	DirectiveTitle* d,
 	PrefixTrie<char, CVariableDefinition*>* variables,
 	PrefixTrie<char, CVariableData*>* variableData,
-	CDataType* typeExpected)
+	CDataType* typeExpected,
+	bool baseToken)
 {
 	assert(false); //TODO: do something with directive titles
+}
+//verify that this cast ????????????????
+void Semant::semantCast(
+	Cast* c,
+	PrefixTrie<char, CVariableDefinition*>* variables,
+	PrefixTrie<char, CVariableData*>* variableData,
+	CDataType* typeExpected,
+	bool baseToken)
+{
+}
+//verify that this static operator ????????????????
+void Semant::semantStaticOperator(
+	StaticOperator* s,
+	PrefixTrie<char, CVariableDefinition*>* variables,
+	PrefixTrie<char, CVariableData*>* variableData,
+	CDataType* typeExpected,
+	bool baseToken)
+{
+}
+//verify that this function call ????????????????
+void Semant::semantFunctionCall(
+	FunctionCall* f,
+	PrefixTrie<char, CVariableDefinition*>* variables,
+	PrefixTrie<char, CVariableData*>* variableData,
+	CDataType* typeExpected,
+	bool baseToken)
+{
+}
+//verify that this function definition ????????????????
+void Semant::semantFunctionDefinition(
+	FunctionDefinition* f,
+	PrefixTrie<char, CVariableDefinition*>* variables,
+	PrefixTrie<char, CVariableData*>* variableData,
+	CDataType* typeExpected,
+	bool baseToken)
+{
+}
+//verify that this group ????????????????
+void Semant::semantGroup(
+	Group* g,
+	PrefixTrie<char, CVariableDefinition*>* variables,
+	PrefixTrie<char, CVariableData*>* variableData,
+	CDataType* typeExpected,
+	bool baseToken)
+{
+	assert(false); //TODO: Groups
 }
 
 //TODO:

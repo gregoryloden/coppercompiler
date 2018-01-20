@@ -11,16 +11,14 @@ CIntegerPrimitive* CDataType::intType = nullptr;
 CFloatingPointPrimitive* CDataType::floatType = nullptr;
 CGenericFunction* CDataType::functionType = nullptr;
 CClass* CDataType::stringType = nullptr;
-Array<CDataType*>* CDataType::typesToDelete = nullptr;
+CClass* CDataType::mainType = nullptr;
 CDataType::CDataType(onlyWhenTrackingIDs(char* pObjType COMMA) string pName)
 : onlyInDebug(ObjCounter(onlyWhenTrackingIDs(pObjType)) COMMA)
 name(pName) {
-	typesToDelete->add(this);
 }
 CDataType::~CDataType() {}
 //build the trie of data types here so that we can track deleting them properly
 void CDataType::initializeGlobalDataTypes() {
-	typesToDelete = new Array<CDataType*>();
 	CDataType* typesArray[] = {
 		(voidType = new CVoid()),
 		(boolType = new CBool()),
@@ -29,7 +27,8 @@ void CDataType::initializeGlobalDataTypes() {
 		(intType = new CIntegerPrimitive("int", 32)),
 		(floatType = new CFloatingPointPrimitive("float", 32)),
 		(functionType = new CGenericFunction()),
-		(stringType = new CClass("String"))
+		(stringType = new CClass("String")),
+		(mainType = new CClass("Main"))
 	};
 	const int typesArrayCount = sizeof(typesArray) / sizeof(typesArray[0]);
 	globalDataTypes = new PrefixTrie<char, CDataType*>();
@@ -48,8 +47,7 @@ void CDataType::deleteGlobalDataTypes() {
 	floatType = nullptr;
 	functionType = nullptr;
 	stringType = nullptr;
-	typesToDelete->deleteContents();
-	delete typesToDelete;
+	globalDataTypes->deleteValues();
 	delete globalDataTypes;
 	globalDataTypes = nullptr;
 }
