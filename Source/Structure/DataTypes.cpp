@@ -4,7 +4,7 @@
 
 PrefixTrie<char, CDataType*>* CDataType::globalDataTypes = nullptr;
 CVoid* CDataType::voidType = nullptr;
-CIntegerPrimitive* CDataType::boolType = nullptr;
+CBool* CDataType::boolType = nullptr;
 CIntegerPrimitive* CDataType::byteType = nullptr;
 CIntegerPrimitive* CDataType::shortType = nullptr;
 CIntegerPrimitive* CDataType::intType = nullptr;
@@ -23,7 +23,7 @@ void CDataType::initializeGlobalDataTypes() {
 	typesToDelete = new Array<CDataType*>();
 	CDataType* typesArray[] = {
 		(voidType = new CVoid()),
-		(boolType = new CIntegerPrimitive("bool", 1)),
+		(boolType = new CBool()),
 		(byteType = new CIntegerPrimitive("byte", 8)),
 		(shortType = new CIntegerPrimitive("short", 16)),
 		(intType = new CIntegerPrimitive("int", 32)),
@@ -62,6 +62,10 @@ CPrimitive::CPrimitive(onlyWhenTrackingIDs(char* pObjType COMMA) string pName, s
 , bitSize(pBitSize) {
 }
 CPrimitive::~CPrimitive() {}
+CBool::CBool()
+: CPrimitive(onlyWhenTrackingIDs("BOOLTYP" COMMA) "bool", 1) {
+}
+CBool::~CBool() {}
 CIntegerPrimitive::CIntegerPrimitive(string pName, int pBitSize)
 : CPrimitive(onlyWhenTrackingIDs("INPMTYP" COMMA) pName, pBitSize) {
 }
@@ -74,6 +78,32 @@ CGenericFunction::CGenericFunction()
 : CDataType(onlyWhenTrackingIDs("GNFNTYP" COMMA) "Function") {
 }
 CGenericFunction::~CGenericFunction() {}
+//return the function type that matches the given return type and parameter types, creating it if it doesn't exist yet
+//deletes the parameterTypes array if it isn't used
+CDataType* CGenericFunction::typeFor(CDataType* returnType, Array<CDataType*>* parameterTypes) {
+	//build the type name
+	string typeName = "Function<";
+	typeName += returnType->name;
+	typeName += '(';
+	bool addComma = false;
+	forEach(CDataType*, c, parameterTypes, ci) {
+		if (addComma)
+			typeName += ',';
+		else
+			addComma = true;
+		typeName += c->name;
+	}
+	typeName += ")>";
+
+	//create the type if we don't already have it
+	CDataType* cdt = CDataType::globalDataTypes->get(typeName.c_str(), typeName.length());
+	if (cdt == nullptr) {
+		cdt = new CSpecificFunction(typeName, returnType, parameterTypes);
+		CDataType::globalDataTypes->set(typeName.c_str(), typeName.length(), cdt);
+	} else
+		delete parameterTypes;
+	return cdt;
+}
 CSpecificFunction::CSpecificFunction(string pName, CDataType* pReturnType, Array<CDataType*>* pParameterTypes)
 : CDataType(onlyWhenTrackingIDs("SPFNTYP" COMMA) pName)
 , returnType(pReturnType)
@@ -87,3 +117,49 @@ CClass::CClass(string pName)
 : CDataType(onlyWhenTrackingIDs("CLSSTYP" COMMA) pName) {
 }
 CClass::~CClass() {}
+CGenericGroup::CGenericGroup()
+: CDataType(onlyWhenTrackingIDs("GNGPTYP" COMMA) "Group") {
+}
+CGenericGroup::~CGenericGroup() {}
+//return the group type that matches the given types, creating it if it doesn't exist yet
+//deletes the types array if it isn't used
+CDataType* CGenericGroup::typeFor(Array<CVariableDefinition*>* types) {
+	//build the type name
+	string typeName = "Group(";
+	bool addComma = false;
+	forEach(CVariableDefinition*, c, types, ci) {
+		if (addComma)
+			typeName += ',';
+		else
+			addComma = true;
+		typeName += c->type->name;
+		if (c->name != nullptr) {
+			typeName += ' ';
+			typeName += c->name->name;
+		}
+	}
+	typeName += ")";
+
+	//create the type if we don't already have it
+	CDataType* cdt = CDataType::globalDataTypes->get(typeName.c_str(), typeName.length());
+	if (cdt == nullptr) {
+		cdt = new CSpecificGroup(typeName, types);
+		CDataType::globalDataTypes->set(typeName.c_str(), typeName.length(), cdt);
+	} else
+		delete types;
+	return cdt;
+}
+CSpecificGroup::CSpecificGroup(string pName, Array<CVariableDefinition*>* pTypes)
+: CDataType(onlyWhenTrackingIDs("SPGPTYP" COMMA) pName)
+, types(pTypes)
+, allSameType(false) {
+	if (pTypes->length == 0)
+		throw 0;
+	CDataType* t = pTypes->first()->type;
+	for (int i = 1; i < pTypes->length; i++) {
+		if (pTypes->get(i)->type != t)
+			return;
+	}
+	allSameType = true;
+}
+CSpecificGroup::~CSpecificGroup() {}

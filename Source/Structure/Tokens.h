@@ -267,7 +267,7 @@ public:
 	Token* function;
 	Array<Token*>* arguments;
 
-	FunctionCall(Token* pFunction, Array<Token*>* pArguments, AbstractCodeBlock* lastToken);
+	FunctionCall(Token* pFunction, Array<Token*>* pArguments, AbstractCodeBlock* argumentsBlock);
 	virtual ~FunctionCall();
 };
 class FunctionDefinition: public Token {
@@ -279,4 +279,11 @@ public:
 	FunctionDefinition(
 		CDataType* pReturnType, Array<CVariableDefinition*>* pParameters, Array<Statement*>* pBody, Identifier* typeToken);
 	virtual ~FunctionDefinition();
+};
+class Group: public Token {
+public:
+	Array<Token*>* values;
+
+	Group(Array<Token*>* pValues, Identifier* source);
+	virtual ~Group();
 };

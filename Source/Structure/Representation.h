@@ -439,3 +439,13 @@ public:
 	CVariableDefinition(CDataType* pType, Identifier* pName);
 	virtual ~CVariableDefinition();
 };
+class CVariableData onlyInDebug(: public ObjCounter) {
+public:
+	static const unsigned short isInitialized = 1 << 0;
+
+	unsigned short dataBitmask;
+
+	CVariableData();
+	CVariableData(CVariableData* other);
+	virtual ~CVariableData();
+};

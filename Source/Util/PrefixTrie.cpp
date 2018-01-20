@@ -8,6 +8,7 @@ template class PrefixTrieUnion<char, CDirectiveReplace*>;
 
 instantiatePrefixTrie(char, CDataType*, nullptr);
 instantiatePrefixTrie(char, CDirectiveReplace*, nullptr);
+instantiatePrefixTrie(char, CVariableData*, nullptr);
 instantiatePrefixTrie(char, CVariableDefinition*, nullptr);
 instantiatePrefixTrie(char, SourceFile*, nullptr);
 

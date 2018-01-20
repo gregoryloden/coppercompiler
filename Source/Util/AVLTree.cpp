@@ -14,6 +14,7 @@ instantiateAVLTree(int, int, 0);
 instantiateAVLTree(SourceFile*, bool, false);
 instantiatePrefixTrieAVLTree(char, CDataType*);
 instantiatePrefixTrieAVLTree(char, CDirectiveReplace*);
+instantiatePrefixTrieAVLTree(char, CVariableData*);
 instantiatePrefixTrieAVLTree(char, CVariableDefinition*);
 instantiatePrefixTrieAVLTree(char, SourceFile*);
 

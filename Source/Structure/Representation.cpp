@@ -1559,3 +1559,13 @@ CVariableDefinition::~CVariableDefinition() {
 	//don't delete the type since it's owned by something else
 	delete name;
 }
+CVariableData::CVariableData()
+: onlyInDebug(ObjCounter(onlyWhenTrackingIDs("VARDATA")) COMMA)
+dataBitmask(0) {
+}
+CVariableData::CVariableData(CVariableData* other)
+: onlyInDebug(ObjCounter(onlyWhenTrackingIDs("VARDATA")) COMMA)
+dataBitmask(other->dataBitmask) {
+}
+CVariableData::~CVariableData() {
+}

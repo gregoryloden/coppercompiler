@@ -28,6 +28,7 @@ instantiateNonPointerArrayTypes(int);
 instantiateNonPointerArrayTypes(string);
 instantiatePrefixTrieAVLNodeArrayTypes(char, CDataType*);
 instantiatePrefixTrieAVLNodeArrayTypes(char, CDirectiveReplace*);
+instantiatePrefixTrieAVLNodeArrayTypes(char, CVariableData*);
 instantiatePrefixTrieAVLNodeArrayTypes(char, CVariableDefinition*);
 instantiatePrefixTrieAVLNodeArrayTypes(char, SourceFile*);
 

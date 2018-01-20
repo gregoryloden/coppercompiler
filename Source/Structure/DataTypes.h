@@ -3,11 +3,12 @@
 using namespace std;
 
 class CVoid;
+class CBool;
 class CIntegerPrimitive;
 class CFloatingPointPrimitive;
 class CGenericFunction;
-class CSpecificFunction;
 class CClass;
+class CVariableDefinition;
 template <class Key, class Value> class PrefixTrie;
 template <class Type> class Array;
 
@@ -15,7 +16,7 @@ class CDataType onlyInDebug(: public ObjCounter) {
 public:
 	static PrefixTrie<char, CDataType*>* globalDataTypes;
 	static CVoid* voidType;
-	static CIntegerPrimitive* boolType;
+	static CBool* boolType;
 	static CIntegerPrimitive* byteType;
 	static CIntegerPrimitive* shortType;
 	static CIntegerPrimitive* intType;
@@ -50,6 +51,11 @@ protected:
 public:
 	virtual ~CPrimitive();
 };
+class CBool: public CPrimitive {
+public:
+	CBool();
+	virtual ~CBool();
+};
 class CIntegerPrimitive: public CPrimitive {
 public:
 	CIntegerPrimitive(string pName, int pBitSize);
@@ -64,6 +70,8 @@ class CGenericFunction: public CDataType {
 public:
 	CGenericFunction();
 	virtual ~CGenericFunction();
+
+	static CDataType* typeFor(CDataType* returnType, Array<CDataType*>* parameterTypes);
 };
 class CSpecificFunction: public CDataType {
 private:
@@ -78,6 +86,21 @@ class CClass: public CDataType {
 public:
 	CClass(string pName);
 	virtual ~CClass();
+};
+class CGenericGroup: public CDataType {
+public:
+	CGenericGroup();
+	virtual ~CGenericGroup();
+
+	static CDataType* typeFor(Array<CVariableDefinition*>* types);
+};
+class CSpecificGroup: public CDataType {
+public:
+	Array<CVariableDefinition*>* types; //copper: readonly
+	bool allSameType; //copper: readonly
+
+	CSpecificGroup(string pName, Array<CVariableDefinition*>* pTypes);
+	virtual ~CSpecificGroup();
 };
 /*
 class CEnum: public CDataType {

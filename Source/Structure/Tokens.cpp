@@ -294,11 +294,12 @@ StaticOperator::~StaticOperator() {
 	//don't delete ownerType since it's owned by something else
 }
 FunctionCall::FunctionCall(
-	Token* pFunction, Array<Token*>* pArguments, AbstractCodeBlock* lastToken)
-: Token(onlyWhenTrackingIDs("FNCALL" COMMA) lastToken->contentPos, lastToken->endContentPos, lastToken->owningFile)
+	Token* pFunction, Array<Token*>* pArguments, AbstractCodeBlock* argumentsBlock)
+: Token(
+	onlyWhenTrackingIDs("FNCALL" COMMA) argumentsBlock->contentPos, argumentsBlock->endContentPos, argumentsBlock->owningFile)
 , function(pFunction)
 , arguments(pArguments) {
-	replacementSource = lastToken->replacementSource;
+	replacementSource = argumentsBlock->replacementSource;
 }
 FunctionCall::~FunctionCall() {
 	delete function;
@@ -319,4 +320,13 @@ FunctionDefinition::~FunctionDefinition() {
 	delete parameters;
 	body->deleteContents();
 	delete body;
+}
+Group::Group(Array<Token*>* pValues, Identifier* source)
+: Token(onlyWhenTrackingIDs("GROUP" COMMA) source->contentPos, source->endContentPos, source->owningFile)
+, values(pValues) {
+	replacementSource = source->replacementSource;
+}
+Group::~Group() {
+	values->deleteContents();
+	delete values;
 }

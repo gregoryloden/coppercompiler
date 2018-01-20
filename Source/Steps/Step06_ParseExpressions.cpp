@@ -106,32 +106,13 @@ CDataType* ParseExpressions::parseType(Identifier* i, ArrayIterator<Token*>* ti)
 		if (o->operatorType != OperatorType::GreaterThan)
 			Error::makeError(ErrorType::Expected, "a closing right angle bracket", o);
 
-		//build the type name
-		string typeName = "Function<";
-		typeName += returnType->name;
-		typeName += '(';
-		bool addComma = false;
-		forEach(CDataType*, c, parameterTypes, ci) {
-			if (addComma)
-				typeName += ',';
-			else
-				addComma = true;
-			typeName += c->name;
-		}
-		typeName += ")>";
-
-		//create the type if we don't already have it
-		cdt = CDataType::globalDataTypes->get(typeName.c_str(), typeName.length());
-		if (cdt == nullptr) {
-			cdt = new CSpecificFunction(typeName, returnType, parameterTypesDeleter.release());
-			CDataType::globalDataTypes->set(typeName.c_str(), typeName.length(), cdt);
-		}
+		return CGenericFunction::typeFor(returnType, parameterTypesDeleter.release());
 	//TODO: support more than just function types
 	} else {
 		string message = i->name + " does not take generic type parameters";
 		Error::makeError(ErrorType::General, message.c_str(), i);
+		return nullptr;
 	}
-	return cdt;
 }
 //check that we've reached the end of the token array or that the next token is a comma
 //starting location: the previous token
