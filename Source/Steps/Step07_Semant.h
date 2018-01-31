@@ -28,70 +28,59 @@ private:
 		SourceFile* sourceFile,
 		PrefixTrie<char, CVariableDefinition*>* variables,
 		PrefixTrie<char, CVariableData*>* variableData);
-	static void semantToken(
+	static Token* semantToken(
 		Token* t,
 		PrefixTrie<char, CVariableDefinition*>* variables,
 		PrefixTrie<char, CVariableData*>* variableData,
-		CDataType* typeExpected,
 		bool baseToken);
-	static void semantIdentifier(
+	static Token* semantIdentifier(
 		Identifier* i,
 		PrefixTrie<char, CVariableDefinition*>* variables,
 		PrefixTrie<char, CVariableData*>* variableData,
-		CDataType* typeExpected,
 		bool baseToken);
-	static void semantIntConstant(
+	static Token* semantIntConstant(
 		IntConstant* i,
 		PrefixTrie<char, CVariableDefinition*>* variables,
 		PrefixTrie<char, CVariableData*>* variableData,
-		CDataType* typeExpected,
 		bool baseToken);
-	static void semantFloatConstant(
+	static Token* semantFloatConstant(
 		FloatConstant* f,
 		PrefixTrie<char, CVariableDefinition*>* variables,
 		PrefixTrie<char, CVariableData*>* variableData,
-		CDataType* typeExpected,
 		bool baseToken);
-	static void semantOperator(
+	static Token* semantOperator(
 		Operator* o,
 		PrefixTrie<char, CVariableDefinition*>* variables,
 		PrefixTrie<char, CVariableData*>* variableData,
-		CDataType* typeExpected,
 		bool baseToken);
-	static void semantDirectiveTitle(
+	static Token* semantDirectiveTitle(
 		DirectiveTitle* d,
 		PrefixTrie<char, CVariableDefinition*>* variables,
 		PrefixTrie<char, CVariableData*>* variableData,
-		CDataType* typeExpected,
 		bool baseToken);
-	static void semantCast(
+	static Token* semantCast(
 		Cast* c,
 		PrefixTrie<char, CVariableDefinition*>* variables,
 		PrefixTrie<char, CVariableData*>* variableData,
-		CDataType* typeExpected,
 		bool baseToken);
-	static void semantStaticOperator(
+	static Token* semantStaticOperator(
 		StaticOperator* s,
 		PrefixTrie<char, CVariableDefinition*>* variables,
 		PrefixTrie<char, CVariableData*>* variableData,
-		CDataType* typeExpected,
 		bool baseToken);
-	static void semantFunctionCall(
+	static Token* semantFunctionCall(
 		FunctionCall* f,
 		PrefixTrie<char, CVariableDefinition*>* variables,
 		PrefixTrie<char, CVariableData*>* variableData,
-		CDataType* typeExpected,
 		bool baseToken);
-	static void semantFunctionDefinition(
+	static Token* semantFunctionDefinition(
 		FunctionDefinition* f,
 		PrefixTrie<char, CVariableDefinition*>* variables,
 		PrefixTrie<char, CVariableData*>* variableData,
-		CDataType* typeExpected,
 		bool baseToken);
-	static void semantGroup(
+	static Token* semantGroup(
 		Group* g,
 		PrefixTrie<char, CVariableDefinition*>* variables,
 		PrefixTrie<char, CVariableData*>* variableData,
-		CDataType* typeExpected,
 		bool baseToken);
 };

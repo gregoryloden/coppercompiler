@@ -22,6 +22,7 @@ public:
 	static CIntegerPrimitive* intType;
 	static CFloatingPointPrimitive* floatType;
 	static CGenericFunction* functionType;
+	static CDataType* emptyGroupType;
 	static CClass* stringType;
 	static CClass* mainType;
 

@@ -10,6 +10,7 @@ CIntegerPrimitive* CDataType::shortType = nullptr;
 CIntegerPrimitive* CDataType::intType = nullptr;
 CFloatingPointPrimitive* CDataType::floatType = nullptr;
 CGenericFunction* CDataType::functionType = nullptr;
+CDataType* CDataType::emptyGroupType = nullptr;
 CClass* CDataType::stringType = nullptr;
 CClass* CDataType::mainType = nullptr;
 CDataType::CDataType(onlyWhenTrackingIDs(char* pObjType COMMA) string pName)
@@ -36,6 +37,9 @@ void CDataType::initializeGlobalDataTypes() {
 		CDataType* cdt = typesArray[i];
 		globalDataTypes->set(cdt->name.c_str(), cdt->name.length(), cdt);
 	}
+	//since Group() is the same type as void, use the void type as the value for that key
+	emptyGroupType = CGenericGroup::typeFor(new Array<CVariableDefinition*>());
+	globalDataTypes->set(emptyGroupType->name.c_str(), emptyGroupType->name.length(), voidType);
 }
 //delete all the data types
 void CDataType::deleteGlobalDataTypes() {
@@ -46,7 +50,10 @@ void CDataType::deleteGlobalDataTypes() {
 	intType = nullptr;
 	floatType = nullptr;
 	functionType = nullptr;
+	globalDataTypes->set(emptyGroupType->name.c_str(), emptyGroupType->name.length(), emptyGroupType);
+	emptyGroupType = nullptr;
 	stringType = nullptr;
+	mainType = nullptr;
 	globalDataTypes->deleteValues();
 	delete globalDataTypes;
 	globalDataTypes = nullptr;
@@ -152,7 +159,7 @@ CSpecificGroup::CSpecificGroup(string pName, Array<CVariableDefinition*>* pTypes
 , types(pTypes)
 , allSameType(false) {
 	if (pTypes->length == 0)
-		throw 0;
+		return;
 	CDataType* t = pTypes->first()->type;
 	for (int i = 1; i < pTypes->length; i++) {
 		if (pTypes->get(i)->type != t)
@@ -160,4 +167,7 @@ CSpecificGroup::CSpecificGroup(string pName, Array<CVariableDefinition*>* pTypes
 	}
 	allSameType = true;
 }
-CSpecificGroup::~CSpecificGroup() {}
+CSpecificGroup::~CSpecificGroup() {
+	//don't delete the types since they're owned by the global types trie
+	delete types;
+}
