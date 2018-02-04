@@ -20,11 +20,19 @@ class CVariableData;
 template <class KeyElement, class Value> class PrefixTrie;
 
 class Semant {
+private:
+	static thread_local bool shouldSemantStatements;
+
 public:
 	static void semant(Pliers* pliers);
 private:
 	static void addVariablesToTrie(VariableDefinitionList* v, PrefixTrie<char, CVariableDefinition*>* variables);
-	static void semantFile(
+	static void semantFileDefinitions(
+		SourceFile* sourceFile,
+		PrefixTrie<char, CVariableDefinition*>* variables,
+		PrefixTrie<char, CVariableData*>* variableData,
+		Array<Operator*>* redoVariables);
+	static void semantFileStatements(
 		SourceFile* sourceFile,
 		PrefixTrie<char, CVariableDefinition*>* variables,
 		PrefixTrie<char, CVariableData*>* variableData);
@@ -37,19 +45,10 @@ private:
 		Identifier* i,
 		PrefixTrie<char, CVariableDefinition*>* variables,
 		PrefixTrie<char, CVariableData*>* variableData,
-		bool baseToken);
+		bool baseToken,
+		bool beingRead);
 	static Token* semantIntConstant(
 		IntConstant* i,
-		PrefixTrie<char, CVariableDefinition*>* variables,
-		PrefixTrie<char, CVariableData*>* variableData,
-		bool baseToken);
-	static Token* semantFloatConstant(
-		FloatConstant* f,
-		PrefixTrie<char, CVariableDefinition*>* variables,
-		PrefixTrie<char, CVariableData*>* variableData,
-		bool baseToken);
-	static Token* semantOperator(
-		Operator* o,
 		PrefixTrie<char, CVariableDefinition*>* variables,
 		PrefixTrie<char, CVariableData*>* variableData,
 		bool baseToken);
@@ -65,6 +64,11 @@ private:
 		bool baseToken);
 	static Token* semantStaticOperator(
 		StaticOperator* s,
+		PrefixTrie<char, CVariableDefinition*>* variables,
+		PrefixTrie<char, CVariableData*>* variableData,
+		bool baseToken);
+	static Token* semantOperator(
+		Operator* o,
 		PrefixTrie<char, CVariableDefinition*>* variables,
 		PrefixTrie<char, CVariableData*>* variableData,
 		bool baseToken);

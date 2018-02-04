@@ -15,6 +15,7 @@ instantiateArrayTypes(CVariableDefinition*);
 instantiateArrayTypes(ErrorMessage*);
 instantiateArrayTypes(Identifier*);
 instantiateArrayTypes(LexToken*);
+instantiateArrayTypes(Operator*);
 instantiateArrayTypes(SourceFile*);
 instantiateArrayTypes(Statement*);
 instantiateArrayTypes(Token*);

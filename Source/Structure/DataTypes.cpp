@@ -8,6 +8,7 @@ CBool* CDataType::boolType = nullptr;
 CIntegerPrimitive* CDataType::byteType = nullptr;
 CIntegerPrimitive* CDataType::shortType = nullptr;
 CIntegerPrimitive* CDataType::intType = nullptr;
+CFloatingPointPrimitive* CDataType::infinitePrecisionFloatType = nullptr;
 CFloatingPointPrimitive* CDataType::floatType = nullptr;
 CGenericFunction* CDataType::functionType = nullptr;
 CDataType* CDataType::emptyGroupType = nullptr;
@@ -26,6 +27,7 @@ void CDataType::initializeGlobalDataTypes() {
 		(byteType = new CIntegerPrimitive("byte", 8)),
 		(shortType = new CIntegerPrimitive("short", 16)),
 		(intType = new CIntegerPrimitive("int", 32)),
+		(infinitePrecisionFloatType = new CFloatingPointPrimitive(" infinitePrecisionFloatType", 0)),
 		(floatType = new CFloatingPointPrimitive("float", 32)),
 		(functionType = new CGenericFunction()),
 		(stringType = new CClass("String")),
@@ -48,6 +50,7 @@ void CDataType::deleteGlobalDataTypes() {
 	byteType = nullptr;
 	shortType = nullptr;
 	intType = nullptr;
+	infinitePrecisionFloatType = nullptr;
 	floatType = nullptr;
 	functionType = nullptr;
 	globalDataTypes->set(emptyGroupType->name.c_str(), emptyGroupType->name.length(), emptyGroupType);
@@ -130,7 +133,7 @@ CGenericGroup::~CGenericGroup() {}
 //deletes the types array if it isn't used
 CDataType* CGenericGroup::typeFor(Array<CVariableDefinition*>* types) {
 	//build the type name
-	string typeName = "Group(";
+	string typeName = "Group<";
 	bool addComma = false;
 	forEach(CVariableDefinition*, c, types, ci) {
 		if (addComma)
@@ -143,7 +146,7 @@ CDataType* CGenericGroup::typeFor(Array<CVariableDefinition*>* types) {
 			typeName += c->name->name;
 		}
 	}
-	typeName += ")";
+	typeName += ">";
 
 	//create the type if we don't already have it
 	CDataType* cdt = CDataType::globalDataTypes->get(typeName.c_str(), typeName.length());

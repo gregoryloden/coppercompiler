@@ -128,7 +128,6 @@ Pliers::Pliers(const char* pBaseFileName, bool pPrintProgress onlyInDebug(COMMA 
 	returnIfErrors();
 
 	ParseExpressions::parseExpressionsInFiles(this);
-	returnIfErrors();
 	#ifdef DEBUG
 		if (printContents) {
 			forEach(SourceFile*, s, allFiles, si3) {
@@ -140,6 +139,7 @@ Pliers::Pliers(const char* pBaseFileName, bool pPrintProgress onlyInDebug(COMMA 
 			}
 		}
 	#endif
+	returnIfErrors();
 
 	Semant::semant(this);
 	returnIfErrors();

@@ -59,6 +59,7 @@ FloatConstant::FloatConstant(
 : LexToken(onlyWhenTrackingIDs("FLTCNST" COMMA) pContentPos, pEndContentPos, pOwningFile)
 , significand(pSignificand)
 , exponent(pExponent) {
+	dataType = CDataType::infinitePrecisionFloatType;
 	int expbias = 1 == 1 ? 1023/* double */ : 127/* float */;
 }
 FloatConstant::FloatConstant(FloatConstant* cloneSource, Identifier* pReplacementSource)

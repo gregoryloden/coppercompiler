@@ -2,6 +2,7 @@
 
 //verify that all types are correct, variable names match, etc.
 
+thread_local bool Semant::shouldSemantStatements = false;
 //validate the semantics for all files
 void Semant::semant(Pliers* pliers) {
 	//start by gathering the trie of all global variables, as well as which ones are initialized
@@ -28,11 +29,44 @@ void Semant::semant(Pliers* pliers) {
 		}
 	}
 
-	//then go through all the files
+	//then go through all the files to find global variables
+	Array<Operator*> redoVariables;
 	forEach(SourceFile*, s, pliers->allFiles, si2) {
 		if (pliers->printProgress)
-			printf("Analyzing semantics for %s...\n", s->filename.c_str());
-		semantFile(s, &allGlobalVariables, &allGlobalVariableData);
+			printf("Analyzing semantics for global variables in %s...\n", s->filename.c_str());
+		semantFileDefinitions(s, &allGlobalVariables, &allGlobalVariableData, &redoVariables);
+	}
+
+	//next go through the redo variables and make sure that all variables end up with a specific type
+	//at the end, any remaining generic types must be either circular definitions or assigned the wrong type
+	//wrong type errors were already handled and circular definition errors will be handled later
+	bool fixedVariable = true;
+	while (fixedVariable) {
+		fixedVariable = false;
+		for (int i = redoVariables.length - 1; i >= 0; i--) {
+			bool needsRedo = false;
+			Operator* o = redoVariables.get(i);
+			VariableDefinitionList* v = dynamic_cast<VariableDefinitionList*>(o->left);
+			forEach(CVariableDefinition*, c, v->variables, ci) {
+				if (c->type == CDataType::functionType) {
+					if (dynamic_cast<CSpecificFunction*>(o->right->dataType) != nullptr)
+						c->type = o->right->dataType;
+					else
+						needsRedo = true;
+				}
+			}
+			if (!needsRedo) {
+				redoVariables.remove(i);
+				fixedVariable = true;
+			}
+		}
+	}
+
+	//and now go through and semant all the rest of the code
+	forEach(SourceFile*, s, pliers->allFiles, si3) {
+		if (pliers->printProgress)
+			printf("Analyzing semantics for global variables in %s...\n", s->filename.c_str());
+		semantFileStatements(s, &allGlobalVariables, &allGlobalVariableData);
 	}
 
 	allGlobalVariableData.deleteValues();
@@ -48,24 +82,51 @@ void Semant::addVariablesToTrie(VariableDefinitionList* v, PrefixTrie<char, CVar
 		}
 	}
 }
-//validate the semantics in the given file
-void Semant::semantFile(
-	SourceFile* sourceFile, PrefixTrie<char, CVariableDefinition*>* variables, PrefixTrie<char, CVariableData*>* variableData)
+//validate the semantics of the global variables in the given file
+//does not look at function body statements, since we need to finalize global variable types first
+void Semant::semantFileDefinitions(
+	SourceFile* sourceFile,
+	PrefixTrie<char, CVariableDefinition*>* variables,
+	PrefixTrie<char, CVariableData*>* variableData,
+	Array<Operator*>* redoVariables)
 {
+	shouldSemantStatements = false;
 	forEach(Token*, t, sourceFile->globalVariables, ti) {
-		Operator* o;
+		Operator* o = nullptr;
 		VariableDefinitionList* v;
 		if ((v = dynamic_cast<VariableDefinitionList*>(t)) != nullptr)
-			continue;
+			;
 		else if ((o = dynamic_cast<Operator*>(t)) == nullptr || o->operatorType != OperatorType::Assign) {
 			Error::logError(ErrorType::Expected, "a variable initalization", t);
 			continue;
 		} else if ((v = dynamic_cast<VariableDefinitionList*>(o->left)) == nullptr) {
 			Error::logError(ErrorType::Expected, "a variable declaration list", t);
 			continue;
+		} else
+			semantToken(o, variables, variableData, true);
+
+		//check for any generic-type variables in this variable definition
+		forEach(CVariableDefinition*, c, v->variables, ci) {
+			//TODO: check for groups
+			CDataType* genericType = c->type;
+			if (genericType == CDataType::functionType) {
+				if (o == nullptr) {
+					string errorMessage = "could not determine specific " + genericType->name + " type for " + c->name->name;
+					Error::logError(ErrorType::General, errorMessage.c_str(), c->name);
+				} else {
+					redoVariables->add(o);
+					break;
+				}
+			}
 		}
-		semantToken(o, variables, variableData, true);
 	}
+}
+//????????????????????????????
+void Semant::semantFileStatements(
+	SourceFile* sourceFile, PrefixTrie<char, CVariableDefinition*>* variables, PrefixTrie<char, CVariableData*>* variableData)
+{
+	shouldSemantStatements = true;
+	//??????????????????????????????????
 }
 //the heart of semantic analysis
 //verify that this token has the right type, and that anything under it is also valid
@@ -77,50 +138,68 @@ Token* Semant::semantToken(
 {
 	Identifier* i;
 	IntConstant* ic;
-	FloatConstant* f;
-	Operator* o;
 	DirectiveTitle* d;
 	ParenthesizedExpression* p;
 	Cast* c;
 	StaticOperator* s;
+	Operator* o;
 	FunctionCall* fc;
 	FunctionDefinition* fd;
 	Group* g;
 	if ((i = dynamic_cast<Identifier*>(t)) != nullptr)
-		return semantIdentifier(i, variables, variableData, baseToken);
+		return semantIdentifier(i, variables, variableData, baseToken, true);
 	else if ((ic = dynamic_cast<IntConstant*>(t)) != nullptr)
 		return semantIntConstant(ic, variables, variableData, baseToken);
-	else if ((f = dynamic_cast<FloatConstant*>(t)) != nullptr)
-		return semantFloatConstant(f, variables, variableData, baseToken);
-	else if ((o = dynamic_cast<Operator*>(t)) != nullptr)
-		return semantOperator(o, variables, variableData, baseToken);
 	else if ((d = dynamic_cast<DirectiveTitle*>(t)) != nullptr)
 		return semantDirectiveTitle(d, variables, variableData, baseToken);
-	else if ((p = dynamic_cast<ParenthesizedExpression*>(t)) != nullptr)
-		return semantToken(p->expression, variables, variableData, true);
-	else if ((c = dynamic_cast<Cast*>(t)) != nullptr)
+	else if ((p = dynamic_cast<ParenthesizedExpression*>(t)) != nullptr) {
+		t = semantToken(p->expression, variables, variableData, true);
+		p->expression = nullptr;
+		delete p;
+		return t;
+	} else if ((c = dynamic_cast<Cast*>(t)) != nullptr)
 		return semantCast(c, variables, variableData, baseToken);
 	else if ((s = dynamic_cast<StaticOperator*>(t)) != nullptr)
 		return semantStaticOperator(s, variables, variableData, baseToken);
+	else if ((o = dynamic_cast<Operator*>(t)) != nullptr)
+		return semantOperator(o, variables, variableData, baseToken);
 	else if ((fc = dynamic_cast<FunctionCall*>(t)) != nullptr)
 		return semantFunctionCall(fc, variables, variableData, baseToken);
 	else if ((fd = dynamic_cast<FunctionDefinition*>(t)) != nullptr)
 		return semantFunctionDefinition(fd, variables, variableData, baseToken);
 	else if ((g = dynamic_cast<Group*>(t)) != nullptr)
 		return semantGroup(g, variables, variableData, baseToken);
+	else if (dynamic_cast<FloatConstant*>(t) != nullptr ||
+			dynamic_cast<BoolConstant*>(t) != nullptr ||
+			dynamic_cast<StringLiteral*>(t) != nullptr ||
+			dynamic_cast<VariableDefinitionList*>(t) != nullptr)
+		return t;
 	else {
 		assert(false);
 		return t;
 	}
 }
-//verify that this identifier ????????????????
+//give this identifier the right variable
 Token* Semant::semantIdentifier(
 	Identifier* i,
 	PrefixTrie<char, CVariableDefinition*>* variables,
 	PrefixTrie<char, CVariableData*>* variableData,
-	bool baseToken)
+	bool baseToken,
+	bool beingRead)
 {
-	//TODO: ???????????
+	i->variable = variables->get(i->name.c_str(), i->name.length());
+	if (i->variable == nullptr) {
+		string errorMessage = "\"" + i->name + "\" has not been defined";
+		Error::logError(ErrorType::General, errorMessage.c_str(), i);
+	}
+	i->dataType = i->variable->type;
+	if (beingRead) {
+		CVariableData* iVariableData = variableData->get(i->name.c_str(), i->name.length());
+		if (iVariableData == nullptr || (iVariableData->dataBitmask & CVariableData::isInitialized) == 0) {
+			string errorMessage = "\"" + i->name + "\" may not have been initialized";
+			Error::logError(ErrorType::General, errorMessage.c_str(), i);
+		}
+	}
 	return i;
 }
 //assign the right size to this int constant
@@ -137,26 +216,6 @@ Token* Semant::semantIntConstant(
 	else
 		i->dataType = CDataType::intType;
 	return i;
-}
-//verify that this float constant ????????????????
-Token* Semant::semantFloatConstant(
-	FloatConstant* f,
-	PrefixTrie<char, CVariableDefinition*>* variables,
-	PrefixTrie<char, CVariableData*>* variableData,
-	bool baseToken)
-{
-	//TODO: ???????????
-	return f;
-}
-//verify that this operator ????????????????
-Token* Semant::semantOperator(
-	Operator* o,
-	PrefixTrie<char, CVariableDefinition*>* variables,
-	PrefixTrie<char, CVariableData*>* variableData,
-	bool baseToken)
-{
-	//TODO: ???????????
-	return o;
 }
 //verify that this directive title ????????????????
 Token* Semant::semantDirectiveTitle(
@@ -179,15 +238,43 @@ Token* Semant::semantCast(
 	//TODO: ???????????
 	return c;
 }
-//verify that this static operator ????????????????
+//verify that this static operator has a valid right side
 Token* Semant::semantStaticOperator(
 	StaticOperator* s,
 	PrefixTrie<char, CVariableDefinition*>* variables,
 	PrefixTrie<char, CVariableData*>* variableData,
 	bool baseToken)
 {
-	//TODO: ???????????
+	Identifier* i;
+	if ((i = dynamic_cast<Identifier*>(s->right)) == nullptr) {
+		Error::logError(ErrorType::ExpectedToFollow, "a member variable", s);
+		return s;
+	}
+	//TODO: currently only Main has support for member variables
+	if (s->ownerType != CDataType::mainType) {
+		Error::logError(ErrorType::General, "currently only Main has member variable support", s);
+		return s;
+	}
+	if (i->name == "str")
+		s->dataType = CDataType::stringType;
+	else if (i->name == "print" || i->name == "exit")
+		s->dataType = CDataType::voidType;
+	else {
+		Error::logError(ErrorType::General, "currently Main only has support for print, str, and exit", i);
+		return s;
+	}
+	//TODO: implement classes
 	return s;
+}
+//verify that this operator ????????????????
+Token* Semant::semantOperator(
+	Operator* o,
+	PrefixTrie<char, CVariableDefinition*>* variables,
+	PrefixTrie<char, CVariableData*>* variableData,
+	bool baseToken)
+{
+	//TODO: ???????????
+	return o;
 }
 //verify that this function call ????????????????
 Token* Semant::semantFunctionCall(

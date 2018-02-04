@@ -20,6 +20,7 @@ public:
 	static CIntegerPrimitive* byteType;
 	static CIntegerPrimitive* shortType;
 	static CIntegerPrimitive* intType;
+	static CFloatingPointPrimitive* infinitePrecisionFloatType;
 	static CFloatingPointPrimitive* floatType;
 	static CGenericFunction* functionType;
 	static CDataType* emptyGroupType;
