@@ -45,41 +45,25 @@ private:
 		Identifier* i,
 		PrefixTrie<char, CVariableDefinition*>* variables,
 		PrefixTrie<char, CVariableData*>* variableData,
-		bool baseToken,
 		bool beingRead);
 	static Token* semantDirectiveTitle(
-		DirectiveTitle* d,
-		PrefixTrie<char, CVariableDefinition*>* variables,
-		PrefixTrie<char, CVariableData*>* variableData,
-		bool baseToken);
+		DirectiveTitle* d, PrefixTrie<char, CVariableDefinition*>* variables, PrefixTrie<char, CVariableData*>* variableData);
 	static Token* semantCast(
-		Cast* c,
-		PrefixTrie<char, CVariableDefinition*>* variables,
-		PrefixTrie<char, CVariableData*>* variableData,
-		bool baseToken);
+		Cast* c, PrefixTrie<char, CVariableDefinition*>* variables, PrefixTrie<char, CVariableData*>* variableData);
 	static Token* semantStaticOperator(
-		StaticOperator* s,
-		PrefixTrie<char, CVariableDefinition*>* variables,
-		PrefixTrie<char, CVariableData*>* variableData,
-		bool baseToken);
+		StaticOperator* s, PrefixTrie<char, CVariableDefinition*>* variables, PrefixTrie<char, CVariableData*>* variableData);
 	static Token* semantOperator(
 		Operator* o,
 		PrefixTrie<char, CVariableDefinition*>* variables,
 		PrefixTrie<char, CVariableData*>* variableData,
 		bool baseToken);
 	static Token* semantFunctionCall(
-		FunctionCall* f,
-		PrefixTrie<char, CVariableDefinition*>* variables,
-		PrefixTrie<char, CVariableData*>* variableData,
-		bool baseToken);
+		FunctionCall* f, PrefixTrie<char, CVariableDefinition*>* variables, PrefixTrie<char, CVariableData*>* variableData);
 	static Token* semantFunctionDefinition(
 		FunctionDefinition* f,
 		PrefixTrie<char, CVariableDefinition*>* variables,
-		PrefixTrie<char, CVariableData*>* variableData,
-		bool baseToken);
+		PrefixTrie<char, CVariableData*>* variableData);
 	static Token* semantGroup(
-		Group* g,
-		PrefixTrie<char, CVariableDefinition*>* variables,
-		PrefixTrie<char, CVariableData*>* variableData,
-		bool baseToken);
+		Group* g, PrefixTrie<char, CVariableDefinition*>* variables, PrefixTrie<char, CVariableData*>* variableData);
+	static bool checkType(Token* t, CDataType* expectedType);
 };

@@ -75,11 +75,10 @@ public:
 	static CDataType* typeFor(CDataType* returnType, Array<CDataType*>* parameterTypes);
 };
 class CSpecificFunction: public CDataType {
-private:
-	CDataType* returnType;
-	Array<CDataType*>* parameterTypes;
-
 public:
+	CDataType* returnType; //copper: readonly
+	Array<CDataType*>* parameterTypes; //copper: readonly
+
 	CSpecificFunction(string pName, CDataType* pReturnType, Array<CDataType*>* pParameterTypes);
 	virtual ~CSpecificFunction();
 };

@@ -46,6 +46,7 @@ void Semant::semant(Pliers* pliers) {
 		for (int i = redoVariables.length - 1; i >= 0; i--) {
 			bool needsRedo = false;
 			Operator* o = redoVariables.get(i);
+			o->right = semantToken(o->right, &allGlobalVariables, &allGlobalVariableData, true);
 			VariableDefinitionList* v = dynamic_cast<VariableDefinitionList*>(o->left);
 			forEach(CVariableDefinition*, c, v->variables, ci) {
 				if (c->type == CDataType::functionType) {
@@ -105,17 +106,16 @@ void Semant::semantFileDefinitions(
 		} else
 			semantToken(o, variables, variableData, true);
 
-		//check for any generic-type variables in this variable definition
-		forEach(CVariableDefinition*, c, v->variables, ci) {
-			//TODO: check for groups
-			CDataType* genericType = c->type;
-			if (genericType == CDataType::functionType) {
-				if (o == nullptr) {
-					string errorMessage = "could not determine specific " + genericType->name + " type for " + c->name->name;
+		//if we have an assignment without a specific type, we have to re-semant it
+		if (o != nullptr && (o->right->dataType == CDataType::functionType || o->right->dataType == nullptr))
+			redoVariables->add(o);
+		//check for any generic-type variables that will never get a specific type
+		else {
+			forEach(CVariableDefinition*, c, v->variables, ci) {
+				//TODO: check for groups and classes
+				if (c->type == CDataType::functionType) {
+					string errorMessage = "could not determine specific " + c->type->name + " type for " + c->name->name;
 					Error::logError(ErrorType::General, errorMessage.c_str(), c->name);
-				} else {
-					redoVariables->add(o);
-					break;
 				}
 			}
 		}
@@ -131,10 +131,7 @@ void Semant::semantFileStatements(
 //the heart of semantic analysis
 //verify that this token has the right type, and that anything under it is also valid
 Token* Semant::semantToken(
-	Token* t,
-	PrefixTrie<char, CVariableDefinition*>* variables,
-	PrefixTrie<char, CVariableData*>* variableData,
-	bool baseToken)
+	Token* t, PrefixTrie<char, CVariableDefinition*>* variables, PrefixTrie<char, CVariableData*>* variableData, bool baseToken)
 {
 	Identifier* i;
 	DirectiveTitle* d;
@@ -146,26 +143,26 @@ Token* Semant::semantToken(
 	FunctionDefinition* fd;
 	Group* g;
 	if ((i = dynamic_cast<Identifier*>(t)) != nullptr)
-		return semantIdentifier(i, variables, variableData, baseToken, true);
+		return semantIdentifier(i, variables, variableData, true);
 	else if ((d = dynamic_cast<DirectiveTitle*>(t)) != nullptr)
-		return semantDirectiveTitle(d, variables, variableData, baseToken);
+		return semantDirectiveTitle(d, variables, variableData);
 	else if ((p = dynamic_cast<ParenthesizedExpression*>(t)) != nullptr) {
 		t = semantToken(p->expression, variables, variableData, true);
 		p->expression = nullptr;
 		delete p;
 		return t;
 	} else if ((c = dynamic_cast<Cast*>(t)) != nullptr)
-		return semantCast(c, variables, variableData, baseToken);
+		return semantCast(c, variables, variableData);
 	else if ((s = dynamic_cast<StaticOperator*>(t)) != nullptr)
-		return semantStaticOperator(s, variables, variableData, baseToken);
+		return semantStaticOperator(s, variables, variableData);
 	else if ((o = dynamic_cast<Operator*>(t)) != nullptr)
 		return semantOperator(o, variables, variableData, baseToken);
 	else if ((fc = dynamic_cast<FunctionCall*>(t)) != nullptr)
-		return semantFunctionCall(fc, variables, variableData, baseToken);
+		return semantFunctionCall(fc, variables, variableData);
 	else if ((fd = dynamic_cast<FunctionDefinition*>(t)) != nullptr)
-		return semantFunctionDefinition(fd, variables, variableData, baseToken);
+		return semantFunctionDefinition(fd, variables, variableData);
 	else if ((g = dynamic_cast<Group*>(t)) != nullptr)
-		return semantGroup(g, variables, variableData, baseToken);
+		return semantGroup(g, variables, variableData);
 	else if (dynamic_cast<IntConstant*>(t) != nullptr ||
 			dynamic_cast<FloatConstant*>(t) != nullptr ||
 			dynamic_cast<BoolConstant*>(t) != nullptr ||
@@ -182,7 +179,6 @@ Token* Semant::semantIdentifier(
 	Identifier* i,
 	PrefixTrie<char, CVariableDefinition*>* variables,
 	PrefixTrie<char, CVariableData*>* variableData,
-	bool baseToken,
 	bool beingRead)
 {
 	i->variable = variables->get(i->name.c_str(), i->name.length());
@@ -202,10 +198,7 @@ Token* Semant::semantIdentifier(
 }
 //verify that this directive title ????????????????
 Token* Semant::semantDirectiveTitle(
-	DirectiveTitle* d,
-	PrefixTrie<char, CVariableDefinition*>* variables,
-	PrefixTrie<char, CVariableData*>* variableData,
-	bool baseToken)
+	DirectiveTitle* d, PrefixTrie<char, CVariableDefinition*>* variables, PrefixTrie<char, CVariableData*>* variableData)
 {
 	assert(false); //TODO: do something with directive titles
 	//TODO: ???????????
@@ -213,10 +206,7 @@ Token* Semant::semantDirectiveTitle(
 }
 //verify that the sub-expression of this cast can actually be casted to the specified type
 Token* Semant::semantCast(
-	Cast* c,
-	PrefixTrie<char, CVariableDefinition*>* variables,
-	PrefixTrie<char, CVariableData*>* variableData,
-	bool baseToken)
+	Cast* c, PrefixTrie<char, CVariableDefinition*>* variables, PrefixTrie<char, CVariableData*>* variableData)
 {
 	c->right = semantToken(c->right, variables, variableData, true);
 	bool canCast;
@@ -243,10 +233,7 @@ Token* Semant::semantCast(
 }
 //verify that this static operator has a valid right side
 Token* Semant::semantStaticOperator(
-	StaticOperator* s,
-	PrefixTrie<char, CVariableDefinition*>* variables,
-	PrefixTrie<char, CVariableData*>* variableData,
-	bool baseToken)
+	StaticOperator* s, PrefixTrie<char, CVariableDefinition*>* variables, PrefixTrie<char, CVariableData*>* variableData)
 {
 	Identifier* i;
 	if ((i = dynamic_cast<Identifier*>(s->right)) == nullptr) {
@@ -287,36 +274,58 @@ Token* Semant::semantOperator(
 	//TODO: ???????????
 	return o;
 }
-//verify that this function call ????????????????
+//verify that this function call has the right function and argument types
 Token* Semant::semantFunctionCall(
-	FunctionCall* f,
-	PrefixTrie<char, CVariableDefinition*>* variables,
-	PrefixTrie<char, CVariableData*>* variableData,
-	bool baseToken)
+	FunctionCall* f, PrefixTrie<char, CVariableDefinition*>* variables, PrefixTrie<char, CVariableData*>* variableData)
 {
-	//TODO: ???????????
+	//make sure we have the right function type
+	f->function = semantToken(f->function, variables, variableData, true);
+	if (dynamic_cast<CGenericFunction*>(f->function->dataType) != nullptr)
+		return f;
+	CSpecificFunction* functionType = dynamic_cast<CSpecificFunction*>(f->function->dataType);
+	if (functionType == nullptr) {
+		Error::logError(ErrorType::Expected, "a function value", f);
+		return f;
+	}
+	//make sure the arguments match
+	if (functionType->parameterTypes->length != f->arguments->length) {
+		string errorMessage = "expected " + std::to_string(functionType->parameterTypes->length) +
+			" arguments but got " + std::to_string(f->arguments->length);
+		Error::logError(ErrorType::General, errorMessage.c_str(), f);
+	}
+	int argumentCount = Math::min(functionType->parameterTypes->length, f->arguments->length);
+	for (int i = 0; i < argumentCount; i++) {
+		Token* t = semantToken(f->arguments->get(i), variables, variableData, true);
+		checkType(t, functionType->parameterTypes->get(i));
+		f->arguments->set(i, t);
+	}
+	f->dataType = functionType->returnType;
 	return f;
 }
 //verify that this function definition ????????????????
 Token* Semant::semantFunctionDefinition(
-	FunctionDefinition* f,
-	PrefixTrie<char, CVariableDefinition*>* variables,
-	PrefixTrie<char, CVariableData*>* variableData,
-	bool baseToken)
+	FunctionDefinition* f, PrefixTrie<char, CVariableDefinition*>* variables, PrefixTrie<char, CVariableData*>* variableData)
 {
 	//TODO: ???????????
 	return f;
 }
 //verify that this group ????????????????
 Token* Semant::semantGroup(
-	Group* g,
-	PrefixTrie<char, CVariableDefinition*>* variables,
-	PrefixTrie<char, CVariableData*>* variableData,
-	bool baseToken)
+	Group* g, PrefixTrie<char, CVariableDefinition*>* variables, PrefixTrie<char, CVariableData*>* variableData)
 {
 	assert(false); //TODO: Groups
 	//TODO: ???????????
 	return g;
+}
+//returns whether the types match, and logs an error if they don't
+//TODO: implicit casting
+bool Semant::checkType(Token* t, CDataType* expectedType) {
+	if (t->dataType != nullptr && t->dataType != expectedType) {
+		string errorMessage = "expected a value of type " + expectedType->name + " but got " + t->dataType->name;
+		Error::logError(ErrorType::General, errorMessage.c_str(), t);
+		return false;
+	}
+	return true;
 }
 
 //TODO:
