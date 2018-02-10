@@ -3,6 +3,7 @@ int a; bool a;
 int b + 4;
 3 + 4;
 int c = bogus;
+int fineOnLeft = int notFineOnRight;
 Function nonSpecificFunction;
 String.bogus;
 Main.bogus;

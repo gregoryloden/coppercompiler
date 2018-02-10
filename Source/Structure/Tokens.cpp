@@ -315,6 +315,11 @@ FunctionDefinition::FunctionDefinition(
 , parameters(pParameters)
 , body(pBody) {
 	replacementSource = typeToken->replacementSource;
+	Array<CDataType*>* parameterTypes = new Array<CDataType*>();
+	forEach(CVariableDefinition*, c, pParameters, ci) {
+		parameterTypes->add(c->type);
+	}
+	dataType = CGenericFunction::typeFor(pReturnType, parameterTypes);
 }
 FunctionDefinition::~FunctionDefinition() {
 	//don't delete the return type since it's owned by something else

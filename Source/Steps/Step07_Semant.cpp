@@ -166,10 +166,13 @@ Token* Semant::semantToken(
 	else if (dynamic_cast<IntConstant*>(t) != nullptr ||
 			dynamic_cast<FloatConstant*>(t) != nullptr ||
 			dynamic_cast<BoolConstant*>(t) != nullptr ||
-			dynamic_cast<StringLiteral*>(t) != nullptr ||
-			dynamic_cast<VariableDefinitionList*>(t) != nullptr)
+			dynamic_cast<StringLiteral*>(t) != nullptr)
 		return t;
-	else {
+	else if (dynamic_cast<VariableDefinitionList*>(t) != nullptr) {
+		if (!baseToken)
+			Error::logError(ErrorType::Expected, "a value", t);
+		return t;
+	} else {
 		assert(false);
 		return t;
 	}
@@ -231,7 +234,7 @@ Token* Semant::semantCast(
 	}
 	return c;
 }
-//verify that this static operator has a valid right side
+//find the right variable for this static operator
 Token* Semant::semantStaticOperator(
 	StaticOperator* s, PrefixTrie<char, CVariableDefinition*>* variables, PrefixTrie<char, CVariableData*>* variableData)
 {
@@ -302,10 +305,12 @@ Token* Semant::semantFunctionCall(
 	f->dataType = functionType->returnType;
 	return f;
 }
-//verify that this function definition ????????????????
+//check all the statements of this function definition
 Token* Semant::semantFunctionDefinition(
 	FunctionDefinition* f, PrefixTrie<char, CVariableDefinition*>* variables, PrefixTrie<char, CVariableData*>* variableData)
 {
+	if (!shouldSemantStatements)
+		return f;
 	//TODO: ???????????
 	return f;
 }
