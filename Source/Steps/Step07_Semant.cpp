@@ -137,7 +137,6 @@ Token* Semant::semantToken(
 	bool baseToken)
 {
 	Identifier* i;
-	IntConstant* ic;
 	DirectiveTitle* d;
 	ParenthesizedExpression* p;
 	Cast* c;
@@ -148,8 +147,6 @@ Token* Semant::semantToken(
 	Group* g;
 	if ((i = dynamic_cast<Identifier*>(t)) != nullptr)
 		return semantIdentifier(i, variables, variableData, baseToken, true);
-	else if ((ic = dynamic_cast<IntConstant*>(t)) != nullptr)
-		return semantIntConstant(ic, variables, variableData, baseToken);
 	else if ((d = dynamic_cast<DirectiveTitle*>(t)) != nullptr)
 		return semantDirectiveTitle(d, variables, variableData, baseToken);
 	else if ((p = dynamic_cast<ParenthesizedExpression*>(t)) != nullptr) {
@@ -169,7 +166,8 @@ Token* Semant::semantToken(
 		return semantFunctionDefinition(fd, variables, variableData, baseToken);
 	else if ((g = dynamic_cast<Group*>(t)) != nullptr)
 		return semantGroup(g, variables, variableData, baseToken);
-	else if (dynamic_cast<FloatConstant*>(t) != nullptr ||
+	else if (dynamic_cast<IntConstant*>(t) != nullptr ||
+			dynamic_cast<FloatConstant*>(t) != nullptr ||
 			dynamic_cast<BoolConstant*>(t) != nullptr ||
 			dynamic_cast<StringLiteral*>(t) != nullptr ||
 			dynamic_cast<VariableDefinitionList*>(t) != nullptr)
@@ -202,21 +200,6 @@ Token* Semant::semantIdentifier(
 	}
 	return i;
 }
-//assign the right size to this int constant
-Token* Semant::semantIntConstant(
-	IntConstant* i,
-	PrefixTrie<char, CVariableDefinition*>* variables,
-	PrefixTrie<char, CVariableData*>* variableData,
-	bool baseToken)
-{
-	if (i->val == (int)((char)i->val))
-		i->dataType = CDataType::byteType;
-	else if (i->val == (int)((short)i->val))
-		i->dataType = CDataType::shortType;
-	else
-		i->dataType = CDataType::intType;
-	return i;
-}
 //verify that this directive title ????????????????
 Token* Semant::semantDirectiveTitle(
 	DirectiveTitle* d,
@@ -228,14 +211,34 @@ Token* Semant::semantDirectiveTitle(
 	//TODO: ???????????
 	return d;
 }
-//verify that this cast ????????????????
+//verify that the sub-expression of this cast can actually be casted to the specified type
 Token* Semant::semantCast(
 	Cast* c,
 	PrefixTrie<char, CVariableDefinition*>* variables,
 	PrefixTrie<char, CVariableData*>* variableData,
 	bool baseToken)
 {
-	//TODO: ???????????
+	c->right = semantToken(c->right, variables, variableData, true);
+	bool canCast;
+	//casting to a numeric type
+	if (dynamic_cast<CIntegerPrimitive*>(c->dataType) != nullptr ||
+			dynamic_cast<CFloatingPointPrimitive*>(c->dataType) != nullptr ||
+			dynamic_cast<CBool*>(c->dataType) != nullptr)
+	{
+		//this is only OK for numeric types or raw casts
+		canCast = dynamic_cast<CIntegerPrimitive*>(c->right->dataType) == nullptr &&
+			dynamic_cast<CFloatingPointPrimitive*>(c->right->dataType) == nullptr &&
+			dynamic_cast<CBool*>(c->right->dataType) == nullptr &&
+			!c->isRaw;
+	//any other cast must be to the same type
+	//TODO: support class casting
+	//TODO: allow raw casting from ints to pointers if those errors are turned off
+	} else
+		canCast = c->dataType == c->right->dataType;
+	if (!canCast) {
+		string errorMessage = "cannot cast expression of type " + c->right->dataType->name + " to type " + c->dataType->name;
+		Error::logError(ErrorType::General, errorMessage.c_str(), c);
+	}
 	return c;
 }
 //verify that this static operator has a valid right side
@@ -255,11 +258,19 @@ Token* Semant::semantStaticOperator(
 		Error::logError(ErrorType::General, "currently only Main has member variable support", s);
 		return s;
 	}
-	if (i->name == "str")
-		s->dataType = CDataType::stringType;
-	else if (i->name == "print" || i->name == "exit")
-		s->dataType = CDataType::voidType;
-	else {
+	if (i->name == "str") {
+		Array<CDataType*>* parameterTypes = new Array<CDataType*>();
+		parameterTypes->add(CDataType::intType);
+		s->dataType = CGenericFunction::typeFor(CDataType::stringType, parameterTypes);
+	} else if (i->name == "print") {
+		Array<CDataType*>* parameterTypes = new Array<CDataType*>();
+		parameterTypes->add(CDataType::stringType);
+		s->dataType = CGenericFunction::typeFor(CDataType::voidType, parameterTypes);
+	} else if (i->name == "exit") {
+		Array<CDataType*>* parameterTypes = new Array<CDataType*>();
+		parameterTypes->add(CDataType::intType);
+		s->dataType = CGenericFunction::typeFor(CDataType::voidType, parameterTypes);
+	} else {
 		Error::logError(ErrorType::General, "currently Main only has support for print, str, and exit", i);
 		return s;
 	}
@@ -315,6 +326,12 @@ Token* Semant::semantGroup(
 //-make sure all global variables are variable definition lists or assignments to variable definition lists
 //-make sure variable initializations match the initial values (groups with all the types, or one value matching all the types)
 //-make sure ternary operators are well-formed
+
+//note: semantToken does not take an expected type; if there is any type handling needed, it will be done where it's needed
+//possibly in a special dedicated function
+
+
+
 /*
 				//in an expression, declared variables must be initialized
 				if (variableInitialization->initialization == nullptr) {

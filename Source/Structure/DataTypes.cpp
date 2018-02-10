@@ -5,6 +5,7 @@
 PrefixTrie<char, CDataType*>* CDataType::globalDataTypes = nullptr;
 CVoid* CDataType::voidType = nullptr;
 CBool* CDataType::boolType = nullptr;
+CIntegerPrimitive* CDataType::infiniteByteSizeIntType = nullptr;
 CIntegerPrimitive* CDataType::byteType = nullptr;
 CIntegerPrimitive* CDataType::shortType = nullptr;
 CIntegerPrimitive* CDataType::intType = nullptr;
@@ -24,6 +25,7 @@ void CDataType::initializeGlobalDataTypes() {
 	CDataType* typesArray[] = {
 		(voidType = new CVoid()),
 		(boolType = new CBool()),
+		(infiniteByteSizeIntType = new CIntegerPrimitive(" infiniteByteSizeIntType", 0)),
 		(byteType = new CIntegerPrimitive("byte", 8)),
 		(shortType = new CIntegerPrimitive("short", 16)),
 		(intType = new CIntegerPrimitive("int", 32)),
@@ -47,6 +49,7 @@ void CDataType::initializeGlobalDataTypes() {
 void CDataType::deleteGlobalDataTypes() {
 	voidType = nullptr;
 	boolType = nullptr;
+	infiniteByteSizeIntType = nullptr;
 	byteType = nullptr;
 	shortType = nullptr;
 	intType = nullptr;

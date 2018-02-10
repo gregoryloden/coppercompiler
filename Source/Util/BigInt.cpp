@@ -22,11 +22,18 @@ base(pSource->base)
 BigInt::~BigInt() {
 	delete[] inner;
 }
+//turn the int into a BigInt, using base 16
+BigInt* BigInt::createFrom(int i) {
+	BigInt* b = new BigInt(16);
+	for (char shift = 28; shift >= 0; shift -= 4)
+		b->digit(i & (15 << shift));
+	return b;
+}
 //add a digit of this BigInt's base
 void BigInt::digit(unsigned char c) {
 	short carry = (short)(c) << 8;
 	for (int i = 0; i <= highByte; i++) {
-		carry = (short)(inner[i]) * (short)(base)+(carry >> 8);
+		carry = (short)(inner[i]) * (short)(base) + (carry >> 8);
 		inner[i] = (unsigned char)carry;
 	}
 	if (carry >= 256) {

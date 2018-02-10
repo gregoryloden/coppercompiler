@@ -17,6 +17,7 @@ public:
 	static PrefixTrie<char, CDataType*>* globalDataTypes;
 	static CVoid* voidType;
 	static CBool* boolType;
+	static CIntegerPrimitive* infiniteByteSizeIntType;
 	static CIntegerPrimitive* byteType;
 	static CIntegerPrimitive* shortType;
 	static CIntegerPrimitive* intType;

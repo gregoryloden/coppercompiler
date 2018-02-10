@@ -135,9 +135,9 @@ public:
 };
 class IntConstant: public LexToken {
 public:
-	int val; //copper: readonly
+	BigInt* val; //copper: readonly
 
-	IntConstant(int pVal, int pContentPos, int pEndContentPos, SourceFile* pOwningFile);
+	IntConstant(BigInt* pVal, int pContentPos, int pEndContentPos, SourceFile* pOwningFile);
 	IntConstant(IntConstant* cloneSource, Identifier* pReplacementSource);
 	virtual ~IntConstant();
 

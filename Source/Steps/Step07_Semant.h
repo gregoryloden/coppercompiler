@@ -47,11 +47,6 @@ private:
 		PrefixTrie<char, CVariableData*>* variableData,
 		bool baseToken,
 		bool beingRead);
-	static Token* semantIntConstant(
-		IntConstant* i,
-		PrefixTrie<char, CVariableDefinition*>* variables,
-		PrefixTrie<char, CVariableData*>* variableData,
-		bool baseToken);
 	static Token* semantDirectiveTitle(
 		DirectiveTitle* d,
 		PrefixTrie<char, CVariableDefinition*>* variables,

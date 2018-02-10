@@ -12,6 +12,7 @@ public:
 	BigInt(BigInt* pSource, bool stealInner);
 	virtual ~BigInt();
 
+	static BigInt* createFrom(int i);
 	void digit(unsigned char d);
 	void expand();
 	int getInt();

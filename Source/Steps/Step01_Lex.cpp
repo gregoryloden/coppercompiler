@@ -494,7 +494,7 @@ LexToken* Lex::lexNumber() {
 
 	//we've now finished reading the number, turn it into the appropriate constant
 	if (!isFloat)
-		return new IntConstant(num->getInt(), begin, pos, sourceFile);
+		return new IntConstant(numDeleter.release(), begin, pos, sourceFile);
 	else
 		return new FloatConstant(
 			numDeleter.release(), (negativeExponent ? -baseExponent : baseExponent) - fractionDigits, begin, pos, sourceFile);
@@ -647,7 +647,7 @@ IntConstant* Lex::lexCharacter() {
 	if (contents[pos] != '\'')
 		makeLexError(ErrorType::Expected, "a close quote");
 	pos++;
-	return new IntConstant((int)c, begin, pos, sourceFile);
+	return new IntConstant(BigInt::createFrom((int)c), begin, pos, sourceFile);
 }
 //get a separator
 //lex location: no change | the first character after the separator

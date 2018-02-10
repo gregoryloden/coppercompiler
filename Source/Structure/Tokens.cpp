@@ -44,9 +44,10 @@ Identifier::~Identifier() {
 	//don't delete variable because it's owned by something else
 }
 cloneWithReplacementSourceForType(Identifier)
-IntConstant::IntConstant(int pVal, int pContentPos, int pEndContentPos, SourceFile* pOwningFile)
+IntConstant::IntConstant(BigInt* pVal, int pContentPos, int pEndContentPos, SourceFile* pOwningFile)
 : LexToken(onlyWhenTrackingIDs("INTCNST" COMMA) pContentPos, pEndContentPos, pOwningFile)
 , val(pVal) {
+	dataType = CDataType::infiniteByteSizeIntType;
 }
 IntConstant::IntConstant(IntConstant* cloneSource, Identifier* pReplacementSource)
 : LexToken(cloneSource, pReplacementSource)
