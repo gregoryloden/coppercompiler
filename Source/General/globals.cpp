@@ -197,6 +197,7 @@ type(pType)
 }
 ErrorMessage::~ErrorMessage() {
 	delete message;
+	//don't delete the owning file since it's owned by the files list
 	delete continuation;
 }
 char* ErrorMessage::snippet = []() -> char* {
@@ -216,11 +217,9 @@ int ErrorMessage::getRow() {
 void ErrorMessage::printError() {
 	int row = getRow();
 	//print the error
-	char* errorPrefix;
-	switch (type) {
-		case ErrorType::Continuation: errorPrefix = "  --- in \"%s\" at line %d char %d\n"; break;
-		default:                      errorPrefix = "Error in \"%s\" at line %d char %d: "; break;
-	}
+	char* errorPrefix = type == ErrorType::Continuation
+		? "  --- in \"%s\" at line %d char %d\n"
+		: "Error in \"%s\" at line %d char %d: ";
 	printf(errorPrefix, owningFile->filename.c_str(), row + 1, contentPos - owningFile->rowStarts->get(row) + 1);
 	switch (type) {
 		case ErrorType::General: puts(message); break;
@@ -229,6 +228,7 @@ void ErrorMessage::printError() {
 		case ErrorType::Expected: printf("expected %s\n", message); break;
 		case ErrorType::ExpectedToFollow: printf("expected %s to follow\n", message); break;
 		case ErrorType::Continuation: break;
+		case ErrorType::CompilerIssue: printf("A bug in the compiler caused an issue %s\n", message); break;
 	}
 	showSnippet();
 	if (continuation != nullptr)

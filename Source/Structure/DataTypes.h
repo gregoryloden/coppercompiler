@@ -12,6 +12,7 @@ class CVariableDefinition;
 template <class Key, class Value> class PrefixTrie;
 template <class Type> class Array;
 
+//superclass types
 class CDataType onlyInDebug(: public ObjCounter) {
 public:
 	static PrefixTrie<char, CDataType*>* globalDataTypes;
@@ -37,11 +38,7 @@ public:
 
 	static void initializeGlobalDataTypes();
 	static void deleteGlobalDataTypes();
-};
-class CVoid: public CDataType {
-public:
-	CVoid();
-	virtual ~CVoid();
+	static CDataType* bestCompatibleType(CDataType* type1, CDataType* type2);
 };
 class CPrimitive: public CDataType {
 public:
@@ -52,19 +49,32 @@ protected:
 public:
 	virtual ~CPrimitive();
 };
+class CNumericPrimitive: public CPrimitive {
+protected:
+	CNumericPrimitive(onlyWhenTrackingIDs(char* pObjType COMMA) string pName, short pBitSize);
+public:
+	virtual ~CNumericPrimitive();
+};
+
+//concrete class types
+class CVoid: public CDataType {
+public:
+	CVoid();
+	virtual ~CVoid();
+};
 class CBool: public CPrimitive {
 public:
 	CBool();
 	virtual ~CBool();
 };
-class CIntegerPrimitive: public CPrimitive {
+class CIntegerPrimitive: public CNumericPrimitive {
 public:
-	CIntegerPrimitive(string pName, int pBitSize);
+	CIntegerPrimitive(string pName, short pBitSize);
 	virtual ~CIntegerPrimitive();
 };
-class CFloatingPointPrimitive: public CPrimitive {
+class CFloatingPointPrimitive: public CNumericPrimitive {
 public:
-	CFloatingPointPrimitive(string pName, int pBitSize);
+	CFloatingPointPrimitive(string pName, short pBitSize);
 	virtual ~CFloatingPointPrimitive();
 };
 class CGenericFunction: public CDataType {

@@ -25,11 +25,11 @@ void CDataType::initializeGlobalDataTypes() {
 	CDataType* typesArray[] = {
 		(voidType = new CVoid()),
 		(boolType = new CBool()),
-		(infiniteByteSizeIntType = new CIntegerPrimitive(" infiniteByteSizeIntType", 0)),
+		(infiniteByteSizeIntType = new CIntegerPrimitive(" infiniteByteSizeIntType", Math::SHORT_MAX)),
 		(byteType = new CIntegerPrimitive("byte", 8)),
 		(shortType = new CIntegerPrimitive("short", 16)),
 		(intType = new CIntegerPrimitive("int", 32)),
-		(infinitePrecisionFloatType = new CFloatingPointPrimitive(" infinitePrecisionFloatType", 0)),
+		(infinitePrecisionFloatType = new CFloatingPointPrimitive(" infinitePrecisionFloatType", Math::SHORT_MAX)),
 		(floatType = new CFloatingPointPrimitive("float", 32)),
 		(functionType = new CGenericFunction()),
 		(stringType = new CClass("String")),
@@ -64,25 +64,50 @@ void CDataType::deleteGlobalDataTypes() {
 	delete globalDataTypes;
 	globalDataTypes = nullptr;
 }
-CVoid::CVoid()
-: CDataType(onlyWhenTrackingIDs("VOIDTYP" COMMA) "void") {
+//find the best type that both types can be casted to (possibly implicitly)
+//for two numeric types: return the bigger of the two types, the type that can represent the values of both types
+//for two classes: return the most-specific subclass that both of them inherit
+//since raw casting doesn't apply here, any other type combinations are invalid
+CDataType* CDataType::bestCompatibleType(CDataType* type1, CDataType* type2) {
+	if (type1 == type2)
+		return type1;
+	CNumericPrimitive* npType1;
+	CNumericPrimitive* npType2;
+	if ((npType1 = dynamic_cast<CNumericPrimitive*>(type1)) != nullptr &&
+		(npType2 = dynamic_cast<CNumericPrimitive*>(type2)) != nullptr)
+	{
+		bool firstIsFloat;
+		if ((firstIsFloat = (dynamic_cast<CFloatingPointPrimitive*>(npType1) != nullptr)) !=
+				(dynamic_cast<CFloatingPointPrimitive*>(npType2) != nullptr))
+			return firstIsFloat ? npType1 : npType2;
+		return npType1->bitSize > npType2->bitSize ? npType1 : npType2;
+	}
+	//TODO: classes
+	return nullptr;
 }
-CVoid::~CVoid() {}
 CPrimitive::CPrimitive(onlyWhenTrackingIDs(char* pObjType COMMA) string pName, short pBitSize)
 : CDataType(onlyWhenTrackingIDs(pObjType COMMA) pName)
 , bitSize(pBitSize) {
 }
 CPrimitive::~CPrimitive() {}
+CNumericPrimitive::CNumericPrimitive(onlyWhenTrackingIDs(char* pObjType COMMA) string pName, short pBitSize)
+: CPrimitive(onlyWhenTrackingIDs(pObjType COMMA) pName, pBitSize) {
+}
+CNumericPrimitive::~CNumericPrimitive() {}
+CVoid::CVoid()
+: CDataType(onlyWhenTrackingIDs("VOIDTYP" COMMA) "void") {
+}
+CVoid::~CVoid() {}
 CBool::CBool()
 : CPrimitive(onlyWhenTrackingIDs("BOOLTYP" COMMA) "bool", 1) {
 }
 CBool::~CBool() {}
-CIntegerPrimitive::CIntegerPrimitive(string pName, int pBitSize)
-: CPrimitive(onlyWhenTrackingIDs("INPMTYP" COMMA) pName, pBitSize) {
+CIntegerPrimitive::CIntegerPrimitive(string pName, short pBitSize)
+: CNumericPrimitive(onlyWhenTrackingIDs("INPMTYP" COMMA) pName, pBitSize) {
 }
 CIntegerPrimitive::~CIntegerPrimitive() {}
-CFloatingPointPrimitive::CFloatingPointPrimitive(string pName, int pBitSize)
-: CPrimitive(onlyWhenTrackingIDs("FLPMTYP" COMMA) pName, pBitSize) {
+CFloatingPointPrimitive::CFloatingPointPrimitive(string pName, short pBitSize)
+: CNumericPrimitive(onlyWhenTrackingIDs("FLPMTYP" COMMA) pName, pBitSize) {
 }
 CFloatingPointPrimitive::~CFloatingPointPrimitive() {}
 CGenericFunction::CGenericFunction()

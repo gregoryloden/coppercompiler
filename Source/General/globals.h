@@ -72,6 +72,8 @@ extern Thunk THeapReAlloc;
 
 class Math {
 public:
+	static const short SHORT_MAX = 0x7FFF;
+
 	static int min(int a, int b);
 	static int max(int a, int b);
 };
@@ -126,7 +128,8 @@ enum class ErrorType: unsigned char {
 	EndOfFileWhileReading,
 	Expected,
 	ExpectedToFollow,
-	Continuation
+	Continuation,
+	CompilerIssue
 };
 class Error {
 public:

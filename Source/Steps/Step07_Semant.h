@@ -19,6 +19,23 @@ class CDataType;
 class CVariableData;
 template <class KeyElement, class Value> class PrefixTrie;
 
+enum class SemantExpressionLevel: unsigned char {
+	TopLevel,
+	TopLevelInParentheses,
+	Subexpression
+};
+enum class OperatorSemanticsType: unsigned char {
+	SingleBoolean,
+	SingleInteger,
+	SingleNumber,
+	BooleanBoolean,
+	IntegerInteger,
+	IntegerIntegerBitShift,
+	NumberNumber,
+	NumberNumberOrStringString,
+	AnyAny,
+	Ternary
+};
 class Semant {
 private:
 	static thread_local bool shouldSemantStatements;
@@ -40,12 +57,11 @@ private:
 		Token* t,
 		PrefixTrie<char, CVariableDefinition*>* variables,
 		PrefixTrie<char, CVariableData*>* variableData,
-		bool baseToken);
+		SemantExpressionLevel semantExpressionLevel);
 	static Token* semantIdentifier(
 		Identifier* i,
 		PrefixTrie<char, CVariableDefinition*>* variables,
-		PrefixTrie<char, CVariableData*>* variableData,
-		bool beingRead);
+		PrefixTrie<char, CVariableData*>* variableData);
 	static Token* semantDirectiveTitle(
 		DirectiveTitle* d, PrefixTrie<char, CVariableDefinition*>* variables, PrefixTrie<char, CVariableData*>* variableData);
 	static Token* semantCast(
@@ -56,7 +72,7 @@ private:
 		Operator* o,
 		PrefixTrie<char, CVariableDefinition*>* variables,
 		PrefixTrie<char, CVariableData*>* variableData,
-		bool baseToken);
+		SemantExpressionLevel semantExpressionLevel);
 	static Token* semantFunctionCall(
 		FunctionCall* f, PrefixTrie<char, CVariableDefinition*>* variables, PrefixTrie<char, CVariableData*>* variableData);
 	static Token* semantFunctionDefinition(
@@ -65,5 +81,6 @@ private:
 		PrefixTrie<char, CVariableData*>* variableData);
 	static Token* semantGroup(
 		Group* g, PrefixTrie<char, CVariableDefinition*>* variables, PrefixTrie<char, CVariableData*>* variableData);
+	static bool tokenHasKnownType(Token* t);
 	static bool checkType(Token* t, CDataType* expectedType);
 };

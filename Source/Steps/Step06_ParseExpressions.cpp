@@ -56,7 +56,7 @@ void ParseExpressions::parseNamespaceDefinitions(AbstractCodeBlock* a, Array<Tok
 			else
 				definitionList->add(
 					//since we got a token, we know the expression is not empty
-					parseExpression(&ti, (unsigned char)SeparatorType::Semicolon, ErrorType::General, nullptr, nullptr));
+					parseExpression(&ti, (unsigned char)SeparatorType::Semicolon, ErrorType::General, nullptr, a));
 		} catch (...) {
 		}
 	}
@@ -190,7 +190,10 @@ Token* ParseExpressions::parseExpression(
 			if ((s = dynamic_cast<Separator*>(t)) != nullptr) {
 				//stick the separator back in the token array, something else might need it
 				ti->replaceThis(tDeleter.release());
-				assert(s->separatorType != SeparatorType::RightParenthesis);
+				if (s->separatorType == SeparatorType::RightParenthesis || s->separatorType == SeparatorType::LeftParenthesis) {
+					assert(false);
+					Error::makeError(ErrorType::CompilerIssue, "resulting in a stray parenthesis", s);
+				}
 				if (activeExpression != nullptr && (endingSeparatorTypes & (unsigned char)(s->separatorType)) != 0)
 					return activeExpression;
 				string errorMessage = "unexpected " + Separator::separatorName(s->separatorType, false);
@@ -221,7 +224,11 @@ Token* ParseExpressions::parseExpression(
 
 		//an empty expression is never OK
 		if (activeExpression == nullptr) {
-			assert(expectedExpressionErrorMessage != nullptr && expectedExpressionErrorToken != nullptr);
+			if (expectedExpressionErrorMessage == nullptr) {
+				assert(false);
+				Error::makeError(
+					ErrorType::CompilerIssue, "resulting in an unexpected empty expression", expectedExpressionErrorToken);
+			}
 			Error::makeError(expectedExpressionErrorType, expectedExpressionErrorMessage, expectedExpressionErrorToken);
 		//error if we weren't supposed to end on a right parenthesis
 		} else if ((endingSeparatorTypes & (unsigned char)SeparatorType::RightParenthesis) == 0) {
@@ -271,7 +278,10 @@ Token* ParseExpressions::parseValueExpression(Token* t, ArrayIterator<Token*>* t
 			dynamic_cast<BoolConstant*>(t) != nullptr ||
 			dynamic_cast<StringLiteral*>(t) != nullptr)
 		return t;
-	assert(dynamic_cast<ParenthesizedExpression*>(t) == nullptr);
+	if (dynamic_cast<ParenthesizedExpression*>(t) != nullptr) {
+		assert(false);
+		Error::makeError(ErrorType::CompilerIssue, "resulting in an unrecognized parenthesized expression", t);
+	}
 	Error::makeError(ErrorType::Expected, "a value", t);
 	return nullptr;
 }
@@ -313,6 +323,7 @@ Token* ParseExpressions::addToOperator(Operator* o, Token* activeExpression, Arr
 
 	//since we have an active expression, check to see if it's an operator with a lower precedence
 	//if so, we need to go through and reassign
+	//either way, the new operator will receive a left operand
 	//this handles postfix operators since their right side is nullptr
 	Operator* oNext;
 	if ((oNext = dynamic_cast<Operator*>(activeExpression)) != nullptr && newOperatorTakesRightSidePrecedence(o, oNext)) {
@@ -469,7 +480,7 @@ Token* ParseExpressions::completeFunctionCall(Token* activeExpression, AbstractC
 			//we already know that the array isn't empty so we don't have to worry about an empty expression error
 			ErrorType::General,
 			nullptr,
-			nullptr));
+			t));
 		if (ti.hasThis())
 			comma = ti.getThis();
 		else
@@ -493,7 +504,10 @@ Token* ParseExpressions::completeCast(CDataType* type, bool rawCast, AbstractCod
 	Cast* cast = new Cast(type, rawCast, castBody);
 	Deleter<Token> castDeleter (cast);
 	Token* value = addToOperator(cast, nullptr, ti);
-	assert(value == cast);
+	if (value != cast) {
+		assert(false);
+		Error::makeError(ErrorType::CompilerIssue, "resulting in a cast being misinterpreted as a normal operator", cast);
+	}
 	return castDeleter.release();
 }
 //get a single statement or a statement list, erroring if there's nothing left
@@ -588,7 +602,7 @@ Statement* ParseExpressions::parseKeywordStatement(Token* t, ArrayIterator<Token
 		Separator* s;
 		return new ReturnStatement((s = dynamic_cast<Separator*>(t)) != nullptr && s->separatorType == SeparatorType::Semicolon
 			? nullptr
-			: parseExpression(ti, (unsigned char)SeparatorType::Semicolon, ErrorType::General, nullptr, nullptr));
+			: parseExpression(ti, (unsigned char)SeparatorType::Semicolon, ErrorType::General, nullptr, t));
 	} else if (keyword == ifKeyword) {
 		AbstractCodeBlock* conditionBlock = parseExpectedToken<AbstractCodeBlock>(ti, keywordToken, "a condition expression");
 		Deleter<Token> condition (completeParenthesizedExpression(conditionBlock, nullptr));
@@ -618,7 +632,7 @@ Statement* ParseExpressions::parseKeywordStatement(Token* t, ArrayIterator<Token
 			initializationSemicolon));
 		ai.getNext();
 		Token* increment = ai.hasThis()
-			? parseExpression(&ai, (unsigned char)SeparatorType::RightParenthesis, ErrorType::General, nullptr, nullptr)
+			? parseExpression(&ai, (unsigned char)SeparatorType::RightParenthesis, ErrorType::General, nullptr, ai.getThis())
 			: nullptr;
 		Deleter<Token> incrementDeleter (increment);
 		Array<Statement*>* body = parseStatementOrStatementList(ti, conditionBlock, "a for-loop body");
@@ -662,7 +676,7 @@ ExpressionStatement* ParseExpressions::parseExpressionStatement(Token* t, ArrayI
 	if ((s = dynamic_cast<Separator*>(t)) != nullptr && s->separatorType == SeparatorType::Semicolon)
 		return nullptr;
 	return new ExpressionStatement(
-		parseExpression(ti, (unsigned char)SeparatorType::Semicolon, ErrorType::General, nullptr, nullptr));
+		parseExpression(ti, (unsigned char)SeparatorType::Semicolon, ErrorType::General, nullptr, t));
 }
 //determine if the new operator should steal the right side of the old operator
 bool ParseExpressions::newOperatorTakesRightSidePrecedence(Operator* oNew, Operator* oOld) {

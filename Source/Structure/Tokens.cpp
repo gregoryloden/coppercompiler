@@ -215,6 +215,7 @@ Operator::Operator(
 			break;
 		default:
 			assert(false);
+			Error::makeError(ErrorType::CompilerIssue, "determining the operator precedence of this operator", this);
 			break;
 	}
 }
@@ -295,8 +296,7 @@ StaticOperator::StaticOperator(CDataType* pOwnerType, OperatorType pType, Operat
 StaticOperator::~StaticOperator() {
 	//don't delete ownerType since it's owned by something else
 }
-FunctionCall::FunctionCall(
-	Token* pFunction, Array<Token*>* pArguments, AbstractCodeBlock* argumentsBlock)
+FunctionCall::FunctionCall(Token* pFunction, Array<Token*>* pArguments, AbstractCodeBlock* argumentsBlock)
 : Token(
 	onlyWhenTrackingIDs("FNCALL" COMMA) argumentsBlock->contentPos, argumentsBlock->endContentPos, argumentsBlock->owningFile)
 , function(pFunction)

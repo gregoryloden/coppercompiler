@@ -113,6 +113,7 @@ class StatementList;
 class Token;
 class Pliers;
 template <class Key, class Value> class AVLTree;
+template <class KeyElement, class Value> class PrefixTree;
 /*
 
 int divhighreg(int rtype);
@@ -442,10 +443,14 @@ public:
 class CVariableData onlyInDebug(: public ObjCounter) {
 public:
 	static const unsigned short isInitialized = 1 << 0;
-
 	unsigned short dataBitmask;
 
 	CVariableData();
 	CVariableData(CVariableData* other);
 	virtual ~CVariableData();
+
+	static void addToVariableData(
+		PrefixTrie<char, CVariableData*>* allVariableData, string name, unsigned short dataBitmaskToAdd);
+	static bool variableDataContains(
+		PrefixTrie<char, CVariableData*>* allVariableData, string name, unsigned short otherDataBitmask);
 };

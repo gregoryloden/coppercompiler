@@ -1569,3 +1569,21 @@ dataBitmask(other->dataBitmask) {
 }
 CVariableData::~CVariableData() {
 }
+//union the new bitmask with any old one if present
+void CVariableData::addToVariableData(
+	PrefixTrie<char, CVariableData*>* allVariableData, string name, unsigned short dataBitmaskToAdd)
+{
+	CVariableData* c = allVariableData->get(name.c_str(), name.length());
+	if (c == nullptr) {
+		c = new CVariableData();
+		allVariableData->set(name.c_str(), name.length(), c);
+	}
+	c->dataBitmask |= dataBitmaskToAdd;
+}
+//check if the variable has all the values of the given data bitmask
+bool CVariableData::variableDataContains(
+	PrefixTrie<char, CVariableData*>* allVariableData, string name, unsigned short otherDataBitmask)
+{
+	CVariableData* c = allVariableData->get(name.c_str(), name.length());
+	return c != nullptr && (c->dataBitmask & otherDataBitmask) == otherDataBitmask;
+}
