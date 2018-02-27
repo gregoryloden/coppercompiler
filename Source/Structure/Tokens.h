@@ -234,12 +234,12 @@ public:
 };
 
 //Tokens used in expressions
-class VariableDefinitionList: public Token {
+class VariableDeclarationList: public Token {
 public:
 	Array<CVariableDefinition*>* variables;
 
-	VariableDefinitionList(Array<CVariableDefinition*>* pVariables, Identifier* firstType);
-	virtual ~VariableDefinitionList();
+	VariableDeclarationList(Array<CVariableDefinition*>* pVariables, Identifier* firstType);
+	virtual ~VariableDeclarationList();
 };
 class ParenthesizedExpression: public Token {
 public:

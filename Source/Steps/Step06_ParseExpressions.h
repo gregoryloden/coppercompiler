@@ -3,7 +3,7 @@ using namespace std;
 
 class AbstractCodeBlock;
 class CDataType;
-class VariableDefinitionList;
+class VariableDeclarationList;
 class CVariableDefinition;
 class Token;
 class Statement;
@@ -38,7 +38,7 @@ private:
 	static void parseNamespaceDefinitions(AbstractCodeBlock* a, Array<Token*>* definitionList);
 	static CDataType* parseType(Identifier* i, ArrayIterator<Token*>* ti);
 	static Token* parseCommaInParenthesizedList(ArrayIterator<Token*>* ti);
-	static VariableDefinitionList* completeVariableDefinitionList(
+	static VariableDeclarationList* completeVariableDeclarationList(
 		CDataType* type, Identifier* typeToken, Identifier* name, ArrayIterator<Token*>* ti);
 	static Token* parseExpression(
 		ArrayIterator<Token*>* ti,

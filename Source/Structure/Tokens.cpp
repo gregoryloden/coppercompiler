@@ -61,7 +61,8 @@ FloatConstant::FloatConstant(
 , significand(pSignificand)
 , exponent(pExponent) {
 	dataType = CDataType::infinitePrecisionFloatType;
-	int expbias = 1 == 1 ? 1023/* double */ : 127/* float */;
+//TODO:
+//	int expbias = 1 == 1 ? 1023/* double */ : 127/* float */;
 }
 FloatConstant::FloatConstant(FloatConstant* cloneSource, Identifier* pReplacementSource)
 : LexToken(cloneSource, pReplacementSource)
@@ -264,12 +265,12 @@ AbstractCodeBlock::~AbstractCodeBlock() {
 		delete directives;
 	}
 }
-VariableDefinitionList::VariableDefinitionList(Array<CVariableDefinition*>* pVariables, Identifier* firstType)
+VariableDeclarationList::VariableDeclarationList(Array<CVariableDefinition*>* pVariables, Identifier* firstType)
 : Token(onlyWhenTrackingIDs("VRDFLST" COMMA) firstType->contentPos, firstType->endContentPos, firstType->owningFile)
 , variables(pVariables) {
 	replacementSource = firstType->replacementSource;
 }
-VariableDefinitionList::~VariableDefinitionList() {
+VariableDeclarationList::~VariableDeclarationList() {
 	variables->deleteContents();
 	delete variables;
 }

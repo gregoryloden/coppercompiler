@@ -137,7 +137,7 @@ Token* ParseExpressions::parseCommaInParenthesizedList(ArrayIterator<Token*>* ti
 //starting location: the variable name
 //ending location: the last variable name of the variable definition list
 //may throw
-VariableDefinitionList* ParseExpressions::completeVariableDefinitionList(
+VariableDeclarationList* ParseExpressions::completeVariableDeclarationList(
 	CDataType* type, Identifier* typeToken, Identifier* name, ArrayIterator<Token*>* ti)
 {
 	Array<CVariableDefinition*>* variables = new Array<CVariableDefinition*>();
@@ -162,7 +162,7 @@ VariableDefinitionList* ParseExpressions::completeVariableDefinitionList(
 		ti->replaceThis(nullptr);
 		variables->add(new CVariableDefinition(type, i));
 	}
-	return new VariableDefinitionList(variablesDeleter.release(), typeToken);
+	return new VariableDeclarationList(variablesDeleter.release(), typeToken);
 }
 //this is the main loop of parsing
 //return the complete expression that starts at the current token
@@ -353,7 +353,7 @@ Token* ParseExpressions::completeExpressionStartingWithType(CDataType* type, Ide
 		return completeFunctionDefinition(type, typeToken, a, ti);
 	else if ((i = dynamic_cast<Identifier*>(t)) != nullptr) {
 		ti->replaceThis(nullptr);
-		return completeVariableDefinitionList(type, typeToken, i, ti);
+		return completeVariableDeclarationList(type, typeToken, i, ti);
 	} else if ((o = dynamic_cast<Operator*>(t)) != nullptr) {
 		OperatorType newType;
 		if (o->operatorType == OperatorType::Dot)

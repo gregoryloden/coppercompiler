@@ -1,7 +1,7 @@
 class Pliers;
 class SourceFile;
 class CVariableDefinition;
-class VariableDefinitionList;
+class VariableDeclarationList;
 class Token;
 class Identifier;
 class IntConstant;
@@ -16,8 +16,9 @@ class FunctionCall;
 class FunctionDefinition;
 class Group;
 class CDataType;
-class CVariableData;
+class Statement;
 template <class KeyElement, class Value> class PrefixTrie;
+template <class Type> class Array;
 
 enum class SemantExpressionLevel: unsigned char {
 	TopLevel,
@@ -43,44 +44,22 @@ private:
 public:
 	static void semant(Pliers* pliers);
 private:
-	static void addVariablesToTrie(VariableDefinitionList* v, PrefixTrie<char, CVariableDefinition*>* variables);
+	static void addVariablesToTrie(VariableDeclarationList* v, PrefixTrie<char, CVariableDefinition*>* variables);
 	static void semantFileDefinitions(
-		SourceFile* sourceFile,
-		PrefixTrie<char, CVariableDefinition*>* variables,
-		PrefixTrie<char, CVariableData*>* variableData,
-		Array<Operator*>* redoVariables);
-	static void semantFileStatements(
-		SourceFile* sourceFile,
-		PrefixTrie<char, CVariableDefinition*>* variables,
-		PrefixTrie<char, CVariableData*>* variableData);
-	static Token* semantToken(
-		Token* t,
-		PrefixTrie<char, CVariableDefinition*>* variables,
-		PrefixTrie<char, CVariableData*>* variableData,
-		SemantExpressionLevel semantExpressionLevel);
-	static Token* semantIdentifier(
-		Identifier* i,
-		PrefixTrie<char, CVariableDefinition*>* variables,
-		PrefixTrie<char, CVariableData*>* variableData);
-	static Token* semantDirectiveTitle(
-		DirectiveTitle* d, PrefixTrie<char, CVariableDefinition*>* variables, PrefixTrie<char, CVariableData*>* variableData);
-	static Token* semantCast(
-		Cast* c, PrefixTrie<char, CVariableDefinition*>* variables, PrefixTrie<char, CVariableData*>* variableData);
-	static Token* semantStaticOperator(
-		StaticOperator* s, PrefixTrie<char, CVariableDefinition*>* variables, PrefixTrie<char, CVariableData*>* variableData);
-	static Token* semantOperator(
-		Operator* o,
-		PrefixTrie<char, CVariableDefinition*>* variables,
-		PrefixTrie<char, CVariableData*>* variableData,
-		SemantExpressionLevel semantExpressionLevel);
-	static Token* semantFunctionCall(
-		FunctionCall* f, PrefixTrie<char, CVariableDefinition*>* variables, PrefixTrie<char, CVariableData*>* variableData);
-	static Token* semantFunctionDefinition(
-		FunctionDefinition* f,
-		PrefixTrie<char, CVariableDefinition*>* variables,
-		PrefixTrie<char, CVariableData*>* variableData);
-	static Token* semantGroup(
-		Group* g, PrefixTrie<char, CVariableDefinition*>* variables, PrefixTrie<char, CVariableData*>* variableData);
+		SourceFile* sourceFile, PrefixTrie<char, CVariableDefinition*>* variables, Array<Operator*>* redoVariables);
+	static void semantFileStatements(SourceFile* sourceFile, PrefixTrie<char, CVariableDefinition*>* variables);
+	static void semantToken(
+		Token* t, PrefixTrie<char, CVariableDefinition*>* variables, SemantExpressionLevel semantExpressionLevel);
+	static void semantIdentifier(Identifier* i, PrefixTrie<char, CVariableDefinition*>* variables);
+	static void semantDirectiveTitle(DirectiveTitle* d, PrefixTrie<char, CVariableDefinition*>* variables);
+	static void semantCast(Cast* c, PrefixTrie<char, CVariableDefinition*>* variables);
+	static void semantStaticOperator(StaticOperator* s, PrefixTrie<char, CVariableDefinition*>* variables);
+	static void semantOperator(
+		Operator* o, PrefixTrie<char, CVariableDefinition*>* variables, SemantExpressionLevel semantExpressionLevel);
+	static void semantFunctionCall(FunctionCall* f, PrefixTrie<char, CVariableDefinition*>* variables);
+	static void semantFunctionDefinition(FunctionDefinition* f, PrefixTrie<char, CVariableDefinition*>* variables);
+	static void semantGroup(Group* g, PrefixTrie<char, CVariableDefinition*>* variables);
+	static void semantStatementList(Array<Statement*>* statements);
 	static bool tokenHasKnownType(Token* t);
 	static bool checkType(Token* t, CDataType* expectedType);
 };

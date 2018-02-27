@@ -55,6 +55,12 @@ protected:
 public:
 	virtual ~CNumericPrimitive();
 };
+class CGenericPointerType: public CDataType {
+protected:
+	CGenericPointerType(onlyWhenTrackingIDs(char* pObjType COMMA) string pName);
+public:
+	virtual ~CGenericPointerType();
+};
 
 //concrete class types
 class CVoid: public CDataType {
@@ -77,7 +83,7 @@ public:
 	CFloatingPointPrimitive(string pName, short pBitSize);
 	virtual ~CFloatingPointPrimitive();
 };
-class CGenericFunction: public CDataType {
+class CGenericFunction: public CGenericPointerType {
 public:
 	CGenericFunction();
 	virtual ~CGenericFunction();
@@ -97,7 +103,7 @@ public:
 	CClass(string pName);
 	virtual ~CClass();
 };
-class CGenericGroup: public CDataType {
+class CGenericGroup: public CGenericPointerType {
 public:
 	CGenericGroup();
 	virtual ~CGenericGroup();

@@ -94,6 +94,10 @@ CNumericPrimitive::CNumericPrimitive(onlyWhenTrackingIDs(char* pObjType COMMA) s
 : CPrimitive(onlyWhenTrackingIDs(pObjType COMMA) pName, pBitSize) {
 }
 CNumericPrimitive::~CNumericPrimitive() {}
+CGenericPointerType::CGenericPointerType(onlyWhenTrackingIDs(char* pObjType COMMA) string pName)
+: CDataType(onlyWhenTrackingIDs(pObjType COMMA) pName) {
+}
+CGenericPointerType::~CGenericPointerType() {}
 CVoid::CVoid()
 : CDataType(onlyWhenTrackingIDs("VOIDTYP" COMMA) "void") {
 }
@@ -111,7 +115,7 @@ CFloatingPointPrimitive::CFloatingPointPrimitive(string pName, short pBitSize)
 }
 CFloatingPointPrimitive::~CFloatingPointPrimitive() {}
 CGenericFunction::CGenericFunction()
-: CDataType(onlyWhenTrackingIDs("GNFNTYP" COMMA) "Function") {
+: CGenericPointerType(onlyWhenTrackingIDs("GNFNTYP" COMMA) "Function") {
 }
 CGenericFunction::~CGenericFunction() {}
 //return the function type that matches the given return type and parameter types, creating it if it doesn't exist yet
@@ -154,7 +158,7 @@ CClass::CClass(string pName)
 }
 CClass::~CClass() {}
 CGenericGroup::CGenericGroup()
-: CDataType(onlyWhenTrackingIDs("GNGPTYP" COMMA) "Group") {
+: CGenericPointerType(onlyWhenTrackingIDs("GNGPTYP" COMMA) "Group") {
 }
 CGenericGroup::~CGenericGroup() {}
 //return the group type that matches the given types, creating it if it doesn't exist yet

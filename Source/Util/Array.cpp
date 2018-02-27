@@ -19,7 +19,7 @@ instantiateArrayTypes(Operator*);
 instantiateArrayTypes(SourceFile*);
 instantiateArrayTypes(Statement*);
 instantiateArrayTypes(Token*);
-instantiateArrayTypes(VariableDefinitionList*);
+instantiateArrayTypes(VariableDeclarationList*);
 instantiateArrayTypes(Array<Token*>*);
 instantiateArrayTypes(AVLNode<char COMMA char>*);
 instantiateArrayTypes(AVLNode<int COMMA int>*);

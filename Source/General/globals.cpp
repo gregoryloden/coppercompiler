@@ -56,7 +56,7 @@ template class Deleter<LexToken>;
 template class Deleter<Separator>;
 template class Deleter<StaticOperator>;
 template class Deleter<Token>;
-template class Deleter<VariableDefinitionList>;
+template class Deleter<VariableDeclarationList>;
 template class Deleter<Array<string>>;
 template class Deleter<PrefixTrie<char, CDirectiveReplace*>>;
 template class Deleter<PrefixTrieUnion<char, CDirectiveReplace*>>;
@@ -301,12 +301,12 @@ void ErrorMessage::showSnippet() {
 	}
 	//recursively print the contents of the token tree
 	void Debug::printTokenTree(Token* t, int tabsCount, bool printOperatorParentheses) {
-		VariableDefinitionList* v;
+		VariableDeclarationList* v;
 		Operator* o;
 		ParenthesizedExpression* p;
 		FunctionCall* fc;
 		FunctionDefinition* fd;
-		if ((v = dynamic_cast<VariableDefinitionList*>(t)) != nullptr) {
+		if ((v = dynamic_cast<VariableDeclarationList*>(t)) != nullptr) {
 			bool printComma = false;
 			CDataType* lastDataType = nullptr;
 			forEach(CVariableDefinition*, d, v->variables, di) {
