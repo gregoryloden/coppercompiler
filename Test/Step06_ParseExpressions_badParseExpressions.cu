@@ -1,3 +1,4 @@
+class
 Function f = void() ( Function< )
 Function<4
 Function<bogus

@@ -240,6 +240,8 @@ public:
 
 	VariableDeclarationList(Array<CVariableDefinition*>* pVariables, Identifier* firstType);
 	virtual ~VariableDeclarationList();
+
+	void redetermineType();
 };
 class ParenthesizedExpression: public Token {
 public:
@@ -251,6 +253,7 @@ public:
 class Cast: public Operator {
 public:
 	bool isRaw;
+	CDataType* castType;
 
 	Cast(CDataType* pType, bool pIsRaw, AbstractCodeBlock* source);
 	virtual ~Cast();

@@ -113,7 +113,7 @@ class StatementList;
 class Token;
 class Pliers;
 template <class Key, class Value> class AVLTree;
-template <class KeyElement, class Value> class PrefixTree;
+template <class KeyElement, class Value> class PrefixTrie;
 /*
 
 int divhighreg(int rtype);
@@ -423,6 +423,8 @@ public:
 	Array<SourceFile*>* inclusionListeners; //copper: private<readonly Include>
 	Array<Token*>* replacedTokens; //copper: private<readonly Replace>
 	Array<Token*>* globalVariables; //copper: private<ParseExpressions>
+	PrefixTrie<char, CVariableDefinition*>* variablesVisibleToFile;  //copper: private<readonly Semant>
+	Array<CVariableDefinition*>* variablesDeclaredInFile;  //copper: private<Semant>
 	//Array<??????????> typesDefined;
 //	Array<CClass*>* classes;
 

@@ -2,6 +2,7 @@
 #include "string"
 using namespace std;
 
+class CErrorType;
 class CVoid;
 class CBool;
 class CIntegerPrimitive;
@@ -16,6 +17,7 @@ template <class Type> class Array;
 class CDataType onlyInDebug(: public ObjCounter) {
 public:
 	static PrefixTrie<char, CDataType*>* globalDataTypes;
+	static CErrorType* errorType;
 	static CVoid* voidType;
 	static CBool* boolType;
 	static CIntegerPrimitive* infiniteByteSizeIntType;
@@ -63,6 +65,11 @@ public:
 };
 
 //concrete class types
+class CErrorType: public CDataType {
+public:
+	CErrorType();
+	virtual ~CErrorType();
+};
 class CVoid: public CDataType {
 public:
 	CVoid();

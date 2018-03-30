@@ -3,34 +3,40 @@
 //verify that all types are correct, variable names match, etc.
 //specific primitive byte sizes are not handled here
 
-thread_local bool Semant::shouldSemantStatements = false;
+thread_local bool Semant::skipStatementsWhileFindingGlobalVariableDefinitions = true;
+thread_local bool Semant::resemantingGenericTypeVariables = true;
+thread_local IfStatementConditionIterationStatus Semant::ifStatementConditionIterationStatus =
+	IfStatementConditionIterationStatus::None;
 //validate the semantics for all files
 void Semant::semant(Pliers* pliers) {
-	//start by gathering the trie of all global variables, as well as which ones are initialized
-	if (pliers->printProgress)
-		printf("Gathering all global variables...\n");
-	PrefixTrie<char, CVariableDefinition*> allGlobalVariables;
+	skipStatementsWhileFindingGlobalVariableDefinitions = true;
+	resemantingGenericTypeVariables = true;
+
+	//before we start, go through all the files and find what variables they declare
 	forEach(SourceFile*, s, pliers->allFiles, si1) {
+		PrefixTrie<char, CVariableDefinition*> variablesDeclaredInFile;
 		forEach(Token*, t, s->globalVariables, ti) {
-			Operator* o;
-			VariableDeclarationList* v;
-			if ((v = dynamic_cast<VariableDeclarationList*>(t)) != nullptr)
-				addVariablesToTrie(v, &allGlobalVariables);
-			else if ((o = dynamic_cast<Operator*>(t)) != nullptr &&
-					(v = dynamic_cast<VariableDeclarationList*>(o->left)) != nullptr)
-				addVariablesToTrie(v, &allGlobalVariables);
+			iterateTokens(t, SemantTokenIterationType::FindVisibleVariableDefinitions, &variablesDeclaredInFile, s);
 		}
+		s->variablesDeclaredInFile = variablesDeclaredInFile.getValues();
 	}
 
-	//then go through all the files to find global variables
 	Array<Operator*> redoVariables;
+	//now go through all files and give them an initial semant
 	forEach(SourceFile*, s, pliers->allFiles, si2) {
+		//find all the variables visible to this file
+		Array<AVLNode<SourceFile*, bool>*>* allIncludedEntries = s->includedFiles->entrySet();
+		for (int i = allIncludedEntries->length - 1; i >= 0; i--) {
+			AVLNode<SourceFile* COMMA bool>* includedEntry = allIncludedEntries->get(i);
+			addVariablesToTrie(includedEntry->key->variablesDeclaredInFile, s->variablesVisibleToFile, s);
+		}
+		delete allIncludedEntries;
+
+		//then attempt to assign types to all global tokens (skipping function bodies)
 		if (pliers->printProgress)
 			printf("Analyzing semantics for global variables in %s...\n", s->filename.c_str());
-		semantFileDefinitions(s, &allGlobalVariables, &redoVariables);
+		semantFileDefinitions(s, s->variablesVisibleToFile, &redoVariables);
 	}
-
-	//TODO: ?????????????????????????
 
 	//next go through the redo variables and assign final types where possible
 	//variables with generic-version types might be this way when we go to build, which is fine
@@ -40,77 +46,180 @@ void Semant::semant(Pliers* pliers) {
 		for (int i = redoVariables.length - 1; i >= 0; i--) {
 			bool needsRedo = false;
 			Operator* o = redoVariables.get(i);
-			semantToken(o->right, &allGlobalVariables, SemantExpressionLevel::TopLevel);
+			semantToken(o->right, o->owningFile->variablesVisibleToFile, SemantExpressionLevel::TopLevel);
 			VariableDeclarationList* v = dynamic_cast<VariableDeclarationList*>(o->left);
 			//check if we can find a specific version of the variable's type
-			//if we still have a generic version, we may need to check again
-			forEach(CVariableDefinition*, c, v->variables, ci) {
-				if (c->type == CDataType::functionType) {
-					if (dynamic_cast<CSpecificFunction*>(o->right->dataType) != nullptr)
-						c->type = o->right->dataType;
-					else
-						needsRedo = true;
-				}
-				//TODO: generic classes and groups
-			}
-			if (!needsRedo) {
+			//if we don't have any generic versions, we don't need to check again
+			if (finalizeTypes(dynamic_cast<VariableDeclarationList*>(o->left), o->right->dataType)) {
 				redoVariables.remove(i);
 				fixedVariable = true;
 			}
 		}
 	}
 
-	//TODO: ?????????????????????????
+	//go through any remaining redo variables and error if we tried to use a generic type token where we can't
+	resemantingGenericTypeVariables = false;
+	forEach(Operator*, o, &redoVariables, oi) {
+		semantOperator(o, o->owningFile->variablesVisibleToFile, SemantExpressionLevel::TopLevel);
+	}
 
 	//and now go through and semant all the rest of the code
+	skipStatementsWhileFindingGlobalVariableDefinitions = false;
 	forEach(SourceFile*, s, pliers->allFiles, si3) {
 		if (pliers->printProgress)
 			printf("Analyzing semantics for global variables in %s...\n", s->filename.c_str());
-		semantFileStatements(s, &allGlobalVariables);
+		forEach(Token*, t, s->globalVariables, ti) {
+			iterateTokens(t, SemantTokenIterationType::SemantFileStatements, s->variablesVisibleToFile, nullptr);
+		}
 	}
-
-	//TODO: ?????????????????????????
+}
+//special function for efficiently iterating through all global- or class-level subtokens looking for something
+//depending on our iteration type, do something with every token we see
+//for operators && and || while finding variable definitions, only check the left side
+//copper: receive a function parameter to call
+void Semant::iterateTokens(
+	Token* t, SemantTokenIterationType iterationType, PrefixTrie<char, CVariableDefinition*>* variables, SourceFile* originFile)
+{
+	VariableDeclarationList* v;
+	FunctionDefinition* fd;
+	Operator* o;
+	ParenthesizedExpression* p;
+	FunctionCall* fc;
+	Group* g;
+	switch (iterationType) {
+		case SemantTokenIterationType::FindVisibleVariableDefinitions:
+			if ((v = dynamic_cast<VariableDeclarationList*>(t)) != nullptr) {
+				addVariablesToTrie(v->variables, variables, originFile);
+				return;
+			}
+			break;
+		case SemantTokenIterationType::SemantFileStatements:
+			if ((fd = dynamic_cast<FunctionDefinition*>(t)) != nullptr) {
+				semantFunctionDefinition(fd, variables);
+				return;
+			}
+			break;
+		case SemantTokenIterationType::FindIfStatementConditionVariableDefinitions:
+			if ((o = dynamic_cast<Operator*>(t)) != nullptr) {
+				switch (ifStatementConditionIterationStatus) {
+					case IfStatementConditionIterationStatus::None:
+						if (o->operatorType == OperatorType::BooleanAnd)
+							ifStatementConditionIterationStatus = IfStatementConditionIterationStatus::BooleanAnd;
+						else if (o->operatorType == OperatorType::BooleanOr)
+							ifStatementConditionIterationStatus = IfStatementConditionIterationStatus::BooleanOr;
+						else
+							return;
+						break;
+					case IfStatementConditionIterationStatus::BooleanAnd:
+						if (o->operatorType != OperatorType::BooleanAnd) {
+							iterateTokens(o, SemantTokenIterationType::FindVisibleVariableDefinitions, variables, originFile);
+							return;
+						}
+						break;
+					case IfStatementConditionIterationStatus::BooleanOr:
+						if (o->operatorType != OperatorType::BooleanOr) {
+							iterateTokens(o, SemantTokenIterationType::FindVisibleVariableDefinitions, variables, originFile);
+							return;
+						}
+						break;
+					default:
+						Error::logError(
+							ErrorType::CompilerIssue, "finding variable definitions to add to the current scope", t);
+						break;
+				}
+				break;
+			} else if ((p = dynamic_cast<ParenthesizedExpression*>(t)) != nullptr)
+				iterateTokens(
+					p->expression,
+					SemantTokenIterationType::FindIfStatementConditionVariableDefinitions,
+					variables,
+					originFile);
+			else if ((v = dynamic_cast<VariableDeclarationList*>(t)) != nullptr)
+				addVariablesToTrie(v->variables, variables, originFile);
+			return;
+		default:
+			Error::logError(ErrorType::CompilerIssue, "checking this token", t);
+			break;
+	}
+	if ((o = dynamic_cast<Operator*>(t)) != nullptr) {
+		if (o->left != nullptr)
+			iterateTokens(o->left, iterationType, variables, originFile);
+		if (o->right != nullptr && (iterationType != SemantTokenIterationType::FindVisibleVariableDefinitions ||
+				(o->operatorType != OperatorType::BooleanAnd && o->operatorType != OperatorType::BooleanOr)))
+			iterateTokens(o->right, iterationType, variables, originFile);
+	} else if ((p = dynamic_cast<ParenthesizedExpression*>(t)) != nullptr)
+		iterateTokens(p->expression, iterationType, variables, originFile);
+	else if ((fc = dynamic_cast<FunctionCall*>(t)) != nullptr) {
+		iterateTokens(fc->function, iterationType, variables, originFile);
+		forEach(Token*, a, fc->arguments, ai) {
+			iterateTokens(a, iterationType, variables, originFile);
+		}
+	} else if ((g = dynamic_cast<Group*>(t)) != nullptr) {
+		forEach(Token*, v, g->values, gi) {
+			iterateTokens(v, iterationType, variables, originFile);
+		}
+	}
 }
 //add variables from the definition list into the trie
-void Semant::addVariablesToTrie(VariableDeclarationList* v, PrefixTrie<char, CVariableDefinition*>* variables) {
-	forEach(CVariableDefinition*, c, v->variables, ci) {
+void Semant::addVariablesToTrie(
+	Array<CVariableDefinition*>* v, PrefixTrie<char, CVariableDefinition*>* variables, SourceFile* originFile)
+{
+	forEach(CVariableDefinition*, c, v, ci) {
 		CVariableDefinition* old = variables->set(c->name->name.c_str(), c->name->name.length(), c);
 		if (old != nullptr) {
 			variables->set(old->name->name.c_str(), old->name->name.length(), old);
+			//global variables may have already been added, so error only if we have a new definition for the same name
+			//and don't error if we're re-adding variable definitions for an if condition, the error was already logged
+			if (old == c)
+				continue;
 			string errorMessage = "\"" + old->name->name + "\" has already been defined";
-			Error::logError(ErrorType::General, errorMessage.c_str(), c->name);
+			logSemantErrorWithErrorSourceAndOriginFile(
+				ErrorType::General, errorMessage.c_str(), c->name, old->name, originFile);
 		}
 	}
+}
+//use the provided type to turn generic types to specific types where possible
+//returns whether all types are non-generic
+bool Semant::finalizeTypes(VariableDeclarationList* v, CDataType* valueType) {
+	bool allTypesAreKnown = true;
+	//check if we can find a specific version of the variable's type
+	//if we still have a generic version, we may need to check again
+	//TODO: check for a Group valueType
+	forEach(CVariableDefinition*, c, v->variables, ci) {
+		if (c->type == CDataType::functionType) {
+			if (dynamic_cast<CSpecificFunction*>(valueType) != nullptr) {
+				c->type = valueType;
+				v->redetermineType();
+			} else
+				allTypesAreKnown = false;
+		}
+		//TODO: generic classes and groups
+	}
+	return allTypesAreKnown;
 }
 //validate the semantics of the global variables in the given file
 //does not look at function body statements, since we need to finalize global variable types first
 void Semant::semantFileDefinitions(
 	SourceFile* sourceFile, PrefixTrie<char, CVariableDefinition*>* variables, Array<Operator*>* redoVariables)
 {
-	shouldSemantStatements = false;
 	forEach(Token*, t, sourceFile->globalVariables, ti) {
 		Operator* o = nullptr;
 		VariableDeclarationList* v;
 		if ((v = dynamic_cast<VariableDeclarationList*>(t)) != nullptr)
-			;
+			continue;
 		else if ((o = dynamic_cast<Operator*>(t)) == nullptr || o->operatorType != OperatorType::Assign) {
-			Error::logError(ErrorType::Expected, "a variable definition", t);
+			logSemantError(ErrorType::Expected, "a variable definition", t);
 			continue;
 		} else if ((v = dynamic_cast<VariableDeclarationList*>(o->left)) == nullptr) {
-			Error::logError(ErrorType::Expected, "a variable declaration list", o->left);
+			logSemantError(ErrorType::Expected, "a variable declaration list", o->left);
 			continue;
-		} else
-			semantToken(o, variables, SemantExpressionLevel::TopLevel);
-
-		//if we have an assignment without a specific type, we have to re-semant it
-		if (o != nullptr && !tokenHasKnownType(o->right))
-			redoVariables->add(o);
+		} else {
+			semantOperator(o, variables, SemantExpressionLevel::TopLevel);
+			//if we have an assignment without a specific type, we have to re-semant it
+			if (!tokenHasKnownType(o))
+				redoVariables->add(o);
+		}
 	}
-}
-//????????????????????????????
-void Semant::semantFileStatements(SourceFile* sourceFile, PrefixTrie<char, CVariableDefinition*>* variables) {
-	shouldSemantStatements = true;
-	//??????????????????????????????????
 }
 //the heart of semantic analysis
 //verify that this token has the right type, and that anything under it is also valid
@@ -126,13 +235,15 @@ void Semant::semantToken(
 	FunctionCall* fc;
 	FunctionDefinition* fd;
 	Group* g;
+	VariableDeclarationList* v;
 	if ((i = dynamic_cast<Identifier*>(t)) != nullptr)
 		semantIdentifier(i, variables);
 	else if ((d = dynamic_cast<DirectiveTitle*>(t)) != nullptr)
 		semantDirectiveTitle(d, variables);
-	else if ((p = dynamic_cast<ParenthesizedExpression*>(t)) != nullptr)
+	else if ((p = dynamic_cast<ParenthesizedExpression*>(t)) != nullptr) {
 		semantToken(p->expression, variables, SemantExpressionLevel::TopLevelInParentheses);
-	else if ((c = dynamic_cast<Cast*>(t)) != nullptr)
+		p->dataType = p->expression->dataType;
+	} else if ((c = dynamic_cast<Cast*>(t)) != nullptr)
 		semantCast(c, variables);
 	else if ((s = dynamic_cast<StaticOperator*>(t)) != nullptr)
 		semantStaticOperator(s, variables);
@@ -149,27 +260,26 @@ void Semant::semantToken(
 			dynamic_cast<BoolConstant*>(t) != nullptr ||
 			dynamic_cast<StringLiteral*>(t) != nullptr)
 		;
-	else if (dynamic_cast<VariableDeclarationList*>(t) != nullptr) {
+	else if ((v = dynamic_cast<VariableDeclarationList*>(t)) != nullptr) {
 		if (semantExpressionLevel != SemantExpressionLevel::TopLevel)
-			Error::logError(ErrorType::Expected, "a value", t);
-		;
-	} else {
+			logSemantError(ErrorType::General, "uninitialized variables must be declared on their own in a statement", v);
+		addVariablesToTrie(v->variables, variables, nullptr);
+	} else
 		Error::logError(ErrorType::CompilerIssue, "determining the token type of this token", t);
-		assert(false);
-	}
 }
 //give this identifier the right variable
 void Semant::semantIdentifier(Identifier* i, PrefixTrie<char, CVariableDefinition*>* variables) {
 	i->variable = variables->get(i->name.c_str(), i->name.length());
 	if (i->variable == nullptr) {
 		string errorMessage = "\"" + i->name + "\" has not been defined";
-		Error::logError(ErrorType::General, errorMessage.c_str(), i);
+		logSemantError(ErrorType::General, errorMessage.c_str(), i);
+		return;
 	}
 	i->dataType = i->variable->type;
 }
 //verify that this directive title ????????????????
 void Semant::semantDirectiveTitle(DirectiveTitle* d, PrefixTrie<char, CVariableDefinition*>* variables) {
-	Error::logError(ErrorType::CompilerIssue, "a directive title being used as an expression", d);
+	Error::logError(ErrorType::CompilerIssue, "resulting in a directive title being used as an expression", d);
 	assert(false); //TODO: do something with directive titles
 	//TODO: ???????????
 }
@@ -180,29 +290,36 @@ void Semant::semantCast(Cast* c, PrefixTrie<char, CVariableDefinition*>* variabl
 		return;
 	bool canCast;
 	//casting to a primitive type
-	if (dynamic_cast<CPrimitive*>(c->dataType) != nullptr)
+	if (dynamic_cast<CPrimitive*>(c->castType) != nullptr)
 		//this is only OK for other primitive types or raw casts
 		canCast = dynamic_cast<CPrimitive*>(c->right->dataType) != nullptr || c->isRaw;
 	//any other cast must be to the same type
-	//TODO: support class casting
+	//TODO: support pointer casting
 	//TODO: allow raw casting from ints to pointers if those errors are turned off
 	else
-		canCast = c->dataType == c->right->dataType;
+		canCast = c->castType == c->right->dataType;
 	if (!canCast) {
-		string errorMessage = "cannot cast expression of type " + c->right->dataType->name + " to type " + c->dataType->name;
-		Error::logError(ErrorType::General, errorMessage.c_str(), c);
+		string errorMessage = "cannot cast expression of type " + c->right->dataType->name + " to type " + c->castType->name;
+		logSemantError(ErrorType::General, errorMessage.c_str(), c);
+		return;
 	}
+	c->dataType = c->castType;
 }
 //find the right variable for this static operator
 void Semant::semantStaticOperator(StaticOperator* s, PrefixTrie<char, CVariableDefinition*>* variables) {
 	Identifier* i;
 	if ((i = dynamic_cast<Identifier*>(s->right)) == nullptr) {
-		Error::logError(ErrorType::ExpectedToFollow, "a member variable", s);
+		logSemantError(ErrorType::ExpectedToFollow, "a member variable", s);
 		return;
 	}
 	//TODO: currently only Main has support for member variables
 	if (s->ownerType != CDataType::mainType) {
-		Error::logError(ErrorType::General, "currently only Main has member variable support", s);
+		logSemantError(ErrorType::General, "currently only Main has member variable support", s);
+		return;
+	}
+	//TODO: support static member access
+	if (s->operatorType != OperatorType::StaticDot) {
+		logSemantError(ErrorType::General, "currently only the . member operator is supported", s);
 		return;
 	}
 	if (i->name == "str") {
@@ -218,7 +335,7 @@ void Semant::semantStaticOperator(StaticOperator* s, PrefixTrie<char, CVariableD
 		parameterTypes->add(CDataType::intType);
 		s->dataType = CGenericFunction::typeFor(CDataType::voidType, parameterTypes);
 	} else
-		Error::logError(ErrorType::General, "currently Main only has support for print, str, and exit", i);
+		logSemantErrorWithErrorCheck(ErrorType::General, "currently Main only has support for print, str, and exit", i, s);
 	//TODO: implement classes
 }
 //verify that this operator has the right types for its subexpressions
@@ -229,6 +346,7 @@ void Semant::semantOperator(
 	OperatorSemanticsType operatorSemanticsType;
 	bool comparisonOperator = false;
 	bool assignment = false;
+	bool variableModifier = false;
 	switch (o->operatorType) {
 		//single boolean non-mutating operators
 		case OperatorType::LogicalNot:
@@ -294,19 +412,19 @@ void Semant::semantOperator(
 		//single boolean mutating operators
 		case OperatorType::VariableLogicalNot:
 			operatorSemanticsType = OperatorSemanticsType::SingleBoolean;
-			assignment = true;
+			variableModifier = true;
 			break;
 		//single integer mutating operators
 		case OperatorType::Increment:
 		case OperatorType::Decrement:
 		case OperatorType::VariableBitwiseNot:
 			operatorSemanticsType = OperatorSemanticsType::SingleInteger;
-			assignment = true;
+			variableModifier = true;
 			break;
 		//single number mutating operators
 		case OperatorType::VariableNegate:
 			operatorSemanticsType = OperatorSemanticsType::SingleNumber;
-			assignment = true;
+			variableModifier = true;
 			break;
 		//boolean-boolean mutating operators
 //		case OperatorType::AssignBooleanAnd:
@@ -319,7 +437,7 @@ void Semant::semantOperator(
 		case OperatorType::AssignBitwiseXor:
 		case OperatorType::AssignBitwiseOr:
 			operatorSemanticsType = OperatorSemanticsType::IntegerInteger;
-			assignment = true;
+			variableModifier = true;
 			break;
 		//integer-integer mutating bit shifts, no casting necessary
 		case OperatorType::AssignShiftLeft:
@@ -328,7 +446,7 @@ void Semant::semantOperator(
 //		case OperatorType::AssignRotateLeft:
 //		case OperatorType::AssignRotateRight:
 			operatorSemanticsType = OperatorSemanticsType::IntegerIntegerBitShift;
-			assignment = true;
+			variableModifier = true;
 			break;
 		//number-number mutating operators, casts where appropriate
 		case OperatorType::AssignSubtract:
@@ -336,12 +454,12 @@ void Semant::semantOperator(
 		case OperatorType::AssignDivide:
 		case OperatorType::AssignModulus:
 			operatorSemanticsType = OperatorSemanticsType::NumberNumber;
-			assignment = true;
+			variableModifier = true;
 			break;
 		//same as above but this one can be number-number or string-string
 		case OperatorType::AssignAdd:
 			operatorSemanticsType = OperatorSemanticsType::NumberNumberOrStringString;
-			assignment = true;
+			variableModifier = true;
 			break;
 		//any-any mutating operators, two types where the right can be implicitly casted to the left
 		case OperatorType::Assign:
@@ -350,12 +468,12 @@ void Semant::semantOperator(
 			break;
 		//this one isn't supposed to be handled on its own
 		case OperatorType::Colon:
-			Error::logError(ErrorType::General, "colon missing question mark in ternary operator", o);
+			logSemantError(ErrorType::General, "colon missing question mark in ternary operator", o);
 			return;
 		//TODO: classes
 		case OperatorType::Dot:
 		case OperatorType::ObjectMemberAccess:
-			Error::logError(ErrorType::General, "member variables are currently not supported", o);
+			logSemantError(ErrorType::General, "member variables are currently not supported", o);
 			return;
 		//these should have already been handled
 //		case OperatorType::None:
@@ -364,7 +482,6 @@ void Semant::semantOperator(
 		case OperatorType::Cast:
 		default:
 			Error::logError(ErrorType::CompilerIssue, "determining the operator semantics for this operator", o);
-			assert(false);
 			return;
 	}
 	//rewrite prefix operators to be postfix
@@ -376,26 +493,30 @@ void Semant::semantOperator(
 	//stop if either one has an unknown type
 	if (o->left == nullptr) {
 		Error::logError(ErrorType::CompilerIssue, "resulting in an operator without operands", o);
-		assert(false);
 		return;
 	} else if (!assignment) {
 		semantToken(o->left, variables, SemantExpressionLevel::Subexpression);
 		if (!tokenHasKnownType(o->left))
 			return;
 	}
-	if ((o->right == nullptr) !=
-		(operatorSemanticsType == OperatorSemanticsType::SingleBoolean ||
+	if (operatorSemanticsType == OperatorSemanticsType::SingleBoolean ||
 		operatorSemanticsType == OperatorSemanticsType::SingleInteger ||
-		operatorSemanticsType == OperatorSemanticsType::SingleNumber))
+		operatorSemanticsType == OperatorSemanticsType::SingleNumber)
 	{
-		if (o->right == nullptr)
-			Error::logError(ErrorType::CompilerIssue, "resulting in a binary operator missing an operand", o);
-		else
+		if (o->right != nullptr) {
 			Error::logError(ErrorType::CompilerIssue, "resulting in a unary operator with an extra operand", o);
-		assert(false);
+			return;
+		}
+	} else if (o->right == nullptr) {
+		Error::logError(ErrorType::CompilerIssue, "resulting in a binary operator missing an operand", o);
 		return;
 	} else if (operatorSemanticsType != OperatorSemanticsType::Ternary) {
-		semantToken(o->right, variables, SemantExpressionLevel::Subexpression);
+		//any variables that appear on the right side of booleans are unavailable outside of it
+		if (o->operatorType == OperatorType::BooleanAnd || o->operatorType == OperatorType::BooleanOr) {
+			PrefixTrieUnion<char, CVariableDefinition*> booleanOperatorVariables (variables);
+			semantToken(o->right, &booleanOperatorVariables, SemantExpressionLevel::Subexpression);
+		} else
+			semantToken(o->right, variables, SemantExpressionLevel::Subexpression);
 		if (!tokenHasKnownType(o->right))
 			return;
 	}
@@ -406,122 +527,157 @@ void Semant::semantOperator(
 	switch (operatorSemanticsType) {
 		case OperatorSemanticsType::BooleanBoolean:
 			if (o->right->dataType != CDataType::boolType) {
-				Error::logError(ErrorType::Expected, "a boolean value", o->right);
+				logSemantErrorWithErrorCheck(ErrorType::Expected, "a boolean value", o->right, o);
 				return;
 			}
 		case OperatorSemanticsType::SingleBoolean:
 			if (o->left->dataType != CDataType::boolType) {
-				Error::logError(ErrorType::Expected, "a boolean value", o->left);
+				logSemantErrorWithErrorCheck(ErrorType::Expected, "a boolean value", o->left, o);
 				return;
 			}
 			break;
 		case OperatorSemanticsType::IntegerInteger:
 		case OperatorSemanticsType::IntegerIntegerBitShift:
 			if (dynamic_cast<CIntegerPrimitive*>(o->right->dataType) == nullptr) {
-				Error::logError(ErrorType::Expected, "an integer value", o->right);
+				logSemantErrorWithErrorCheck(ErrorType::Expected, "an integer value", o->right, o);
 				return;
 			}
 		case OperatorSemanticsType::SingleInteger:
 			if (dynamic_cast<CIntegerPrimitive*>(o->left->dataType) == nullptr) {
-				Error::logError(ErrorType::Expected, "an integer value", o->left);
+				logSemantErrorWithErrorCheck(ErrorType::Expected, "an integer value", o->left, o);
 				return;
 			}
 			break;
 		case OperatorSemanticsType::NumberNumber:
 			if (dynamic_cast<CNumericPrimitive*>(o->right->dataType) == nullptr) {
-				Error::logError(ErrorType::Expected, "a numeric value", o->right);
+				logSemantErrorWithErrorCheck(ErrorType::Expected, "a numeric value", o->right, o);
 				return;
 			}
 		case OperatorSemanticsType::SingleNumber:
 			if (dynamic_cast<CNumericPrimitive*>(o->left->dataType) == nullptr) {
-				Error::logError(ErrorType::Expected, "a numeric value", o->left);
+				logSemantErrorWithErrorCheck(ErrorType::Expected, "a numeric value", o->left, o);
 				return;
 			}
 			break;
 		case OperatorSemanticsType::NumberNumberOrStringString:
 			if (dynamic_cast<CNumericPrimitive*>(o->left->dataType) != nullptr) {
 				if (dynamic_cast<CNumericPrimitive*>(o->right->dataType) == nullptr) {
-					Error::logError(ErrorType::Expected, "a numeric value", o->right);
+					logSemantErrorWithErrorCheck(ErrorType::Expected, "a numeric value", o->right, o);
 					return;
 				}
 			} else if (o->left->dataType == CDataType::stringType) {
 				if (o->right->dataType != CDataType::stringType) {
-					Error::logError(ErrorType::Expected, "a String value", o->right);
+					logSemantErrorWithErrorCheck(ErrorType::Expected, "a String value", o->right, o);
 					return;
 				}
 			} else {
 				if (dynamic_cast<CNumericPrimitive*>(o->right->dataType) != nullptr)
-					Error::logError(ErrorType::Expected, "a numeric value", o->left);
+					logSemantErrorWithErrorCheck(ErrorType::Expected, "a numeric value", o->left, o);
 				else if (o->right->dataType == CDataType::stringType)
-					Error::logError(ErrorType::Expected, "a String value", o->left);
+					logSemantErrorWithErrorCheck(ErrorType::Expected, "a String value", o->left, o);
 				else
-					Error::logError(ErrorType::Expected, "a pair of numeric or String values", o);
+					logSemantError(ErrorType::Expected, "a pair of numeric or String values", o);
 				return;
 			}
 			break;
 		case OperatorSemanticsType::AnyAny:
 			//this is either a comparison or an assignment, those will be handled individually
 			break;
-		case OperatorSemanticsType::Ternary:
+		case OperatorSemanticsType::Ternary: {
 			if (o->left->dataType != CDataType::boolType) {
-				Error::logError(ErrorType::Expected, "a boolean value", o->left);
+				logSemantErrorWithErrorCheck(ErrorType::Expected, "a boolean value", o->left, o);
 				return;
 			}
 			if ((ternaryResult = dynamic_cast<Operator*>(o->right)) == nullptr ||
 				ternaryResult->operatorType != OperatorType::Colon)
 			{
-				Error::logError(ErrorType::General, "question mark missing colon in ternary operator", o);
+				logSemantError(ErrorType::General, "question mark missing colon in ternary operator", o);
 				return;
 			}
-			semantToken(ternaryResult->left, variables, SemantExpressionLevel::Subexpression);
-			semantToken(ternaryResult->right, variables, SemantExpressionLevel::Subexpression);
+			PrefixTrieUnion<char, CVariableDefinition*> leftVariables (variables);
+			PrefixTrieUnion<char, CVariableDefinition*> rightVariables (variables);
+			semantToken(ternaryResult->left, &leftVariables, SemantExpressionLevel::Subexpression);
+			semantToken(ternaryResult->right, &rightVariables, SemantExpressionLevel::Subexpression);
+			if (!tokenHasKnownType(ternaryResult->left) || !tokenHasKnownType(ternaryResult->right))
+				return;
 			ternaryResultType = CDataType::bestCompatibleType(ternaryResult->left->dataType, ternaryResult->right->dataType);
 			if (ternaryResultType == nullptr) {
 				string errorMessage = "ternary operator results in mismatching types " + ternaryResult->left->dataType->name +
 					" and " + ternaryResult->right->dataType->name;
-				Error::logError(ErrorType::General, errorMessage.c_str(), o);
+				logSemantError(ErrorType::General, errorMessage.c_str(), o);
 				return;
 			}
 			o->dataType = ternaryResultType;
 			return;
+		}
 		default:
 			Error::logError(ErrorType::CompilerIssue, "validating the operator semantics for this operator", o);
-			assert(false);
 			return;
 	}
 
 	//finally, assign the operator its type
 	//for assignments, also check that the assignment is valid
 	if (assignment) {
-		if (semantExpressionLevel == SemantExpressionLevel::Subexpression)
-			Error::logError(
-				ErrorType::General, "assignment operators must be parenthesized or be the root operator of a statement", o);
 		//make sure it's something we can assign to
 		Identifier* i;
-		if ((i = dynamic_cast<Identifier*>(o->left)) != nullptr)
+		VariableDeclarationList* v = nullptr;
+		if ((i = dynamic_cast<Identifier*>(o->left)) != nullptr) {
 			semantIdentifier(i, variables);
-		else if (dynamic_cast<VariableDeclarationList*>(o->left) == nullptr) {
-			Error::logError(ErrorType::Expected, "a variable or variable list", o->left);
+			if (!tokenHasKnownType(i))
+				return;
+		} else if ((v = dynamic_cast<VariableDeclarationList*>(o->left)) != nullptr) {
+			addVariablesToTrie(v->variables, variables, nullptr);
+			finalizeTypes(v, o->right->dataType);
+		} else {
+			logSemantErrorWithErrorCheck(ErrorType::Expected, "a variable or variable list", o->left, o);
 			return;
 		}
-		if (CDataType::bestCompatibleType(o->left->dataType, o->right->dataType) != o->left->dataType) {
+		//make sure that either the type matches,
+		//	or that it's a multiple-variable-definition-list with all the same type that accepts the right type
+		while (CDataType::bestCompatibleType(o->left->dataType, o->right->dataType) != o->left->dataType) {
+			if (v != nullptr && v->variables->length > 1) {
+				CSpecificGroup* groupType;
+				if ((groupType = dynamic_cast<CSpecificGroup*>(v->dataType)) == nullptr) {
+					Error::logError(ErrorType::CompilerIssue, "determining the types of these variables", v);
+					return;
+				} else if (groupType->allSameType) {
+					CDataType* groupInnerType = groupType->types->get(0)->type;
+					if (CDataType::bestCompatibleType(groupInnerType, o->right->dataType) == groupInnerType)
+						break;
+				}
+			}
 			string errorMessage = "cannot use a value of type " + o->right->dataType->name +
 				" to assign to a variable of type " + o->left->dataType->name;
-			Error::logError(ErrorType::General, errorMessage.c_str(), o);
+			logSemantError(ErrorType::General, errorMessage.c_str(), o);
+			return;
+		}
+		if (semantExpressionLevel == SemantExpressionLevel::Subexpression) {
+			logSemantError(
+				ErrorType::General, "assignment operators must be parenthesized or be the root operator of a statement", o);
 			return;
 		}
 		//TODO: Groups
 		o->dataType = o->left->dataType;
-	//check that comparisons are valid
+	//check that comparisons are valid- as long as one is castable to the other we're good
 	} else if (comparisonOperator) {
 		if (CDataType::bestCompatibleType(o->left->dataType, o->right->dataType) == nullptr) {
 			string errorMessage = "cannot compare values of type " + o->left->dataType->name +
 				" and " + o->right->dataType->name;
-			Error::logError(ErrorType::General, errorMessage.c_str(), o);
+			logSemantError(ErrorType::General, errorMessage.c_str(), o);
+			return;
 		}
 		o->dataType = CDataType::boolType;
+	//check that we have a variable to modify
+	} else if (variableModifier) {
+		if (dynamic_cast<Identifier*>(o->left) == nullptr) {
+			logSemantErrorWithErrorCheck(ErrorType::Expected, "a variable", o->left, o);
+			return;
+		}
+		o->dataType = o->left->dataType;
+	//bitshifts result in the left type regardless what the right type is
 	} else if (o->right == nullptr || operatorSemanticsType == OperatorSemanticsType::IntegerIntegerBitShift)
 		o->dataType = o->left->dataType;
+	//and everything else results in the best compatible type between the two of them
 	else
 		o->dataType = CDataType::bestCompatibleType(o->left->dataType, o->right->dataType);
 }
@@ -529,27 +685,35 @@ void Semant::semantOperator(
 void Semant::semantFunctionCall(FunctionCall* f, PrefixTrie<char, CVariableDefinition*>* variables) {
 	//make sure we have the right function type
 	semantToken(f->function, variables, SemantExpressionLevel::Subexpression);
-	if (!tokenHasKnownType(f->function))
-		return;
 	CSpecificFunction* functionType = dynamic_cast<CSpecificFunction*>(f->function->dataType);
 	if (functionType == nullptr) {
-		Error::logError(ErrorType::Expected, "a function value", f);
+		if (tokenHasKnownType(f->function)) {
+			if (f->function->dataType != CDataType::functionType)
+				logSemantErrorWithErrorCheck(ErrorType::Expected, "a function value", f->function, f);
+			else if (!resemantingGenericTypeVariables)
+				logSemantErrorWithErrorCheck(ErrorType::General, "cannot determine function signature", f->function, f);
+		}
 		return;
 	}
 	//make sure the arguments match
 	if (functionType->parameterTypes->length != f->arguments->length) {
 		string errorMessage = "expected " + std::to_string(functionType->parameterTypes->length) +
 			" arguments but got " + std::to_string(f->arguments->length);
-		Error::logError(ErrorType::General, errorMessage.c_str(), f);
+		logSemantError(ErrorType::General, errorMessage.c_str(), f);
+		return;
 	}
 	int argumentCount = Math::min(functionType->parameterTypes->length, f->arguments->length);
 	bool argumentTypesAreKnown = true;
 	for (int i = 0; i < argumentCount; i++) {
 		Token* t = f->arguments->get(i);
 		semantToken(t, variables, SemantExpressionLevel::TopLevelInParentheses);
-		if (tokenHasKnownType(t))
-			checkType(t, functionType->parameterTypes->get(i));
-		else
+		if (tokenHasKnownType(t)) {
+			CDataType* expectedType = functionType->parameterTypes->get(i);
+			if (CDataType::bestCompatibleType(expectedType, t->dataType) != expectedType) {
+				string errorMessage = "expected a value of type " + expectedType->name + " but got " + t->dataType->name;
+				logSemantErrorWithErrorCheck(ErrorType::General, errorMessage.c_str(), t, f);
+			}
+		} else
 			argumentTypesAreKnown = false;
 		f->arguments->set(i, t);
 	}
@@ -558,33 +722,134 @@ void Semant::semantFunctionCall(FunctionCall* f, PrefixTrie<char, CVariableDefin
 }
 //check all the statements of this function definition
 void Semant::semantFunctionDefinition(FunctionDefinition* f, PrefixTrie<char, CVariableDefinition*>* variables) {
-	if (shouldSemantStatements)
-		semantStatementList(f->body);
-	return;
+	if (skipStatementsWhileFindingGlobalVariableDefinitions)
+		return;
+	if (semantStatementList(f->body, variables, f->parameters, f->returnType) != ScopeExitType::Return &&
+			f->returnType != CDataType::voidType)
+		Error::logError(ErrorType::General, "not all paths return a value", f);
 }
 //verify that this group ????????????????
 void Semant::semantGroup(Group* g, PrefixTrie<char, CVariableDefinition*>* variables) {
-	Error::logError(ErrorType::CompilerIssue, "a Group appearing an expression", g);
+	Error::logError(ErrorType::CompilerIssue, "resulting in a Group appearing an expression", g);
 	assert(false); //TODO: Groups
 	//TODO: ???????????
 }
 //semant all the statments in the given statement list
-void Semant::semantStatementList(Array<Statement*>* statements) {
+//functions will pass a return type, to be recursively passed for other statement lists
+//returns whether the statement list returns a value of the provided type
+ScopeExitType Semant::semantStatementList(
+	Array<Statement*>* statements,
+	PrefixTrie<char, CVariableDefinition*>* previousVariables,
+	Array<CVariableDefinition*>* functionParameters,
+	CDataType* returnType)
+{
+	PrefixTrieUnion<char, CVariableDefinition*> variables (previousVariables);
+	if (functionParameters != nullptr)
+		addVariablesToTrie(functionParameters, &variables, nullptr);
+	ScopeExitType exitType = ScopeExitType::None;
 	forEach(Statement*, s, statements, si) {
-		//TODO: ???????????
+		ExpressionStatement* e;
+		ReturnStatement* r;
+		IfStatement* i;
+		LoopStatement* l;
+		if ((e = dynamic_cast<ExpressionStatement*>(s)) != nullptr)
+			semantToken(e->expression, &variables, SemantExpressionLevel::TopLevel);
+		else if ((r = dynamic_cast<ReturnStatement*>(s)) != nullptr) {
+			if (r->expression != nullptr) {
+				semantToken(r->expression, &variables, SemantExpressionLevel::TopLevel);
+				if (CDataType::bestCompatibleType(r->expression->dataType, returnType) != returnType) {
+					string errorMessage = "cannot return type " + r->expression->dataType->name +
+						" in a function that expects type " + returnType->name;
+					Error::logError(ErrorType::General, errorMessage.c_str(), r->expression);
+				}
+			} else if (returnType != CDataType::voidType) {
+				string errorMessage = "a returned value of type " + returnType->name;
+				Error::logError(ErrorType::Expected, errorMessage.c_str(), r->returnKeywordToken);
+			}
+			if (exitType == ScopeExitType::None)
+				exitType = ScopeExitType::Return;
+		} else if ((i = dynamic_cast<IfStatement*>(s)) != nullptr) {
+			semantToken(i->condition, &variables, SemantExpressionLevel::TopLevelInParentheses);
+			if (tokenHasKnownType(i->condition) && i->condition->dataType != CDataType::boolType)
+				Error::logError(ErrorType::Expected, "a bool value", i->condition);
+			PrefixTrieUnion<char, CVariableDefinition*> thenBodyVariables (&variables);
+			PrefixTrieUnion<char, CVariableDefinition*> elseBodyVariables (&variables);
+			//find any possible variable definitions from within the condition and apply them where possible
+			PrefixTrieUnion<char, CVariableDefinition*> newScopeVariables (&variables);
+			iterateTokens(
+				i->condition,
+				SemantTokenIterationType::FindIfStatementConditionVariableDefinitions,
+				&newScopeVariables,
+				nullptr);
+			IfStatementConditionIterationStatus resultingStatus = ifStatementConditionIterationStatus;
+			ifStatementConditionIterationStatus = IfStatementConditionIterationStatus::None;
+			Array<CVariableDefinition*>* newScopeVariablesList =
+				newScopeVariables.isEmpty() ? nullptr : newScopeVariables.getValues();
+			if (newScopeVariablesList != nullptr) {
+				if (resultingStatus == IfStatementConditionIterationStatus::BooleanAnd)
+					addVariablesToTrie(newScopeVariablesList, &thenBodyVariables, nullptr);
+				else if (resultingStatus == IfStatementConditionIterationStatus::BooleanOr)
+					addVariablesToTrie(newScopeVariablesList, &elseBodyVariables, nullptr);
+			}
+			//semant the bodies with our new variable tries
+			ScopeExitType thenExitType = semantStatementList(i->thenBody, &thenBodyVariables, nullptr, returnType);
+			ScopeExitType elseExitType = i->elseBody != nullptr
+				? semantStatementList(i->elseBody, &elseBodyVariables, nullptr, returnType)
+				: ScopeExitType::None;
+			//if our extra variables are definitely visible after the if statement, add them to the trie
+			if (newScopeVariablesList != nullptr &&
+					((resultingStatus == IfStatementConditionIterationStatus::BooleanOr &&
+						thenExitType != ScopeExitType::None) ||
+					(resultingStatus == IfStatementConditionIterationStatus::BooleanAnd &&
+						elseExitType != ScopeExitType::None)))
+				addVariablesToTrie(newScopeVariablesList, &variables, nullptr);
+			if (exitType == ScopeExitType::None)
+				exitType = ((unsigned char)elseExitType) < ((unsigned char)thenExitType) ? elseExitType : thenExitType;
+			delete newScopeVariablesList;
+		} else if ((l = dynamic_cast<LoopStatement*>(s)) != nullptr) {
+			PrefixTrieUnion<char, CVariableDefinition*> loopBodyVariables (&variables);
+			PrefixTrieUnion<char, CVariableDefinition*> conditionVariables (&loopBodyVariables);
+			PrefixTrieUnion<char, CVariableDefinition*> incrementVariables (&loopBodyVariables);
+			if (l->initialization != nullptr)
+				semantToken(l->initialization->expression, &loopBodyVariables, SemantExpressionLevel::TopLevel);
+			semantToken(l->condition, &conditionVariables, SemantExpressionLevel::TopLevel);
+			if (tokenHasKnownType(l->condition) && l->condition->dataType != CDataType::boolType)
+				Error::logError(ErrorType::Expected, "a bool value", l->condition);
+			if (l->increment != nullptr)
+				semantToken(l->increment, &incrementVariables, SemantExpressionLevel::TopLevel);
+			ScopeExitType loopExitType = semantStatementList(l->body, &loopBodyVariables, nullptr, returnType);
+			if (exitType == ScopeExitType::None)
+				exitType = loopExitType;
+		}
 	}
+	return exitType;
 }
 //returns true if we don't need to re-semant this token
 bool Semant::tokenHasKnownType(Token* t) {
-	return t->dataType != nullptr && dynamic_cast<CGenericPointerType*>(t->dataType) == nullptr;
+	return t->dataType != nullptr &&
+		t->dataType != CDataType::errorType &&
+		(!resemantingGenericTypeVariables || dynamic_cast<CGenericPointerType*>(t->dataType) == nullptr);
 }
-//returns whether the types match, and logs an error if they don't
-//TODO: implicit casting
-bool Semant::checkType(Token* t, CDataType* expectedType) {
-	if (t->dataType != nullptr && t->dataType != expectedType) {
-		string errorMessage = "expected a value of type " + expectedType->name + " but got " + t->dataType->name;
-		Error::logError(ErrorType::General, errorMessage.c_str(), t);
-		return false;
-	}
-	return true;
+//log an error and give the token an error type, unless we've already done so
+void Semant::logSemantError(ErrorType type, const char* message, Token* token) {
+	logSemantErrorWithErrorCheck(type, message, token, token);
+}
+//log an error and give the token an error type, unless we've already done so
+void Semant::logSemantErrorWithErrorSourceAndOriginFile(
+	ErrorType type, const char* message, Token* token, Token* errorSource, SourceFile* errorOriginFile)
+{
+	logSemantErrorWithErrorSourceAndOriginFileWithErrorCheck(type, message, token, errorSource, errorOriginFile, token);
+}
+//log an error and give the token an error type, unless we've already done so
+void Semant::logSemantErrorWithErrorCheck(ErrorType type, const char* message, Token* token, Token* errorCheck) {
+	logSemantErrorWithErrorSourceAndOriginFileWithErrorCheck(type, message, token, nullptr, nullptr, errorCheck);
+}
+//log an error and give the token an error type, unless we've already done so
+void Semant::logSemantErrorWithErrorSourceAndOriginFileWithErrorCheck(
+	ErrorType type, const char* message, Token* token, Token* errorSource, SourceFile* errorOriginFile, Token* errorCheck)
+{
+	if (errorCheck->dataType == CDataType::errorType)
+		return;
+	Error::logErrorWithErrorSourceAndOriginFile(type, message, token, errorSource, errorOriginFile);
+	errorCheck->dataType = CDataType::errorType;
 }

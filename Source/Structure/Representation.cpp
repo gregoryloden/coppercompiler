@@ -1509,7 +1509,9 @@ owningPliers(pOwningPliers)
 , includedFiles(new AVLTree<SourceFile*, bool>())
 , inclusionListeners(new Array<SourceFile*>())
 , replacedTokens(new Array<Token*>())
-, globalVariables(new Array<Token*>()) {
+, globalVariables(new Array<Token*>())
+, variablesVisibleToFile(new PrefixTrie<char, CVariableDefinition*>())
+, variablesDeclaredInFile(nullptr) {
 	//load the file
 	FILE* file = nullptr;
 	fopen_s(&file, filename.c_str(), "rb");
@@ -1536,6 +1538,8 @@ SourceFile::~SourceFile() {
 	delete replacedTokens;
 	globalVariables->deleteContents();
 	delete globalVariables;
+	delete variablesVisibleToFile;
+	delete variablesDeclaredInFile;
 }
 int SourceFile::getRow(int contentPos) {
 	int rowLo = 0;

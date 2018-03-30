@@ -15,12 +15,14 @@ ExpressionStatement::ExpressionStatement(Token* pExpression)
 ExpressionStatement::~ExpressionStatement() {
 	delete expression;
 }
-ReturnStatement::ReturnStatement(Token* pExpression)
+ReturnStatement::ReturnStatement(Token* pExpression, Token* pReturnKeywordToken)
 : Statement(onlyWhenTrackingIDs("RTNSTMT"))
-, expression(pExpression) {
+, expression(pExpression)
+, returnKeywordToken(pReturnKeywordToken) {
 }
 ReturnStatement::~ReturnStatement() {
 	delete expression;
+	delete returnKeywordToken;
 }
 IfStatement::IfStatement(Token* pCondition, Array<Statement*>* pThenBody, Array<Statement*>* pElseBody)
 : Statement(onlyWhenTrackingIDs("IFSTMT"))

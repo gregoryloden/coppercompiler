@@ -3,6 +3,7 @@
 //classes defined within other classes have owning class
 
 PrefixTrie<char, CDataType*>* CDataType::globalDataTypes = nullptr;
+CErrorType* CDataType::errorType = nullptr;
 CVoid* CDataType::voidType = nullptr;
 CBool* CDataType::boolType = nullptr;
 CIntegerPrimitive* CDataType::infiniteByteSizeIntType = nullptr;
@@ -23,13 +24,14 @@ CDataType::~CDataType() {}
 //build the trie of data types here so that we can track deleting them properly
 void CDataType::initializeGlobalDataTypes() {
 	CDataType* typesArray[] = {
+		(errorType = new CErrorType()),
 		(voidType = new CVoid()),
 		(boolType = new CBool()),
-		(infiniteByteSizeIntType = new CIntegerPrimitive(" infiniteByteSizeIntType", Math::SHORT_MAX)),
+		(infiniteByteSizeIntType = new CIntegerPrimitive("(int)", Math::SHORT_MAX)),
 		(byteType = new CIntegerPrimitive("byte", 8)),
 		(shortType = new CIntegerPrimitive("short", 16)),
 		(intType = new CIntegerPrimitive("int", 32)),
-		(infinitePrecisionFloatType = new CFloatingPointPrimitive(" infinitePrecisionFloatType", Math::SHORT_MAX)),
+		(infinitePrecisionFloatType = new CFloatingPointPrimitive("(float)", Math::SHORT_MAX)),
 		(floatType = new CFloatingPointPrimitive("float", 32)),
 		(functionType = new CGenericFunction()),
 		(stringType = new CClass("String")),
@@ -47,6 +49,7 @@ void CDataType::initializeGlobalDataTypes() {
 }
 //delete all the data types
 void CDataType::deleteGlobalDataTypes() {
+	errorType = nullptr;
 	voidType = nullptr;
 	boolType = nullptr;
 	infiniteByteSizeIntType = nullptr;
@@ -60,13 +63,18 @@ void CDataType::deleteGlobalDataTypes() {
 	emptyGroupType = nullptr;
 	stringType = nullptr;
 	mainType = nullptr;
-	globalDataTypes->deleteValues();
+	Array<CDataType*>* allDataTypes = globalDataTypes->getValues();
+	forEach(CDataType*, c, allDataTypes, ci) {
+		delete c;
+	}
+	delete allDataTypes;
 	delete globalDataTypes;
 	globalDataTypes = nullptr;
 }
-//find the best type that both types can be casted to (possibly implicitly)
+//find the most specific type that both types can be implicitly casted to
 //for two numeric types: return the bigger of the two types, the type that can represent the values of both types
-//for two classes: return the most-specific subclass that both of them inherit
+//for two classes: return the most-specific superclass that both of them inherit (for multiple inheritance,
+//	if there are two or more of those classes, recursively find the best class for them and use that)
 //since raw casting doesn't apply here, any other type combinations are invalid
 CDataType* CDataType::bestCompatibleType(CDataType* type1, CDataType* type2) {
 	if (type1 == type2)
@@ -80,8 +88,14 @@ CDataType* CDataType::bestCompatibleType(CDataType* type1, CDataType* type2) {
 		if ((firstIsFloat = (dynamic_cast<CFloatingPointPrimitive*>(npType1) != nullptr)) !=
 				(dynamic_cast<CFloatingPointPrimitive*>(npType2) != nullptr))
 			return firstIsFloat ? npType1 : npType2;
+		else if (npType1 == infiniteByteSizeIntType || npType1 == infinitePrecisionFloatType)
+			return npType2;
+		else if (npType2 == infiniteByteSizeIntType || npType2 == infinitePrecisionFloatType)
+			return npType1;
 		return npType1->bitSize > npType2->bitSize ? npType1 : npType2;
-	}
+	} else if ((type1 == CDataType::functionType && dynamic_cast<CSpecificFunction*>(type2) != nullptr) ||
+			(type2 == CDataType::functionType && dynamic_cast<CSpecificFunction*>(type1) != nullptr))
+		return CDataType::functionType;
 	//TODO: classes
 	return nullptr;
 }
@@ -98,6 +112,10 @@ CGenericPointerType::CGenericPointerType(onlyWhenTrackingIDs(char* pObjType COMM
 : CDataType(onlyWhenTrackingIDs(pObjType COMMA) pName) {
 }
 CGenericPointerType::~CGenericPointerType() {}
+CErrorType::CErrorType()
+: CDataType(onlyWhenTrackingIDs("ERORTYP" COMMA) "(error type)") {
+}
+CErrorType::~CErrorType() {}
 CVoid::CVoid()
 : CDataType(onlyWhenTrackingIDs("VOIDTYP" COMMA) "void") {
 }
@@ -162,7 +180,7 @@ CGenericGroup::CGenericGroup()
 }
 CGenericGroup::~CGenericGroup() {}
 //return the group type that matches the given types, creating it if it doesn't exist yet
-//deletes the types array if it isn't used
+//deletes the types array and its contents if it isn't used
 CDataType* CGenericGroup::typeFor(Array<CVariableDefinition*>* types) {
 	//build the type name
 	string typeName = "Group<";
@@ -185,8 +203,10 @@ CDataType* CGenericGroup::typeFor(Array<CVariableDefinition*>* types) {
 	if (cdt == nullptr) {
 		cdt = new CSpecificGroup(typeName, types);
 		CDataType::globalDataTypes->set(typeName.c_str(), typeName.length(), cdt);
-	} else
+	} else {
+		types->deleteContents();
 		delete types;
+	}
 	return cdt;
 }
 CSpecificGroup::CSpecificGroup(string pName, Array<CVariableDefinition*>* pTypes)
@@ -203,6 +223,6 @@ CSpecificGroup::CSpecificGroup(string pName, Array<CVariableDefinition*>* pTypes
 	allSameType = true;
 }
 CSpecificGroup::~CSpecificGroup() {
-	//don't delete the types since they're owned by the global types trie
+	types->deleteContents();
 	delete types;
 }

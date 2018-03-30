@@ -51,9 +51,11 @@ IntConstant::IntConstant(BigInt* pVal, int pContentPos, int pEndContentPos, Sour
 }
 IntConstant::IntConstant(IntConstant* cloneSource, Identifier* pReplacementSource)
 : LexToken(cloneSource, pReplacementSource)
-, val(cloneSource->val) {
+, val(new BigInt(cloneSource->val, false)) {
 }
-IntConstant::~IntConstant() {}
+IntConstant::~IntConstant() {
+	delete val;
+}
 cloneWithReplacementSourceForType(IntConstant)
 FloatConstant::FloatConstant(
 	BigInt* pSignificand, int pExponent, int pContentPos, int pEndContentPos, SourceFile* pOwningFile)
@@ -215,7 +217,6 @@ Operator::Operator(
 			precedence = OperatorTypePrecedence::Assignment;
 			break;
 		default:
-			assert(false);
 			Error::makeError(ErrorType::CompilerIssue, "determining the operator precedence of this operator", this);
 			break;
 	}
@@ -269,10 +270,23 @@ VariableDeclarationList::VariableDeclarationList(Array<CVariableDefinition*>* pV
 : Token(onlyWhenTrackingIDs("VRDFLST" COMMA) firstType->contentPos, firstType->endContentPos, firstType->owningFile)
 , variables(pVariables) {
 	replacementSource = firstType->replacementSource;
+	redetermineType();
 }
 VariableDeclarationList::~VariableDeclarationList() {
 	variables->deleteContents();
 	delete variables;
+}
+//check all the types of the inner variables to get the net type of this variable declaration list
+void VariableDeclarationList::redetermineType() {
+	if (variables->length == 1)
+		dataType = variables->get(0)->type;
+	else {
+		Array<CVariableDefinition*>* types = new Array<CVariableDefinition*>();
+		forEach(CVariableDefinition*, c, variables, ci) {
+			types->add(new CVariableDefinition(c->type, nullptr));
+		}
+		dataType = CGenericGroup::typeFor(types);
+	}
 }
 ParenthesizedExpression::ParenthesizedExpression(Token* pExpression, AbstractCodeBlock* source)
 : Token(onlyWhenTrackingIDs("PNTHEXP" COMMA) source->contentPos, source->endContentPos, source->owningFile)
@@ -284,8 +298,8 @@ ParenthesizedExpression::~ParenthesizedExpression() {
 }
 Cast::Cast(CDataType* pType, bool pIsRaw, AbstractCodeBlock* source)
 : Operator(onlyWhenTrackingIDs("CAST" COMMA) OperatorType::Cast, source->contentPos, source->endContentPos, source->owningFile)
-, isRaw(pIsRaw) {
-	dataType = pType;
+, isRaw(pIsRaw)
+, castType(pType) {
 	replacementSource = source->replacementSource;
 }
 Cast::~Cast() {}

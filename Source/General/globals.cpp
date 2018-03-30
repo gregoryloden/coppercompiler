@@ -168,37 +168,65 @@ void Error::makeError(ErrorType type, const char* message, Token* token) {
 }
 //add an error to the error list without throwing
 void Error::logError(ErrorType type, const char* message, Token* token) {
-	token->owningFile->owningPliers->errorMessages->add(buildErrorMessage(type, message, token));
+	logErrorWithErrorSourceAndOriginFile(type, message, token, nullptr, nullptr);
+}
+//add an error to the error list without throwing
+void Error::logErrorWithErrorSourceAndOriginFile(
+	ErrorType type, const char* message, Token* token, Token* errorSource, SourceFile* errorOriginFile)
+{
+	token->owningFile->owningPliers->errorMessages->add(buildErrorMessage(type, message, token, errorSource, errorOriginFile));
+	assert(type != ErrorType::CompilerIssue);
 }
 //build an error message list from the given input
-ErrorMessage* Error::buildErrorMessage(ErrorType type, const char* message, Token* token) {
+ErrorMessage* Error::buildErrorMessage(
+	ErrorType type, const char* message, Token* token, Token* errorSource, SourceFile* errorOriginFile)
+{
 	return new ErrorMessage(
 		type,
 		message,
 		token->owningFile,
 		type == ErrorType::ExpectedToFollow ? token->endContentPos : token->contentPos,
 		token->replacementSource != nullptr
-			? buildErrorMessage(ErrorType::Continuation, "", token->replacementSource)
-			: nullptr);
+			? buildErrorMessage(ErrorType::Continuation, "", token->replacementSource, nullptr, nullptr)
+			: nullptr,
+		errorSource != nullptr ? errorSource->owningFile : nullptr,
+		errorSource != nullptr ? errorSource->contentPos : -1,
+		errorSource != nullptr && errorSource->replacementSource != nullptr
+			? buildErrorMessage(ErrorType::Continuation, "", errorSource->replacementSource, nullptr, nullptr)
+			: nullptr,
+		errorOriginFile);
 }
 ErrorMessage::ErrorMessage(
-	ErrorType pType, const char* pMessage, SourceFile* pOwningFile, int pContentPos, ErrorMessage* pContinuation)
+	ErrorType pType,
+	const char* pMessage,
+	SourceFile* pOwningFile,
+	int pContentPos,
+	ErrorMessage* pContinuation,
+	SourceFile* pErrorSourceOwningFile,
+	int pErrorSourceContentPos,
+	ErrorMessage* pErrorSourceContinuation,
+	SourceFile* pErrorOriginFile)
 : onlyInDebug(ObjCounter(onlyWhenTrackingIDs("ERORMSG")) COMMA)
 type(pType)
 , message(nullptr)
 , owningFile(pOwningFile)
 , contentPos(pContentPos)
-, continuation(pContinuation) {
-	int messageLength = strlen(pMessage) + 1;
-	char* val = new char[messageLength];
+, continuation(pContinuation)
+, errorSourceOwningFile(pErrorSourceOwningFile)
+, errorSourceContentPos(pErrorSourceContentPos)
+, errorSourceContinuation(pErrorSourceContinuation)
+, errorOriginFile(pErrorOriginFile) {
+	int messageLength = strlen(pMessage);
+	char* val = new char[messageLength + 1];
 	memcpy((void*)val, pMessage, messageLength);
-	val[messageLength - 1] = '\0';
+	val[messageLength] = '\0';
 	message = val;
 }
 ErrorMessage::~ErrorMessage() {
 	delete message;
-	//don't delete the owning file since it's owned by the files list
+	//don't delete the files since they're owned by the files list
 	delete continuation;
+	delete errorSourceContinuation;
 }
 char* ErrorMessage::snippet = []() -> char* {
 	char* val = new char[SNIPPET_PREFIX_SPACES + SNIPPET_CHARS + 1 + SNIPPET_PREFIX_SPACES + SNIPPET_CHARS / 2 + 2];
@@ -217,8 +245,10 @@ int ErrorMessage::getRow() {
 void ErrorMessage::printError() {
 	int row = getRow();
 	//print the error
+	if (errorOriginFile != nullptr && errorOriginFile != owningFile && errorOriginFile != errorSourceOwningFile)
+		printf("From \"%s\":\n", errorOriginFile->filename.c_str());
 	char* errorPrefix = type == ErrorType::Continuation
-		? "  --- in \"%s\" at line %d char %d\n"
+		? "  -- in \"%s\" at line %d char %d\n"
 		: "Error in \"%s\" at line %d char %d: ";
 	printf(errorPrefix, owningFile->filename.c_str(), row + 1, contentPos - owningFile->rowStarts->get(row) + 1);
 	switch (type) {
@@ -230,20 +260,31 @@ void ErrorMessage::printError() {
 		case ErrorType::Continuation: break;
 		case ErrorType::CompilerIssue: printf("A bug in the compiler caused an issue %s\n", message); break;
 	}
-	showSnippet();
+	showSnippet(owningFile, contentPos);
 	if (continuation != nullptr)
 		continuation->printError();
+	if (errorSourceOwningFile != nullptr) {
+		row = errorSourceOwningFile->getRow(errorSourceContentPos);
+		printf(
+			" from \"%s\" at line %d char %d:\n",
+			errorSourceOwningFile->filename.c_str(),
+			row + 1,
+			errorSourceContentPos - errorSourceOwningFile->rowStarts->get(row) + 1);
+		showSnippet(errorSourceOwningFile, errorSourceContentPos);
+		if (errorSourceContinuation != nullptr)
+			errorSourceContinuation->printError();
+	}
 }
 //show the snippet where the error/warning is
-void ErrorMessage::showSnippet() {
-	int targetStart = contentPos - SNIPPET_CHARS / 2;
+void ErrorMessage::showSnippet(SourceFile* snippetFile, int snippetContentPos) {
+	int targetStart = snippetContentPos - SNIPPET_CHARS / 2;
 	int targetEnd = targetStart + SNIPPET_CHARS;
 	int start = Math::max(targetStart, 0);
-	int end = Math::min(targetEnd, owningFile->contentsLength);
+	int end = Math::min(targetEnd, snippetFile->contentsLength);
 	memset(snippet + SNIPPET_PREFIX_SPACES, ' ', start - targetStart);
 	memset(snippet + SNIPPET_PREFIX_SPACES + end - targetStart, ' ', targetEnd - end);
 	for (int i = start; i < end; i++) {
-		char c = owningFile->contents[i];
+		char c = snippetFile->contents[i];
 		//make sure c is in the printable character range
 		snippet[i - targetStart + SNIPPET_PREFIX_SPACES] = (c >= '!' && c <= '~') ? c : ' ';
 	}
@@ -327,7 +368,7 @@ void ErrorMessage::showSnippet() {
 				printf("(");
 				if (c->isRaw)
 					printf("raw ");
-				printf(c->dataType->name.c_str());
+				printf(c->castType->name.c_str());
 				printf(")(");
 				printTokenTree(c->right, tabsCount, false);
 				printf(")");

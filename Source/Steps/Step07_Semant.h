@@ -16,14 +16,21 @@ class FunctionCall;
 class FunctionDefinition;
 class Group;
 class CDataType;
+class CVariableData;
 class Statement;
 template <class KeyElement, class Value> class PrefixTrie;
 template <class Type> class Array;
+enum class ErrorType: unsigned char;
 
+enum class SemantTokenIterationType: unsigned char {
+	FindVisibleVariableDefinitions,
+	SemantFileStatements,
+	FindIfStatementConditionVariableDefinitions
+};
 enum class SemantExpressionLevel: unsigned char {
-	TopLevel,
-	TopLevelInParentheses,
-	Subexpression
+	Subexpression = 0,
+	TopLevel = 1,
+	TopLevelInParentheses = 3
 };
 enum class OperatorSemanticsType: unsigned char {
 	SingleBoolean,
@@ -37,17 +44,35 @@ enum class OperatorSemanticsType: unsigned char {
 	AnyAny,
 	Ternary
 };
+enum class ScopeExitType: unsigned char {
+	None = 0,
+	LoopJump = 1,
+	Return = 2
+};
+enum class IfStatementConditionIterationStatus: unsigned char {
+	None,
+	BooleanAnd,
+	BooleanOr
+};
 class Semant {
 private:
-	static thread_local bool shouldSemantStatements;
+	static thread_local bool skipStatementsWhileFindingGlobalVariableDefinitions;
+	static thread_local bool resemantingGenericTypeVariables;
+	static thread_local IfStatementConditionIterationStatus ifStatementConditionIterationStatus;
 
 public:
 	static void semant(Pliers* pliers);
 private:
-	static void addVariablesToTrie(VariableDeclarationList* v, PrefixTrie<char, CVariableDefinition*>* variables);
+	static void iterateTokens(
+		Token* t,
+		SemantTokenIterationType iterationType,
+		PrefixTrie<char, CVariableDefinition*>* variables,
+		SourceFile* originFile);
+	static void addVariablesToTrie(
+		Array<CVariableDefinition*>* v, PrefixTrie<char, CVariableDefinition*>* variables, SourceFile* originFile);
+	static bool finalizeTypes(VariableDeclarationList* v, CDataType* valueType);
 	static void semantFileDefinitions(
 		SourceFile* sourceFile, PrefixTrie<char, CVariableDefinition*>* variables, Array<Operator*>* redoVariables);
-	static void semantFileStatements(SourceFile* sourceFile, PrefixTrie<char, CVariableDefinition*>* variables);
 	static void semantToken(
 		Token* t, PrefixTrie<char, CVariableDefinition*>* variables, SemantExpressionLevel semantExpressionLevel);
 	static void semantIdentifier(Identifier* i, PrefixTrie<char, CVariableDefinition*>* variables);
@@ -59,7 +84,16 @@ private:
 	static void semantFunctionCall(FunctionCall* f, PrefixTrie<char, CVariableDefinition*>* variables);
 	static void semantFunctionDefinition(FunctionDefinition* f, PrefixTrie<char, CVariableDefinition*>* variables);
 	static void semantGroup(Group* g, PrefixTrie<char, CVariableDefinition*>* variables);
-	static void semantStatementList(Array<Statement*>* statements);
+	static ScopeExitType semantStatementList(
+		Array<Statement*>* statements,
+		PrefixTrie<char, CVariableDefinition*>* previousVariables,
+		Array<CVariableDefinition*>* functionParameters,
+		CDataType* returnType);
 	static bool tokenHasKnownType(Token* t);
-	static bool checkType(Token* t, CDataType* expectedType);
+	static void logSemantError(ErrorType type, const char* message, Token* token);
+	static void logSemantErrorWithErrorSourceAndOriginFile(
+		ErrorType type, const char* message, Token* token, Token* errorSource, SourceFile* errorOriginFile);
+	static void logSemantErrorWithErrorCheck(ErrorType type, const char* message, Token* token, Token* errorCheck);
+	static void logSemantErrorWithErrorSourceAndOriginFileWithErrorCheck(
+		ErrorType type, const char* message, Token* token, Token* errorSource, SourceFile* errorOriginFile, Token* errorCheck);
 };

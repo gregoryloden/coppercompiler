@@ -55,7 +55,7 @@ Function i = int(int j) (
 Function k = int(int l, int m) (
 	return l + m;
 );
-Function n = void() (
+Function r = void() (
 	if (true) (
 	)
 	if (false)
@@ -65,7 +65,7 @@ Function n = void() (
 	) else if (false) (
 		Function o = void () ();
 	) else (
-		int p = (Function<Function<int()>()>) q () ();
+		int p = ((Function<Function<int()>()>) q) () ();
 	)
 );
 Function q = Function<int()>() (

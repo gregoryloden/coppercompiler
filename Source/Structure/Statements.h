@@ -27,8 +27,9 @@ public:
 class ReturnStatement: public Statement {
 public:
 	Token* expression;
+	Token* returnKeywordToken;
 
-	ReturnStatement(Token* pExpression);
+	ReturnStatement(Token* pExpression, Token* pReturnKeywordToken);
 	virtual ~ReturnStatement();
 };
 class IfStatement: public Statement {

@@ -50,5 +50,9 @@ echo(String t = "t");
 
 Function main = void() (
 	#replace-input aba(a, ba, b, ab) (aba u = "bab")
-	aba(Str, ing, int, k);
+	aba(Str, ing, int, mainA);
+	#replace float3 (3.0)
+	float mainB = float3;
+	#replace int3 (3)
+	int mainC = int3;
 );

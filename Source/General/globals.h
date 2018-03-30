@@ -135,8 +135,11 @@ class Error {
 public:
 	static void makeError(ErrorType type, const char* message, Token* token);
 	static void logError(ErrorType type, const char* message, Token* token);
+	static void logErrorWithErrorSourceAndOriginFile(
+		ErrorType type, const char* message, Token* token, Token* errorSource, SourceFile* errorOriginFile);
 private:
-	static ErrorMessage* buildErrorMessage(ErrorType type, const char* message, Token* token);
+	static ErrorMessage* buildErrorMessage(
+		ErrorType type, const char* message, Token* token, Token* errorSource, SourceFile* errorOriginFile);
 };
 class ErrorMessage onlyInDebug(: public ObjCounter) {
 public:
@@ -150,15 +153,28 @@ private:
 	SourceFile* owningFile;
 	int contentPos;
 	ErrorMessage* continuation;
+	SourceFile* errorSourceOwningFile;
+	int errorSourceContentPos;
+	ErrorMessage* errorSourceContinuation;
+	SourceFile* errorOriginFile;
 
 public:
-	ErrorMessage(ErrorType pType, const char* pMessage, SourceFile* pOwningFile, int pContentPos, ErrorMessage* pContinuation);
+	ErrorMessage(
+		ErrorType pType,
+		const char* pMessage,
+		SourceFile* pOwningFile,
+		int pContentPos,
+		ErrorMessage* pContinuation,
+		SourceFile* pErrorSourceOwningFile,
+		int pErrorSourceContentPos,
+		ErrorMessage* pErrorSourceContinuation,
+		SourceFile* pErrorOriginFile);
 	~ErrorMessage();
 
 	int getRow();
 	void printError();
 private:
-	void showSnippet();
+	void showSnippet(SourceFile* snippetFile, int snippetContentPos);
 };
 #ifdef DEBUG
 	class Debug {

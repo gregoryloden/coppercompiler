@@ -5,6 +5,7 @@
 	template class PrefixTrieUnion<type1, type2>;\
 	type2 const PrefixTrie<char, type2>::emptyValue = value;
 
+instantiatePrefixTrie(char, char, 0);
 instantiatePrefixTrie(char, CDataType*, nullptr);
 instantiatePrefixTrie(char, CDirectiveReplace*, nullptr);
 instantiatePrefixTrie(char, CVariableData*, nullptr);
@@ -35,10 +36,22 @@ template <class KeyElement, class Value> PrefixTrie<KeyElement, Value>::~PrefixT
 	delete commonPrefix;
 	delete nextTree;
 }
+//check if this trie is empty
+template <class KeyElement, class Value> bool PrefixTrie<KeyElement, Value>::isEmpty() {
+	return commonPrefix == nullptr;
+}
 //set the vaue in the trie
 template <class KeyElement, class Value> Value PrefixTrie<KeyElement, Value>::set(
-	const KeyElement* key, int keyLength, Value value)
+	const KeyElement* key, int keyLength, Value newValue)
 {
+	//the very first time we add to this trie, replace the value there
+	if (commonPrefix == nullptr) {
+		commonPrefix = new char[keyLength];
+		commonPrefixLength = keyLength;
+		value = newValue;
+		memcpy(commonPrefix, key, keyLength);
+		return emptyValue;
+	}
 	PrefixTrie<KeyElement, Value>* next = this;
 	int keyIndex = 0;
 	//search through the tries
@@ -67,6 +80,7 @@ template <class KeyElement, class Value> Value PrefixTrie<KeyElement, Value>::se
 				}
 			}
 
+			//once we get here, we reached either the end of the key, the end of the trie, or the first differing key element
 			//we are no longer comparing the key and the common prefix, rearrange things as necessary
 			//first, if the common prefix has been cut short, split this trie into a new one
 			if (keyIndex < commonPrefixKeyIndexEnd) {
@@ -87,12 +101,12 @@ template <class KeyElement, class Value> Value PrefixTrie<KeyElement, Value>::se
 				if (next->nextTree == nullptr)
 					next->nextTree = new AVLTree<KeyElement, PrefixTrie<KeyElement, Value>*>();
 				next->nextTree->set(key[keyIndex],
-					new PrefixTrie<KeyElement, Value>(key, keyIndex + 1, keyLength - keyIndex - 1, value, nullptr));
+					new PrefixTrie<KeyElement, Value>(key, keyIndex + 1, keyLength - keyIndex - 1, newValue, nullptr));
 				return emptyValue;
 			//if there was no more key, we actually want to set the value here
 			} else {
 				Value oldValue = next->value;
-				next->value = value;
+				next->value = newValue;
 				return oldValue;
 			}
 		}
@@ -112,7 +126,7 @@ template <class KeyElement, class Value> Value PrefixTrie<KeyElement, Value>::ge
 		//search through the common prefix on our next trie
 		while (true) {
 			//we reached the end of the common prefix
-			if (keyIndex == commonPrefixKeyIndexEnd) {
+			if (keyIndex >= commonPrefixKeyIndexEnd) {
 				//we also reached the key end, return the value
 				if (keyIndex == keyLength)
 					return next->value;
@@ -134,35 +148,51 @@ template <class KeyElement, class Value> Value PrefixTrie<KeyElement, Value>::ge
 		}
 	}
 }
-//delete all the values in the trie
-template <class KeyElement, class Value> void PrefixTrie<KeyElement, Value>::deleteValues() {
+//get all the values in the trie
+template <class KeyElement, class Value> Array<Value>* PrefixTrie<KeyElement, Value>::getValues() {
+	Array<Value>* values = new Array<Value>();
+	addValues(values);
+	return values;
+}
+//add all the values of the trie into the array
+template <class KeyElement, class Value> void PrefixTrie<KeyElement, Value>::addValues(Array<Value>* values) {
 	if (value != emptyValue)
-		delete value;
+		values->add(value);
 	if (nextTree == nullptr)
 		return;
 	Array<AVLNode<KeyElement, PrefixTrie<KeyElement, Value>*>*>* entrySet = nextTree->entrySet();
 	forEach(AVLNode<KeyElement COMMA PrefixTrie<KeyElement COMMA Value>*>*, entry, entrySet, ei) {
-		entry->value->deleteValues();
+		entry->value->addValues(values);
 	}
 	delete entrySet;
 }
 template <class KeyElement, class Value> PrefixTrieUnion<KeyElement, Value>::PrefixTrieUnion(
 	PrefixTrie<KeyElement, Value>* pNext)
 : PrefixTrie<KeyElement, Value>()
-, next(pNext) {
+, nextPrefixTrie(pNext) {
 }
 template <class KeyElement, class Value> PrefixTrieUnion<KeyElement, Value>::~PrefixTrieUnion<KeyElement, Value>() {
 	//don't delete next since something else owns it
+}
+//check if this trie or the other trie is empty
+template <class KeyElement, class Value> bool PrefixTrieUnion<KeyElement, Value>::isEmpty() {
+	return PrefixTrie<KeyElement, Value>::isEmpty() && nextPrefixTrie->isEmpty();
 }
 //set the value, if this trie had an old value then return it, otherwise return the old value of the previous tree
 template <class KeyElement, class Value> Value PrefixTrieUnion<KeyElement, Value>::set(
 	const KeyElement* key, int keyLength, Value value)
 {
 	Value v = PrefixTrie<KeyElement, Value>::set(key, keyLength, value);
-	return (v != PrefixTrie<KeyElement, Value>::emptyValue) ? v : next->get(key, keyLength);
+	return (v != PrefixTrie<KeyElement, Value>::emptyValue) ? v : nextPrefixTrie->get(key, keyLength);
 }
 //get the value in this trie if it's there, or the other trie if it's not
 template <class KeyElement, class Value> Value PrefixTrieUnion<KeyElement, Value>::get(const KeyElement* key, int keyLength) {
 	Value v = PrefixTrie<KeyElement, Value>::get(key, keyLength);
-	return (v != PrefixTrie<KeyElement, Value>::emptyValue) ? v : next->get(key, keyLength);
+	return (v != PrefixTrie<KeyElement, Value>::emptyValue) ? v : nextPrefixTrie->get(key, keyLength);
+}
+//get the value from the other trie
+template <class KeyElement, class Value> Value PrefixTrieUnion<KeyElement, Value>::getFromParent(
+	const KeyElement* key, int keyLength)
+{
+	return nextPrefixTrie->get(key, keyLength);
 }

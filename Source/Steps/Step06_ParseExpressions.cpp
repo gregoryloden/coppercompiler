@@ -48,6 +48,7 @@ void ParseExpressions::parseNamespaceDefinitions(AbstractCodeBlock* a, Array<Tok
 			Separator* s;
 			if ((i = dynamic_cast<Identifier*>(t)) != nullptr && i->name == classKeyword) {
 				//TODO: handle definitions in types
+				Error::logError(ErrorType::General, "classes are not yet supported", i);
 			} else if ((dt = dynamic_cast<DirectiveTitle*>(t)) != nullptr)
 				//TODO: handle #enable directives
 				continue;
@@ -190,10 +191,8 @@ Token* ParseExpressions::parseExpression(
 			if ((s = dynamic_cast<Separator*>(t)) != nullptr) {
 				//stick the separator back in the token array, something else might need it
 				ti->replaceThis(tDeleter.release());
-				if (s->separatorType == SeparatorType::RightParenthesis || s->separatorType == SeparatorType::LeftParenthesis) {
-					assert(false);
+				if (s->separatorType == SeparatorType::RightParenthesis || s->separatorType == SeparatorType::LeftParenthesis)
 					Error::makeError(ErrorType::CompilerIssue, "resulting in a stray parenthesis", s);
-				}
 				if (activeExpression != nullptr && (endingSeparatorTypes & (unsigned char)(s->separatorType)) != 0)
 					return activeExpression;
 				string errorMessage = "unexpected " + Separator::separatorName(s->separatorType, false);
@@ -224,11 +223,9 @@ Token* ParseExpressions::parseExpression(
 
 		//an empty expression is never OK
 		if (activeExpression == nullptr) {
-			if (expectedExpressionErrorMessage == nullptr) {
-				assert(false);
+			if (expectedExpressionErrorMessage == nullptr)
 				Error::makeError(
 					ErrorType::CompilerIssue, "resulting in an unexpected empty expression", expectedExpressionErrorToken);
-			}
 			Error::makeError(expectedExpressionErrorType, expectedExpressionErrorMessage, expectedExpressionErrorToken);
 		//error if we weren't supposed to end on a right parenthesis
 		} else if ((endingSeparatorTypes & (unsigned char)SeparatorType::RightParenthesis) == 0) {
@@ -278,10 +275,8 @@ Token* ParseExpressions::parseValueExpression(Token* t, ArrayIterator<Token*>* t
 			dynamic_cast<BoolConstant*>(t) != nullptr ||
 			dynamic_cast<StringLiteral*>(t) != nullptr)
 		return t;
-	if (dynamic_cast<ParenthesizedExpression*>(t) != nullptr) {
-		assert(false);
+	if (dynamic_cast<ParenthesizedExpression*>(t) != nullptr)
 		Error::makeError(ErrorType::CompilerIssue, "resulting in an unrecognized parenthesized expression", t);
-	}
 	Error::makeError(ErrorType::Expected, "a value", t);
 	return nullptr;
 }
@@ -328,8 +323,26 @@ Token* ParseExpressions::addToOperator(Operator* o, Token* activeExpression, Arr
 	Operator* oNext;
 	if ((oNext = dynamic_cast<Operator*>(activeExpression)) != nullptr && newOperatorTakesRightSidePrecedence(o, oNext)) {
 		Operator* oParent = oNext;
-		while ((oNext = dynamic_cast<Operator*>(oParent->right)) != nullptr && newOperatorTakesRightSidePrecedence(o, oNext))
-			oParent = oNext;
+		//colons have special parsing
+		if (o->operatorType == OperatorType::Colon) {
+			Operator* colonParent = oParent;
+			while (true) {
+				if ((oNext = dynamic_cast<Operator*>(colonParent->right)) == nullptr) {
+					if (colonParent->operatorType == OperatorType::QuestionMark)
+						oParent = colonParent;
+					break;
+				} else if (colonParent->operatorType == OperatorType::QuestionMark &&
+						oNext->operatorType != OperatorType::Colon)
+					oParent = colonParent;
+				if (!newOperatorTakesRightSidePrecedence(o, oNext))
+					break;
+				colonParent = oNext;
+			}
+		} else {
+			while ((oNext = dynamic_cast<Operator*>(oParent->right)) != nullptr &&
+					newOperatorTakesRightSidePrecedence(o, oNext))
+				oParent = oNext;
+		}
 		o->left = oParent->right;
 		oParent->right = o;
 		return activeExpression;
@@ -374,7 +387,7 @@ Token* ParseExpressions::completeExpressionStartingWithType(CDataType* type, Ide
 	return nullptr;
 }
 //get a value expression that starts with the abstract code block
-//this could be a variable initialization (value required), a cast (if castI is not nullptr), or just a regular expression
+//this could be a cast (if castI is not nullptr) or just a regular expression
 //starting location: the given abstract code block
 //ending location: no change | the next value token after the cast
 //may throw
@@ -408,7 +421,6 @@ Token* ParseExpressions::completeParenthesizedExpression(AbstractCodeBlock* a, A
 			}
 			//otherwise it's just a regular expression
 			ai.getPrevious();
-			return completeExpressionStartingWithType(cdt, i, &ai);
 		}
 	}
 	//we do not have a cast or a type, this is a regular expression
@@ -462,11 +474,12 @@ Token* ParseExpressions::completeFunctionCall(Token* activeExpression, AbstractC
 	Operator* oParent = nullptr;
 	Operator* oNext;
 	if ((oNext = dynamic_cast<Operator*>(activeExpression)) != nullptr) {
-		do {
+		//function calls are like postfix operators, don't steal the right side of operators with a higher precedence
+		while (oNext->precedence < OperatorTypePrecedence::Postfix) {
 			oParent = oNext;
-		} while ((oNext = dynamic_cast<Operator*>(oParent->right)) &&
-			//function calls are like postfix operators, don't steal the right side of operators with a higher precedence
-			oNext->precedence < OperatorTypePrecedence::Postfix);
+			if ((oNext = dynamic_cast<Operator*>(oParent->right)) == nullptr)
+				break;
+		}
 	}
 	Token* function = oParent == nullptr ? activeExpression : oParent->right;
 	//build a list of arguments
@@ -504,10 +517,8 @@ Token* ParseExpressions::completeCast(CDataType* type, bool rawCast, AbstractCod
 	Cast* cast = new Cast(type, rawCast, castBody);
 	Deleter<Token> castDeleter (cast);
 	Token* value = addToOperator(cast, nullptr, ti);
-	if (value != cast) {
-		assert(false);
+	if (value != cast)
 		Error::makeError(ErrorType::CompilerIssue, "resulting in a cast being misinterpreted as a normal operator", cast);
-	}
 	return castDeleter.release();
 }
 //get a single statement or a statement list, erroring if there's nothing left
@@ -598,11 +609,15 @@ Statement* ParseExpressions::parseKeywordStatement(Token* t, ArrayIterator<Token
 	string keyword = keywordToken->name;
 	bool continueLoop;
 	if (keyword == returnKeyword) {
-		Token* t = parseExpectedToken<Token>(ti, keywordToken, "an expression or semicolon");
+		Deleter<Identifier> returnKeywordToken (keywordToken);
+		ti->replaceThis(nullptr);
+		Token* returnValue = parseExpectedToken<Token>(ti, keywordToken, "an expression or semicolon");
 		Separator* s;
-		return new ReturnStatement((s = dynamic_cast<Separator*>(t)) != nullptr && s->separatorType == SeparatorType::Semicolon
-			? nullptr
-			: parseExpression(ti, (unsigned char)SeparatorType::Semicolon, ErrorType::General, nullptr, t));
+		return new ReturnStatement(
+			(s = dynamic_cast<Separator*>(returnValue)) != nullptr && s->separatorType == SeparatorType::Semicolon
+				? nullptr
+				: parseExpression(ti, (unsigned char)SeparatorType::Semicolon, ErrorType::General, nullptr, t),
+			returnKeywordToken.release());
 	} else if (keyword == ifKeyword) {
 		AbstractCodeBlock* conditionBlock = parseExpectedToken<AbstractCodeBlock>(ti, keywordToken, "a condition expression");
 		Deleter<Token> condition (completeParenthesizedExpression(conditionBlock, nullptr));
@@ -684,21 +699,12 @@ bool ParseExpressions::newOperatorTakesRightSidePrecedence(Operator* oNew, Opera
 		return oNew->precedence > oOld->precedence;
 	//some operators group on the right, whereas most operators group on the left
 	switch (oNew->precedence) {
+		//question marks always group on the right, colons will do their own special handling
 		case OperatorTypePrecedence::Ternary:
-			//beginning of a ternary, always group on the right
-			if (oNew->operatorType == OperatorType::QuestionMark)
-				return true;
-			//this is a colon and the other one is a question mark- steal the right side if there isn't a colon already
-			else if (oOld->operatorType == OperatorType::QuestionMark) {
-				Operator* o;
-				return (o = dynamic_cast<Operator*>(oOld->right)) == nullptr || o->operatorType != OperatorType::Colon;
-			//this is a colon and the other one is a colon too
-			//since we never steal the right side of a question mark, this is an error, but we'll handle this in Semant
-			} else
-				return true;
 		case OperatorTypePrecedence::ObjectMemberAccess:
 		case OperatorTypePrecedence::BooleanAnd:
 		case OperatorTypePrecedence::BooleanOr:
+		//assignments aren't supposed to appear in the same subexpression but we'll catch that error later
 		case OperatorTypePrecedence::Assignment:
 			return true;
 	}
