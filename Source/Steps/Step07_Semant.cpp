@@ -67,7 +67,7 @@ void Semant::semant(Pliers* pliers) {
 	skipStatementsWhileFindingGlobalVariableDefinitions = false;
 	forEach(SourceFile*, s, pliers->allFiles, si3) {
 		if (pliers->printProgress)
-			printf("Analyzing semantics for global variables in %s...\n", s->filename.c_str());
+			printf("Analyzing semantics for statements in %s...\n", s->filename.c_str());
 		forEach(Token*, t, s->globalVariables, ti) {
 			iterateTokens(t, SemantTokenIterationType::SemantFileStatements, s->variablesVisibleToFile, nullptr);
 		}
