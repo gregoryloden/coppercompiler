@@ -364,6 +364,7 @@ void ErrorMessage::showSnippet(SourceFile* snippetFile, int snippetContentPos) {
 			}
 		} else if ((o = dynamic_cast<Operator*>(t)) != nullptr) {
 			Cast* c;
+			StaticOperator* s;
 			if ((c = dynamic_cast<Cast*>(t)) != nullptr) {
 				printf("(");
 				if (c->isRaw)
@@ -372,6 +373,10 @@ void ErrorMessage::showSnippet(SourceFile* snippetFile, int snippetContentPos) {
 				printf(")(");
 				printTokenTree(c->right, tabsCount, false);
 				printf(")");
+			} else if ((s = dynamic_cast<StaticOperator*>(t)) != nullptr) {
+				printf(s->ownerType->name.c_str());
+				printLexToken(s);
+				printLexToken(s->right);
 			} else {
 				if (printOperatorParentheses)
 					printf("(");
@@ -483,8 +488,10 @@ void ErrorMessage::showSnippet(SourceFile* snippetFile, int snippetContentPos) {
 				printStatementList(i->thenBody, tabsCount, elseBody != nullptr);
 				if (elseBody != nullptr) {
 					printf("else");
-					if (i->elseBody->length == 1 && (i = dynamic_cast<IfStatement*>(elseBody->get(0))) != nullptr) {
+					IfStatement* elseI;
+					if (elseBody->length == 1 && (elseI = dynamic_cast<IfStatement*>(elseBody->get(0))) != nullptr) {
 						printf(" ");
+						i = elseI;
 						continue;
 					} else
 						printStatementList(i->elseBody, tabsCount, false);
