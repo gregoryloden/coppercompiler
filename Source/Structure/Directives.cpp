@@ -19,9 +19,10 @@ CDirectiveReplace::~CDirectiveReplace() {
 	delete replacement;
 	//don't delete the parent file
 }
-CDirectiveInclude::CDirectiveInclude(string pFilename, bool pIncludeAll)
+CDirectiveInclude::CDirectiveInclude(string fullPath)
 : CDirective(onlyWhenTrackingIDs("DTVINCL"))
-, filename(pFilename)
-, includeAll(pIncludeAll) {
+, path(new IncludedPath(fullPath.c_str())) {
 }
-CDirectiveInclude::~CDirectiveInclude() {}
+CDirectiveInclude::~CDirectiveInclude() {
+	delete path;
+}

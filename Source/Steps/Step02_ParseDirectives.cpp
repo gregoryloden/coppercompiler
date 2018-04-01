@@ -93,9 +93,7 @@ CDirective* ParseDirectives::completeDirective(DirectiveTitle* dt) {
 	else if (dt->title == "replace-input")
 		return completeDirectiveReplace(true, dt);
 	else if (dt->title == "include")
-		return completeDirectiveInclude(false, dt);
-	else if (dt->title == "include-all")
-		return completeDirectiveInclude(true, dt);
+		return completeDirectiveInclude(dt);
 	//other directives may change the lexing mode
 
 	Error::makeError(ErrorType::General, "unknown directive type", dt);
@@ -115,9 +113,9 @@ CDirectiveReplace* ParseDirectives::completeDirectiveReplace(bool replaceInput, 
 //get the definition of an include directive
 //parse location: the next token after the include directive
 //may throw
-CDirectiveInclude* ParseDirectives::completeDirectiveInclude(bool includeAll, DirectiveTitle* endOfFileErrorToken) {
+CDirectiveInclude* ParseDirectives::completeDirectiveInclude(DirectiveTitle* endOfFileErrorToken) {
 	StringLiteral* filenameLiteral = parseToken<StringLiteral>("a filename", endOfFileErrorToken);
-	CDirectiveInclude* directive = new CDirectiveInclude(filenameLiteral->val, includeAll);
+	CDirectiveInclude* directive = new CDirectiveInclude(filenameLiteral->val);
 	delete filenameLiteral;
 	return directive;
 }

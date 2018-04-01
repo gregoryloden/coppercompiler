@@ -25,7 +25,7 @@ private:
 	static AbstractCodeBlock* parseAbstractCodeBlock(bool endsWithParenthesis, int contentPos);
 	static CDirective* completeDirective(DirectiveTitle* dt);
 	static CDirectiveReplace* completeDirectiveReplace(bool replaceInput, DirectiveTitle* endOfFileErrorToken);
-	static CDirectiveInclude* completeDirectiveInclude(bool includeAll, DirectiveTitle* endOfFileErrorToken);
+	static CDirectiveInclude* completeDirectiveInclude(DirectiveTitle* endOfFileErrorToken);
 	template <class TokenType> static TokenType* parseToken(const char* expectedTokenTypeName, Token* endOfFileErrorToken);
 	static int parseSeparator(SeparatorType type, const char* expectedTokenTypeName, Token* endOfFileErrorToken);
 	static Array<string>* parseReplaceParameters(Identifier* endOfFileErrorToken);

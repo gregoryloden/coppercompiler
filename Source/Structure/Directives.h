@@ -1,5 +1,7 @@
 #include "../General/globals.h"
 
+class IncludedPath;
+
 class CDirective onlyInDebug(: public ObjCounter) {
 protected:
 	CDirective(onlyWhenTrackingIDs(char* pObjType));
@@ -19,9 +21,8 @@ public:
 };
 class CDirectiveInclude: public CDirective {
 public:
-	string filename; //copper: private<readonly Include>
-	bool includeAll; //copper: private<readonly Include>
+	IncludedPath* path; //copper: private<readonly Include>
 
-	CDirectiveInclude(string pFilename, bool pIncludeAll);
+	CDirectiveInclude(string fullPath);
 	virtual ~CDirectiveInclude();
 };

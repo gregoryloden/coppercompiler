@@ -22,16 +22,14 @@ void Include::loadFiles(Pliers* pliers) {
 				continue;
 
 			//get the included file
-			string includedName = i->filename;
+			string includedName = i->path->splitPath->get(0);
 			SourceFile* includedFile = filesByName->get(includedName.c_str(), includedName.length());
 			if (includedFile == PrefixTrie<char, SourceFile*>::emptyValue)
 				includedFile = newSourceFile(includedName.c_str());
 			nextFile->includedFiles->set(includedFile, true);
-			//if we're including all, add all its included files and add this to its listeners list
-			if (i->includeAll) {
-				nextFile->includedFiles->setAllFrom(includedFile->includedFiles);
-				includedFile->inclusionListeners->add(nextFile);
-			}
+			//add all its included files and add this to its listeners list
+			nextFile->includedFiles->setAllFrom(includedFile->includedFiles);
+			includedFile->inclusionListeners->add(nextFile);
 		}
 		//and now notify any of our own inclusion listeners that we included files
 		forEach(SourceFile*, listener, nextFile->inclusionListeners, sfi)
