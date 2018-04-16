@@ -6,6 +6,8 @@ template <class Type> class Array;
 
 class File onlyInDebug(: public ObjCounter) {
 public:
+	static string currentWorkingDirectory;
+
 	File();
 	virtual ~File();
 };

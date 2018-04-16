@@ -32,6 +32,14 @@ int main(int argc, char* argv[]) {
 		if (GetConsoleMode(stdHandle, &consoleMode))
 			SetConsoleMode(stdHandle, consoleMode & ~ENABLE_MOUSE_INPUT);
 	#endif
+	#ifdef WIN32
+		char pathBuffer[MAX_PATH];
+		GetCurrentDirectory(MAX_PATH, pathBuffer);
+		File::currentWorkingDirectory = pathBuffer;
+printf(File::currentWorkingDirectory.c_str());
+printf("\n");
+while (true) {}
+	#endif
 	//Start compiling
 	#ifdef DEBUG
 		ObjCounter::start();

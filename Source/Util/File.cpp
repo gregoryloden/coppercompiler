@@ -1,5 +1,6 @@
 #include "Project.h"
 
+string File::currentWorkingDirectory;
 File::File()
 onlyInDebug(: ObjCounter(onlyWhenTrackingIDs("FILE"))) {
 }

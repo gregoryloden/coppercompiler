@@ -9,7 +9,8 @@ thread_local PrefixTrie<char, SourceFile*>* Include::filesByName = nullptr;
 void Include::loadFiles(Pliers* pliers) {
 	currentPliers = pliers;
 	filesByName = new PrefixTrie<char, SourceFile*>();
-	SourceFile* baseFile = newSourceFile(pliers->baseFileName);
+	string baseFileNameFullPath = File::currentWorkingDirectory + "/" + pliers->baseFileName;
+	SourceFile* baseFile = newSourceFile(baseFileNameFullPath.c_str());
 	for (int filei = 0; filei < pliers->allFiles->length; filei++) {
 		SourceFile* nextFile = pliers->allFiles->get(filei);
 		ParseDirectives::parseDirectives(nextFile);
@@ -22,7 +23,7 @@ void Include::loadFiles(Pliers* pliers) {
 				continue;
 
 			//get the included file
-			string includedName = i->path->splitPath->get(0);
+			string includedName = File::currentWorkingDirectory + "/" + i->path->splitPath->get(0);
 			SourceFile* includedFile = filesByName->get(includedName.c_str(), includedName.length());
 			if (includedFile == PrefixTrie<char, SourceFile*>::emptyValue)
 				includedFile = newSourceFile(includedName.c_str());
