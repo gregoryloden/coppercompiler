@@ -7,7 +7,7 @@ void Optimize::optimize(Pliers* pliers) {
 	forEach(SourceFile*, s, pliers->allFiles, si) {
 		try {
 			if (pliers->printProgress)
-				printf("Optimizing %s...\n", s->filename.c_str());
+				printf("Optimizing %s...\n", s->path->fileName.c_str());
 			//TODO: optimize
 		} catch (...) {
 		}

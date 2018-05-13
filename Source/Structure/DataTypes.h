@@ -1,6 +1,4 @@
 #include "../General/globals.h"
-#include "string"
-using namespace std;
 
 class CErrorType;
 class CVoid;

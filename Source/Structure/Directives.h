@@ -1,6 +1,11 @@
 #include "../General/globals.h"
 
-class IncludedPath;
+class Path;
+class AbstractCodeBlock;
+class Identifier;
+class StringLiteral;
+class SourceFile;
+template <class Type> class Array;
 
 class CDirective onlyInDebug(: public ObjCounter) {
 protected:
@@ -21,8 +26,9 @@ public:
 };
 class CDirectiveInclude: public CDirective {
 public:
-	IncludedPath* path; //copper: private<readonly Include>
+	StringLiteral* pathName; //copper: private<readonly Include>
+	Path* path; //copper: private<readonly Include>
 
-	CDirectiveInclude(string fullPath);
+	CDirectiveInclude(StringLiteral* pPathName);
 	virtual ~CDirectiveInclude();
 };

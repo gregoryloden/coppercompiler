@@ -1,5 +1,7 @@
 #ifndef GLOBALS_H
 #define GLOBALS_H
+#include "string"
+using namespace std;
 
 class Token;
 class AbstractCodeBlock;
@@ -10,7 +12,7 @@ class ErrorMessage;
 template <class Type> class Array;
 
 #define forEach(Type, t, a, ti) ArrayIterator<Type> ti (a); for (Type t = ti.getThis(); ti.hasThis(); t = ti.getNext())
-#define forEachContinued(Type, t, ti) for (Type t = ti->getThis(); ti->hasThis(); t = ti->getNext())
+#define forEachContinued(Type, t, ti) for (Type t = (ti)->getThis(); (ti)->hasThis(); t = (ti)->getNext())
 #define COMMA ,
 #ifdef DEBUG
 	#define onlyInDebug(x) x
@@ -76,6 +78,11 @@ public:
 
 	static int min(int a, int b);
 	static int max(int a, int b);
+};
+class StringUtils {
+public:
+	static Array<string>* split(string s, char delimiter);
+	static bool stringMatchesWildcard(string s, Array<string>* wildcardMatchSubstrings);
 };
 #ifdef DEBUG
 	class ObjCounter {

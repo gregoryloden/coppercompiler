@@ -9,7 +9,7 @@ void ParseTypes::parseTypes(Pliers* pliers) {
 	forEach(SourceFile*, s, pliers->allFiles, si) {
 		try {
 			if (pliers->printProgress)
-				printf("Parsing types for %s...\n", s->filename.c_str());
+				printf("Parsing types for %s...\n", s->path->fileName.c_str());
 			//TODO: parse types
 		} catch (...) {
 		}

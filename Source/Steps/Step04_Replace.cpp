@@ -9,7 +9,7 @@
 void Replace::replaceCodeInFiles(Pliers* pliers) {
 	forEach(SourceFile*, s, pliers->allFiles, si) {
 		if (pliers->printProgress)
-			printf("Replacing code in %s...\n", s->filename.c_str());
+			printf("Replacing code in %s...\n", s->path->fileName.c_str());
 
 		//find all replace directives
 		PrefixTrie<char, CDirectiveReplace*> replaces;

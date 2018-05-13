@@ -1,5 +1,7 @@
 class SourceFile;
 class Pliers;
+class Path;
+class StringLiteral;
 template <class Type> class Array;
 template <class KeyElement, class Value> class PrefixTrie;
 
@@ -11,5 +13,7 @@ private:
 public:
 	static void loadFiles(Pliers* pliers);
 private:
-	static SourceFile* newSourceFile(const char* fileName);
+	static void resolveIncludedFiles(
+		SourceFile* file, Path* currentPath, Path* includedPath, StringLiteral* inclusionSource, bool wasWildcard);
+	static SourceFile* getSourceFile(Path* path, StringLiteral* inclusionSource, bool wasWildcard);
 };

@@ -1,4 +1,4 @@
-#include "Test/Step06_ParseExpressions_parseExpressions.cu"
+#include "Step06_ParseExpressions_parseExpressions.cu"
 ;
 String a;
 int b = f();

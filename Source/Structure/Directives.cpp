@@ -17,12 +17,24 @@ CDirectiveReplace::~CDirectiveReplace() {
 	delete toReplace;
 	delete input;
 	delete replacement;
-	//don't delete the parent file
+	//don't delete the owning file
 }
-CDirectiveInclude::CDirectiveInclude(string fullPath)
+CDirectiveInclude::CDirectiveInclude(StringLiteral* pPathName)
 : CDirective(onlyWhenTrackingIDs("DTVINCL"))
-, path(new IncludedPath(fullPath.c_str())) {
+, pathName(pPathName)
+, path(nullptr) {
+	//create a path and then flip it so that we can parse it in reverse
+	Path* reversedPath = Path::createPath(pPathName->val);
+	Path* forwardPath = nullptr;
+	while (reversedPath != nullptr) {
+		Path* tempPath = reversedPath;
+		reversedPath = reversedPath->parentDirectory;
+		tempPath->parentDirectory = forwardPath;
+		forwardPath = tempPath;
+	}
+	path = forwardPath;
 }
 CDirectiveInclude::~CDirectiveInclude() {
-	delete path;
+	path->deleteFullPath();
+	delete pathName;
 }

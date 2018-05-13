@@ -11,7 +11,7 @@ thread_local int ParseDirectives::expectedFallbackParentheses = 1;
 //parse location: EOF
 void ParseDirectives::parseDirectives(SourceFile* newSourceFile) {
 	if (newSourceFile->owningPliers->printProgress)
-		printf("Parsing directives for %s...\n", newSourceFile->filename.c_str());
+		printf("Parsing directives for %s...\n", newSourceFile->path->fileName.c_str());
 	sourceFile = newSourceFile;
 	Lex::initializeLexer(newSourceFile);
 	newSourceFile->abstractContents = parseAbstractCodeBlock(false, 0);
@@ -114,10 +114,7 @@ CDirectiveReplace* ParseDirectives::completeDirectiveReplace(bool replaceInput, 
 //parse location: the next token after the include directive
 //may throw
 CDirectiveInclude* ParseDirectives::completeDirectiveInclude(DirectiveTitle* endOfFileErrorToken) {
-	StringLiteral* filenameLiteral = parseToken<StringLiteral>("a filename", endOfFileErrorToken);
-	CDirectiveInclude* directive = new CDirectiveInclude(filenameLiteral->val);
-	delete filenameLiteral;
-	return directive;
+	return new CDirectiveInclude(parseToken<StringLiteral>("a filename", endOfFileErrorToken));
 }
 //lex a token and make sure that it's the right type
 //parse location: the next token after this one

@@ -1498,10 +1498,10 @@ MainFunction::MainFunction(Function* f, string s, size_t thecontentpos):
 MainFunction::~MainFunction() {}
 */
 //-------------------------------------------------------------------------------------------------------------------------------------------------------------
-SourceFile::SourceFile(string pFilename, Pliers* pOwningPliers)
+SourceFile::SourceFile(Path* pPath, Pliers* pOwningPliers)
 : onlyInDebug(ObjCounter(onlyWhenTrackingIDs("SRCFILE")) COMMA)
 owningPliers(pOwningPliers)
-, filename(pFilename)
+, path(pPath)
 , contents(nullptr)
 , contentsLength(0)
 , rowStarts(new Array<int>())
@@ -1512,15 +1512,12 @@ owningPliers(pOwningPliers)
 , globalVariables(new Array<Token*>())
 , variablesVisibleToFile(new PrefixTrie<char, CVariableDefinition*>())
 , variablesDeclaredInFile(nullptr) {
-	//load the file
-	FILE* file = nullptr;
-	fopen_s(&file, filename.c_str(), "rb");
-	if (file == nullptr) {
-		printf("Unable to open file \"%s\"\n", filename.c_str());
-		return;
-	}
+}
+//given a pre-opened file, load its contents
+void SourceFile::loadFile(FILE* file) {
 	fseek(file, 0, SEEK_END);
 	contentsLength = ftell(file);
+	delete[] contents;
 	contents = new char[contentsLength + 1];
 	rewind(file);
 	fread(contents, 1, contentsLength, file);
@@ -1528,6 +1525,7 @@ owningPliers(pOwningPliers)
 	fclose(file);
 }
 SourceFile::~SourceFile() {
+	path->deleteFullPath();
 	delete[] contents;
 	delete rowStarts;
 	delete abstractContents;

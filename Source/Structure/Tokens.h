@@ -1,6 +1,4 @@
 #include "../General/globals.h"
-#include "string"
-using namespace std;
 
 class SourceFile;
 class CDirective;

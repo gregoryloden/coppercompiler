@@ -1,6 +1,4 @@
 #include "../General/globals.h"
-#include "string"
-using namespace std;
 
 /*
 #define EEXPRESSION 0
@@ -112,6 +110,7 @@ class AbstractCodeBlock;
 class StatementList;
 class Token;
 class Pliers;
+class Path;
 template <class Key, class Value> class AVLTree;
 template <class KeyElement, class Value> class PrefixTrie;
 /*
@@ -413,7 +412,7 @@ public:
 //-------------------------------------------------------------------------------------------------------------------------------------------------------------
 class SourceFile onlyInDebug(: public ObjCounter) {
 public:
-	string filename; //copper: private<readonly Include>
+	Path* path; //copper: private<readonly Include>
 	Pliers* owningPliers; //copper: private<readonly Error>
 	char* contents; //copper: private<readonly Lex>
 	int contentsLength; //copper: private<readonly(Lex, ParseDirectives)>
@@ -428,9 +427,10 @@ public:
 	//Array<??????????> typesDefined;
 //	Array<CClass*>* classes;
 
-	SourceFile(string pFilename, Pliers* pOwningPliers);
+	SourceFile(Path* pPath, Pliers* pOwningPliers);
 	virtual ~SourceFile();
 
+	void loadFile(FILE* file);
 	int getRow(int contentPos);
 };
 class CVariableDefinition onlyInDebug(: public ObjCounter) {

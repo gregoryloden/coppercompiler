@@ -17,6 +17,7 @@ instantiateArrayTypes(ErrorMessage*);
 instantiateArrayTypes(Identifier*);
 instantiateArrayTypes(LexToken*);
 instantiateArrayTypes(Operator*);
+instantiateArrayTypes(Path*);
 instantiateArrayTypes(SourceFile*);
 instantiateArrayTypes(Statement*);
 instantiateArrayTypes(Token*);

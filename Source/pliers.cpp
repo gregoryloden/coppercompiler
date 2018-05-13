@@ -35,10 +35,7 @@ int main(int argc, char* argv[]) {
 	#ifdef WIN32
 		char pathBuffer[MAX_PATH];
 		GetCurrentDirectory(MAX_PATH, pathBuffer);
-		File::currentWorkingDirectory = pathBuffer;
-printf(File::currentWorkingDirectory.c_str());
-printf("\n");
-while (true) {}
+		Path::currentWorkingDirectory = pathBuffer;
 	#endif
 	//Start compiling
 	#ifdef DEBUG
@@ -114,7 +111,7 @@ Pliers::Pliers(const char* pBaseFileName, bool pPrintProgress onlyInDebug(COMMA 
 	#ifdef DEBUG
 		if (printContents) {
 			forEach(SourceFile*, s, allFiles, si1) {
-				printf("Initial contents for \"%s\":\n", s->filename.c_str());
+				printf("Initial contents for \"%s\":\n", s->path->fileName.c_str());
 				Debug::printAbstractCodeBlock(s->abstractContents, 1);
 			}
 		}
@@ -125,7 +122,7 @@ Pliers::Pliers(const char* pBaseFileName, bool pPrintProgress onlyInDebug(COMMA 
 	#ifdef DEBUG
 		if (printContents) {
 			forEach(SourceFile*, s, allFiles, si2) {
-				printf("Replaced contents for \"%s\":\n", s->filename.c_str());
+				printf("Replaced contents for \"%s\":\n", s->path->fileName.c_str());
 				Debug::printAbstractCodeBlock(s->abstractContents, 1);
 			}
 		}
@@ -139,7 +136,7 @@ Pliers::Pliers(const char* pBaseFileName, bool pPrintProgress onlyInDebug(COMMA 
 	#ifdef DEBUG
 		if (printContents) {
 			forEach(SourceFile*, s, allFiles, si3) {
-				printf("Global definitions for \"%s\":\n", s->filename.c_str());
+				printf("Global definitions for \"%s\":\n", s->path->fileName.c_str());
 				forEach(Token*, t, s->globalVariables, ti) {
 					Debug::printTokenTree(t, 0, false);
 					printf(";\n");

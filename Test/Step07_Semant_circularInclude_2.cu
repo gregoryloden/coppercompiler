@@ -1,2 +1,2 @@
-#include "Test/Step07_Semant_circularInclude.cu"
+#include "Step07_Semant_circularInclude.cu"
 int b = a;

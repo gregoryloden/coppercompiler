@@ -66,11 +66,56 @@ instantiateArrayDeleters(CVariableDefinition);
 instantiateArrayDeleters(Statement);
 instantiateArrayDeleters(Token);
 
+//return the smaller of the two numbers
 int Math::min(int a, int b) {
 	return a < b ? a : b;
 }
+//return the larger of the two numbers
 int Math::max(int a, int b) {
 	return a > b ? a : b;
+}
+//return an array of substrings that appear between instances of the given delimiter
+Array<string>* StringUtils::split(string s, char delimiter) {
+	Array<string>* result = new Array<string>();
+	const char* sCStr = s.c_str();
+	int sLength = s.length();
+	int nextSubstringStartIndex = 0;
+	for (int i = 0; i < sLength; i++) {
+		if (sCStr[i] == delimiter) {
+			result->add(string(sCStr + nextSubstringStartIndex, i - nextSubstringStartIndex));
+			nextSubstringStartIndex = i + 1;
+		}
+	}
+	result->add(string(sCStr + nextSubstringStartIndex, sLength - nextSubstringStartIndex));
+	return result;
+}
+//check if the given string matches the string that has already been split around the wildcard character
+//if there is only one match substring, this returns whether the the two strings are equal
+//if there is more than one match substring,
+//	returns whether all the match substrings are found in the string in order without overlap
+bool StringUtils::stringMatchesWildcard(string s, Array<string>* wildcardMatchSubstrings) {
+	if (wildcardMatchSubstrings->length < 1)
+		return false;
+	size_t nextSubstringCheckIndex = s.find(wildcardMatchSubstrings->first());
+	if (nextSubstringCheckIndex != 0)
+		return false;
+	nextSubstringCheckIndex += wildcardMatchSubstrings->first().length();
+	if (wildcardMatchSubstrings->length == 1)
+		return nextSubstringCheckIndex == s.length();
+	int end = wildcardMatchSubstrings->length - 1;
+	for (int i = 1; i < end; i++) {
+		string wildcardMatchSubstring = wildcardMatchSubstrings->get(i);
+		nextSubstringCheckIndex = s.find(wildcardMatchSubstring, nextSubstringCheckIndex);
+		if (nextSubstringCheckIndex == string::npos)
+			return false;
+		nextSubstringCheckIndex += wildcardMatchSubstring.length();
+	}
+	string lastWildcardSubstring = wildcardMatchSubstrings->last();
+	return s.compare(
+			Math::max(nextSubstringCheckIndex, s.length() - lastWildcardSubstring.length()),
+			lastWildcardSubstring.length(),
+			lastWildcardSubstring
+		) == 0;
 }
 #ifdef DEBUG
 	#ifdef TRACK_OBJ_IDS
@@ -246,11 +291,11 @@ void ErrorMessage::printError() {
 	int row = getRow();
 	//print the error
 	if (errorOriginFile != nullptr && errorOriginFile != owningFile && errorOriginFile != errorSourceOwningFile)
-		printf("From \"%s\":\n", errorOriginFile->filename.c_str());
+		printf("From \"%s\":\n", errorOriginFile->path->fileName.c_str());
 	char* errorPrefix = type == ErrorType::Continuation
 		? "  -- in \"%s\" at line %d char %d\n"
 		: "Error in \"%s\" at line %d char %d: ";
-	printf(errorPrefix, owningFile->filename.c_str(), row + 1, contentPos - owningFile->rowStarts->get(row) + 1);
+	printf(errorPrefix, owningFile->path->fileName.c_str(), row + 1, contentPos - owningFile->rowStarts->get(row) + 1);
 	switch (type) {
 		case ErrorType::General: puts(message); break;
 		case ErrorType::EndOfFileWhileSearching: printf("reached the end of the file while searching for %s\n", message); break;
@@ -267,7 +312,7 @@ void ErrorMessage::printError() {
 		row = errorSourceOwningFile->getRow(errorSourceContentPos);
 		printf(
 			" from \"%s\" at line %d char %d:\n",
-			errorSourceOwningFile->filename.c_str(),
+			errorSourceOwningFile->path->fileName.c_str(),
 			row + 1,
 			errorSourceContentPos - errorSourceOwningFile->rowStarts->get(row) + 1);
 		showSnippet(errorSourceOwningFile, errorSourceContentPos);
