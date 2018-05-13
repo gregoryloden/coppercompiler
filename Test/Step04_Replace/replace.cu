@@ -1,4 +1,4 @@
-#include "Step04_Replace_replace.cu"
+#include "replace.cu"
 #replace int16 (
 	short
 )

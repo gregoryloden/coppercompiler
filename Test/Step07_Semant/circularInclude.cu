@@ -1,4 +1,4 @@
-#include "Step07_Semant_circularInclude_2.cu"
+#include "circularInclude_2.cu"
 int a = b;
 int c = 4;
 Function main = void() (
