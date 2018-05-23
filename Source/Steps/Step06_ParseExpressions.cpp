@@ -16,12 +16,9 @@ const char* ParseExpressions::rawKeyword = "raw";
 //parse all expressions in all files
 void ParseExpressions::parseExpressionsInFiles(Pliers* pliers) {
 	forEach(SourceFile*, s, pliers->allFiles, si) {
-		try {
-			if (pliers->printProgress)
-				printf("Parsing expressions for %s...\n", s->path->fileName.c_str());
-			parseNamespaceDefinitions(s->abstractContents, s->globalVariables);
-		} catch (...) {
-		}
+		if (pliers->printProgress)
+			printf("Parsing expressions for %s...\n", s->path->fileName.c_str());
+		parseNamespaceDefinitions(s->abstractContents, s->globalVariables);
 	}
 }
 //get the next token from the array as a token of the specified type
@@ -72,6 +69,7 @@ CDataType* ParseExpressions::parseType(Identifier* i, ArrayIterator<Token*>* ti)
 	if (cdt == nullptr)
 		return nullptr;
 
+	//check whether we have a left angle bracket for type arguments
 	Token* t = ti->getNext();
 	Operator* o;
 	if (!ti->hasThis() || (o = dynamic_cast<Operator*>(t)) == nullptr || o->operatorType != OperatorType::LessThan) {

@@ -84,6 +84,10 @@ public:
 	static Array<string>* split(string s, char delimiter);
 	static bool stringMatchesWildcard(string s, Array<string>* wildcardMatchSubstrings);
 };
+class TimeUtils {
+public:
+	static int getElapsedMilliseconds();
+};
 #ifdef DEBUG
 	class ObjCounter {
 	private:

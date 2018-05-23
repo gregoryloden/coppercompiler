@@ -1,4 +1,9 @@
 #include "Project.h"
+#ifdef WIN32
+	#include <Windows.h>
+	#undef min
+	#undef max
+#endif
 
 #define instantiateArrayDeleters(type) template class ArrayContentDeleter<type>; template class Deleter<Array<type*>>;
 #ifdef TRACK_OBJ_IDS
@@ -89,6 +94,28 @@ Array<string>* StringUtils::split(string s, char delimiter) {
 	result->add(string(sCStr + nextSubstringStartIndex, sLength - nextSubstringStartIndex));
 	return result;
 }
+#ifdef WIN32
+	LARGE_INTEGER TimeUtils_frequency = []() -> LARGE_INTEGER {
+		LARGE_INTEGER frequency;
+		QueryPerformanceFrequency(&frequency);
+		return frequency;
+	}();
+	LARGE_INTEGER TimeUtils_getTimestamp() {
+		LARGE_INTEGER timestamp;
+		QueryPerformanceCounter(&timestamp);
+		return timestamp;
+	};
+	LARGE_INTEGER TimeUtils_firstTimestamp = TimeUtils_getTimestamp();
+#endif
+//returns the number of milliseconds elapsed since the start of the program
+int TimeUtils::getElapsedMilliseconds() {
+	#ifdef WIN32
+		LARGE_INTEGER timestamp = TimeUtils_getTimestamp();
+		return (int)(timestamp.QuadPart * 1000 / TimeUtils_frequency.QuadPart);
+	#else
+		return 0;
+	#endif
+};
 //check if the given string matches the string that has already been split around the wildcard character
 //if there is only one match substring, this returns whether the the two strings are equal
 //if there is more than one match substring,

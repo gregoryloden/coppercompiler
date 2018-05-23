@@ -107,6 +107,7 @@ Pliers::Pliers(const char* pBaseFileName, bool pPrintProgress onlyInDebug(COMMA 
 , printProgress(pPrintProgress)
 , allFiles(new Array<SourceFile*>())
 , errorMessages(new Array<ErrorMessage*>()) {
+	int startTime = TimeUtils::getElapsedMilliseconds();
 	Include::loadFiles(this);
 	#ifdef DEBUG
 		if (printContents) {
@@ -154,6 +155,9 @@ Pliers::Pliers(const char* pBaseFileName, bool pPrintProgress onlyInDebug(COMMA 
 
 	Build::build(this);
 	returnIfErrors();
+
+	if (printProgress)
+		printf("Compilation complete in %dms\n", TimeUtils::getElapsedMilliseconds() - startTime);
 if (printProgress)
 puts("Suspended until the rewrite is complete");
 }
