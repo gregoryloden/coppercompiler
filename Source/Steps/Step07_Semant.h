@@ -1,32 +1,15 @@
+#include "../Structure/Tokens.h"
+
 class Pliers;
 class SourceFile;
 class CVariableDefinition;
-class VariableDeclarationList;
-class Token;
-class Identifier;
-class IntConstant;
-class FloatConstant;
-class BoolConstant;
-class StringLiteral;
-class Operator;
-class DirectiveTitle;
-class Cast;
-class StaticOperator;
-class FunctionCall;
-class FunctionDefinition;
-class Group;
 class CDataType;
-class CVariableData;
 class Statement;
 template <class KeyElement, class Value> class PrefixTrie;
 template <class Type> class Array;
 enum class ErrorType: unsigned char;
+enum class OperatorType: unsigned char;
 
-enum class SemantTokenIterationType: unsigned char {
-	FindVisibleVariableDefinitions,
-	SemantFileStatements,
-	FindIfStatementConditionVariableDefinitions
-};
 enum class SemantExpressionLevel: unsigned char {
 	Subexpression = 0,
 	TopLevel = 1,
@@ -49,25 +32,37 @@ enum class ScopeExitType: unsigned char {
 	LoopJump = 1,
 	Return = 2
 };
-enum class IfStatementConditionIterationStatus: unsigned char {
-	None,
-	BooleanAnd,
-	BooleanOr
-};
 class Semant {
 private:
+	class FindVisibleVariableDefinitionsVisitor: public TokenVisitor {
+	private:
+		PrefixTrie<char, CVariableDefinition*>* variables;
+		SourceFile* originFile;
+
+	public:
+		FindVisibleVariableDefinitionsVisitor(PrefixTrie<char, CVariableDefinition*>* pVariables, SourceFile* pOriginFile);
+		virtual ~FindVisibleVariableDefinitionsVisitor();
+
+		void handleExpression(Token* t);
+		bool shouldHandleBooleanRightSide();
+	};
+	class SemantFileStatementsVisitor: public TokenVisitor {
+	private:
+		PrefixTrie<char, CVariableDefinition*>* variables;
+
+	public:
+		SemantFileStatementsVisitor(PrefixTrie<char, CVariableDefinition*>* pVariables);
+		virtual ~SemantFileStatementsVisitor();
+
+		void handleExpression(Token* t);
+	};
+
 	static thread_local bool skipStatementsWhileFindingGlobalVariableDefinitions;
 	static thread_local bool resemantingGenericTypeVariables;
-	static thread_local IfStatementConditionIterationStatus ifStatementConditionIterationStatus;
 
 public:
 	static void semant(Pliers* pliers);
 private:
-	static void iterateTokens(
-		Token* t,
-		SemantTokenIterationType iterationType,
-		PrefixTrie<char, CVariableDefinition*>* variables,
-		SourceFile* originFile);
 	static void addVariablesToTrie(
 		Array<CVariableDefinition*>* v, PrefixTrie<char, CVariableDefinition*>* variables, SourceFile* originFile);
 	static bool finalizeTypes(VariableDeclarationList* v, CDataType* valueType);

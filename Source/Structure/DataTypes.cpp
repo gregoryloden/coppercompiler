@@ -63,11 +63,7 @@ void CDataType::deleteGlobalDataTypes() {
 	emptyGroupType = nullptr;
 	stringType = nullptr;
 	mainType = nullptr;
-	Array<CDataType*>* allDataTypes = globalDataTypes->getValues();
-	forEach(CDataType*, c, allDataTypes, ci) {
-		delete c;
-	}
-	delete allDataTypes;
+	globalDataTypes->deleteValues();
 	delete globalDataTypes;
 	globalDataTypes = nullptr;
 }

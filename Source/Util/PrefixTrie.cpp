@@ -166,6 +166,15 @@ template <class KeyElement, class Value> void PrefixTrie<KeyElement, Value>::add
 	}
 	delete entrySet;
 }
+//delete all the values in the trie
+template <> void PrefixTrie<char, char>::deleteValues() {}
+template <class KeyElement, class Value> void PrefixTrie<KeyElement, Value>::deleteValues() {
+	Array<Value>* values = getValues();
+	forEach(Value, v, values, vi) {
+		delete v;
+	}
+	delete values;
+}
 template <class KeyElement, class Value> PrefixTrieUnion<KeyElement, Value>::PrefixTrieUnion(
 	PrefixTrie<KeyElement, Value>* pNext)
 : PrefixTrie<KeyElement, Value>()

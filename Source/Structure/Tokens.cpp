@@ -22,6 +22,16 @@ contentPos(cloneSource->contentPos)
 Token::~Token() {
 	//don't delete replacementSource, owningFile or dataType, they're owned by something else
 }
+//subclasses with subtokens (function statements don't count) will use the visitor to iterate over them
+void Token::visitSubtokens(TokenVisitor* t) {}
+TokenVisitor::TokenVisitor(onlyWhenTrackingIDs(char* pObjType))
+onlyInDebug(: ObjCounter(onlyWhenTrackingIDs(pObjType))) {
+}
+TokenVisitor::~TokenVisitor() {}
+//some iterations should only iterate on tokens that will definitely evaluate
+bool TokenVisitor::shouldHandleBooleanRightSide() {
+	return true;
+}
 EmptyToken::EmptyToken(int pContentPos, SourceFile* pOwningFile)
 : Token(onlyWhenTrackingIDs("EMPTTKN" COMMA) pContentPos, pContentPos, pOwningFile) {
 }
@@ -233,6 +243,15 @@ Operator::~Operator() {
 	delete right;
 }
 cloneWithReplacementSourceForType(Operator)
+//iterate the left token, and the right token if the visitor accepts it
+void Operator::visitSubtokens(TokenVisitor* visitor) {
+	if (left != nullptr)
+		visitor->handleExpression(left);
+	if (right != nullptr &&
+			(visitor->shouldHandleBooleanRightSide() ||
+				(operatorType != OperatorType::BooleanAnd && operatorType != OperatorType::BooleanOr)))
+		visitor->handleExpression(right);
+}
 DirectiveTitle::DirectiveTitle(string pTitle, int pContentPos, int pEndContentPos, SourceFile* pOwningFile)
 : LexToken(onlyWhenTrackingIDs("DCTVTTL" COMMA) pContentPos, pEndContentPos, pOwningFile)
 , title(pTitle)
@@ -296,6 +315,10 @@ ParenthesizedExpression::ParenthesizedExpression(Token* pExpression, AbstractCod
 ParenthesizedExpression::~ParenthesizedExpression() {
 	delete expression;
 }
+//iterate the subtoken
+void ParenthesizedExpression::visitSubtokens(TokenVisitor* visitor) {
+	visitor->handleExpression(expression);
+}
 Cast::Cast(CDataType* pType, bool pIsRaw, AbstractCodeBlock* source)
 : Operator(onlyWhenTrackingIDs("CAST" COMMA) OperatorType::Cast, source->contentPos, source->endContentPos, source->owningFile)
 , isRaw(pIsRaw)
@@ -322,6 +345,13 @@ FunctionCall::~FunctionCall() {
 	delete function;
 	arguments->deleteContents();
 	delete arguments;
+}
+//iterate the function itself and all its arguments
+void FunctionCall::visitSubtokens(TokenVisitor* visitor) {
+	visitor->handleExpression(function);
+	forEach(Token*, a, arguments, ai) {
+		visitor->handleExpression(a);
+	}
 }
 FunctionDefinition::FunctionDefinition(
 	CDataType* pReturnType, Array<CVariableDefinition*>* pParameters, Array<Statement*>* pBody, Identifier* typeToken)
@@ -351,4 +381,10 @@ Group::Group(Array<Token*>* pValues, Identifier* source)
 Group::~Group() {
 	values->deleteContents();
 	delete values;
+}
+//iterate the grouped values
+void Group::visitSubtokens(TokenVisitor* visitor) {
+	forEach(Token*, v, values, vi) {
+		visitor->handleExpression(v);
+	}
 }

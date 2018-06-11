@@ -445,14 +445,14 @@ public:
 class CVariableData onlyInDebug(: public ObjCounter) {
 public:
 	static const unsigned short isInitialized = 1 << 0;
+	CVariableDefinition* variable; //copper: readonly
 	unsigned short dataBitmask;
 
-	CVariableData();
-	CVariableData(CVariableData* other);
+	CVariableData(CVariableDefinition* pVariable);
 	virtual ~CVariableData();
 
 	static void addToVariableData(
-		PrefixTrie<char, CVariableData*>* allVariableData, string name, unsigned short dataBitmaskToAdd);
+		PrefixTrie<char, CVariableData*>* allVariableData, CVariableDefinition* pVariable, unsigned short dataBitmaskToAdd);
 	static bool variableDataContains(
 		PrefixTrie<char, CVariableData*>* allVariableData, string name, unsigned short otherDataBitmask);
 };

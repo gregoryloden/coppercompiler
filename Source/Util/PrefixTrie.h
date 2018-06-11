@@ -1,6 +1,6 @@
 #include "../General/globals.h"
 
-template <class KeyElement, class Value> class AVLTree;
+template <class Key, class Value> class AVLTree;
 template <class Type> class Array;
 
 template <class KeyElement, class Value> class PrefixTrie onlyInDebug(: public ObjCounter) {
@@ -33,6 +33,8 @@ public:
 	Array<Value>* getValues();
 private:
 	void addValues(Array<Value>* values);
+public:
+	void deleteValues();
 };
 template <class KeyElement, class Value> class PrefixTrieUnion: public PrefixTrie<KeyElement, Value> {
 private:

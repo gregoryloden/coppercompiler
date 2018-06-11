@@ -127,12 +127,13 @@ void Include::resolveIncludedFiles(
 //if the path points to a directory or a missing file, log an error, delete the path, skip the file, and return nullptr
 //if it's valid, create a new SourceFile, add it to the two collections, and return it
 SourceFile* Include::getSourceFile(Path* path, StringLiteral* inclusionSource, bool wasWildcard) {
-	FILE* file = nullptr;
 	string fileName = path->getFullPathName();
 	//if we already have the file, return it
 	SourceFile* oldFile = filesByName->get(fileName.c_str(), fileName.length());
 	if (oldFile != nullptr)
 		return oldFile;
+	//read the file
+	FILE* file = nullptr;
 	fopen_s(&file, fileName.c_str(), "rb");
 	//if we have an invalid wildcard file, don't error and don't make a placeholder file, just return nullptr
 	//wildcard includes can point to 0+ files, even if they match directories

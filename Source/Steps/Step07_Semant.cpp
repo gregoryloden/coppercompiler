@@ -3,10 +3,44 @@
 //verify that all types are correct, variable names match, etc.
 //specific primitive byte sizes are not handled here
 
+Semant::FindVisibleVariableDefinitionsVisitor::FindVisibleVariableDefinitionsVisitor(
+	PrefixTrie<char, CVariableDefinition*>* pVariables, SourceFile* pOriginFile)
+: TokenVisitor(onlyWhenTrackingIDs("FVDTVTR"))
+, variables(pVariables)
+, originFile(pOriginFile) {
+}
+Semant::FindVisibleVariableDefinitionsVisitor::~FindVisibleVariableDefinitionsVisitor() {
+	//don't delete the variables, they're owned by something else
+}
+//search the token for variable initializations that will definitely happen and be visible to other expressions
+void Semant::FindVisibleVariableDefinitionsVisitor::handleExpression(Token* t) {
+	VariableDeclarationList* v;
+	if ((v = dynamic_cast<VariableDeclarationList*>(t)) != nullptr)
+		addVariablesToTrie(v->variables, variables, originFile);
+	else
+		t->visitSubtokens(this);
+}
+//variable definitions in boolean right sides are not visible
+bool Semant::FindVisibleVariableDefinitionsVisitor::shouldHandleBooleanRightSide() {
+	return false;
+}
+Semant::SemantFileStatementsVisitor::SemantFileStatementsVisitor(PrefixTrie<char, CVariableDefinition*>* pVariables)
+: TokenVisitor(onlyWhenTrackingIDs("SFSTVTR"))
+, variables(pVariables) {
+}
+Semant::SemantFileStatementsVisitor::~SemantFileStatementsVisitor() {
+	//don't delete the variables, they're owned by something else
+}
+//search the token for function definitions and semant their statements
+void Semant::SemantFileStatementsVisitor::handleExpression(Token* t) {
+	FunctionDefinition* fd;
+	if ((fd = dynamic_cast<FunctionDefinition*>(t)) != nullptr)
+		semantFunctionDefinition(fd, variables);
+	else
+		t->visitSubtokens(this);
+}
 thread_local bool Semant::skipStatementsWhileFindingGlobalVariableDefinitions = true;
 thread_local bool Semant::resemantingGenericTypeVariables = true;
-thread_local IfStatementConditionIterationStatus Semant::ifStatementConditionIterationStatus =
-	IfStatementConditionIterationStatus::None;
 //validate the semantics for all files
 void Semant::semant(Pliers* pliers) {
 	skipStatementsWhileFindingGlobalVariableDefinitions = true;
@@ -16,7 +50,7 @@ void Semant::semant(Pliers* pliers) {
 	forEach(SourceFile*, s, pliers->allFiles, si1) {
 		PrefixTrie<char, CVariableDefinition*> variablesDeclaredInFile;
 		forEach(Token*, t, s->globalVariables, ti) {
-			iterateTokens(t, SemantTokenIterationType::FindVisibleVariableDefinitions, &variablesDeclaredInFile, s);
+			FindVisibleVariableDefinitionsVisitor(&variablesDeclaredInFile, s).handleExpression(t);
 		}
 		s->variablesDeclaredInFile = variablesDeclaredInFile.getValues();
 	}
@@ -44,7 +78,6 @@ void Semant::semant(Pliers* pliers) {
 	while (fixedVariable) {
 		fixedVariable = false;
 		for (int i = redoVariables.length - 1; i >= 0; i--) {
-			bool needsRedo = false;
 			Operator* o = redoVariables.get(i);
 			semantToken(o->right, o->owningFile->variablesVisibleToFile, SemantExpressionLevel::TopLevel);
 			VariableDeclarationList* v = dynamic_cast<VariableDeclarationList*>(o->left);
@@ -69,94 +102,7 @@ void Semant::semant(Pliers* pliers) {
 		if (pliers->printProgress)
 			printf("Analyzing semantics for statements in %s...\n", s->path->fileName.c_str());
 		forEach(Token*, t, s->globalVariables, ti) {
-			iterateTokens(t, SemantTokenIterationType::SemantFileStatements, s->variablesVisibleToFile, nullptr);
-		}
-	}
-}
-//special function for efficiently iterating through all global- or class-level subtokens looking for something
-//depending on our iteration type, do something with every token we see
-//for operators && and || while finding variable definitions, only check the left side
-//copper: receive a function parameter to call
-void Semant::iterateTokens(
-	Token* t, SemantTokenIterationType iterationType, PrefixTrie<char, CVariableDefinition*>* variables, SourceFile* originFile)
-{
-	VariableDeclarationList* v;
-	FunctionDefinition* fd;
-	Operator* o;
-	ParenthesizedExpression* p;
-	FunctionCall* fc;
-	Group* g;
-	switch (iterationType) {
-		case SemantTokenIterationType::FindVisibleVariableDefinitions:
-			if ((v = dynamic_cast<VariableDeclarationList*>(t)) != nullptr) {
-				addVariablesToTrie(v->variables, variables, originFile);
-				return;
-			}
-			break;
-		case SemantTokenIterationType::SemantFileStatements:
-			if ((fd = dynamic_cast<FunctionDefinition*>(t)) != nullptr) {
-				semantFunctionDefinition(fd, variables);
-				return;
-			}
-			break;
-		case SemantTokenIterationType::FindIfStatementConditionVariableDefinitions:
-			if ((o = dynamic_cast<Operator*>(t)) != nullptr) {
-				switch (ifStatementConditionIterationStatus) {
-					case IfStatementConditionIterationStatus::None:
-						if (o->operatorType == OperatorType::BooleanAnd)
-							ifStatementConditionIterationStatus = IfStatementConditionIterationStatus::BooleanAnd;
-						else if (o->operatorType == OperatorType::BooleanOr)
-							ifStatementConditionIterationStatus = IfStatementConditionIterationStatus::BooleanOr;
-						else
-							return;
-						break;
-					case IfStatementConditionIterationStatus::BooleanAnd:
-						if (o->operatorType != OperatorType::BooleanAnd) {
-							iterateTokens(o, SemantTokenIterationType::FindVisibleVariableDefinitions, variables, originFile);
-							return;
-						}
-						break;
-					case IfStatementConditionIterationStatus::BooleanOr:
-						if (o->operatorType != OperatorType::BooleanOr) {
-							iterateTokens(o, SemantTokenIterationType::FindVisibleVariableDefinitions, variables, originFile);
-							return;
-						}
-						break;
-					default:
-						Error::logError(
-							ErrorType::CompilerIssue, "finding variable definitions to add to the current scope", t);
-						break;
-				}
-				break;
-			} else if ((p = dynamic_cast<ParenthesizedExpression*>(t)) != nullptr)
-				iterateTokens(
-					p->expression,
-					SemantTokenIterationType::FindIfStatementConditionVariableDefinitions,
-					variables,
-					originFile);
-			else if ((v = dynamic_cast<VariableDeclarationList*>(t)) != nullptr)
-				addVariablesToTrie(v->variables, variables, originFile);
-			return;
-		default:
-			Error::logError(ErrorType::CompilerIssue, "checking this token", t);
-			break;
-	}
-	if ((o = dynamic_cast<Operator*>(t)) != nullptr) {
-		if (o->left != nullptr)
-			iterateTokens(o->left, iterationType, variables, originFile);
-		if (o->right != nullptr && (iterationType != SemantTokenIterationType::FindVisibleVariableDefinitions ||
-				(o->operatorType != OperatorType::BooleanAnd && o->operatorType != OperatorType::BooleanOr)))
-			iterateTokens(o->right, iterationType, variables, originFile);
-	} else if ((p = dynamic_cast<ParenthesizedExpression*>(t)) != nullptr)
-		iterateTokens(p->expression, iterationType, variables, originFile);
-	else if ((fc = dynamic_cast<FunctionCall*>(t)) != nullptr) {
-		iterateTokens(fc->function, iterationType, variables, originFile);
-		forEach(Token*, a, fc->arguments, ai) {
-			iterateTokens(a, iterationType, variables, originFile);
-		}
-	} else if ((g = dynamic_cast<Group*>(t)) != nullptr) {
-		forEach(Token*, v, g->values, gi) {
-			iterateTokens(v, iterationType, variables, originFile);
+			SemantFileStatementsVisitor(s->variablesVisibleToFile).handleExpression(t);
 		}
 	}
 }
@@ -167,11 +113,11 @@ void Semant::addVariablesToTrie(
 	forEach(CVariableDefinition*, c, v, ci) {
 		CVariableDefinition* old = variables->set(c->name->name.c_str(), c->name->name.length(), c);
 		if (old != nullptr) {
-			variables->set(old->name->name.c_str(), old->name->name.length(), old);
 			//global variables may have already been added, so error only if we have a new definition for the same name
 			//and don't error if we're re-adding variable definitions for an if condition, the error was already logged
 			if (old == c)
 				continue;
+			variables->set(old->name->name.c_str(), old->name->name.length(), old);
 			string errorMessage = "\"" + old->name->name + "\" has already been defined";
 			logSemantErrorWithErrorSourceAndOriginFile(
 				ErrorType::General, errorMessage.c_str(), c->name, old->name, originFile);
@@ -776,19 +722,15 @@ ScopeExitType Semant::semantStatementList(
 			PrefixTrieUnion<char, CVariableDefinition*> elseBodyVariables (&variables);
 			//find any possible variable definitions from within the condition and apply them where possible
 			PrefixTrieUnion<char, CVariableDefinition*> newScopeVariables (&variables);
-			iterateTokens(
-				i->condition,
-				SemantTokenIterationType::FindIfStatementConditionVariableDefinitions,
-				&newScopeVariables,
-				nullptr);
-			IfStatementConditionIterationStatus resultingStatus = ifStatementConditionIterationStatus;
-			ifStatementConditionIterationStatus = IfStatementConditionIterationStatus::None;
+			IfStatement::ConditionVisitor conditionVisitor (
+				&newScopeVariables, new FindVisibleVariableDefinitionsVisitor(&newScopeVariables, nullptr));
+			conditionVisitor.handleExpression(i->condition);
 			Array<CVariableDefinition*>* newScopeVariablesList =
 				newScopeVariables.isEmpty() ? nullptr : newScopeVariables.getValues();
 			if (newScopeVariablesList != nullptr) {
-				if (resultingStatus == IfStatementConditionIterationStatus::BooleanAnd)
+				if (conditionVisitor.conditionBooleanType == OperatorType::BooleanAnd)
 					addVariablesToTrie(newScopeVariablesList, &thenBodyVariables, nullptr);
-				else if (resultingStatus == IfStatementConditionIterationStatus::BooleanOr)
+				else if (conditionVisitor.conditionBooleanType == OperatorType::BooleanOr)
 					addVariablesToTrie(newScopeVariablesList, &elseBodyVariables, nullptr);
 			}
 			//semant the bodies with our new variable tries
@@ -798,9 +740,9 @@ ScopeExitType Semant::semantStatementList(
 				: ScopeExitType::None;
 			//if our extra variables are definitely visible after the if statement, add them to the trie
 			if (newScopeVariablesList != nullptr &&
-					((resultingStatus == IfStatementConditionIterationStatus::BooleanOr &&
+					((conditionVisitor.conditionBooleanType == OperatorType::BooleanOr &&
 						thenExitType != ScopeExitType::None) ||
-					(resultingStatus == IfStatementConditionIterationStatus::BooleanAnd &&
+					(conditionVisitor.conditionBooleanType == OperatorType::BooleanAnd &&
 						elseExitType != ScopeExitType::None)))
 				addVariablesToTrie(newScopeVariablesList, &variables, nullptr);
 			if (exitType == ScopeExitType::None)

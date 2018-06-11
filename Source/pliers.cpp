@@ -3,7 +3,12 @@
 	#include <Windows.h>
 #endif
 
-#define returnIfErrors() if (errorMessages->length > 0) return;
+#define returnIfErrors() \
+	if (errorMessages->length > 0) {\
+		totalElapsedMilliseconds = TimeUtils::getElapsedMilliseconds() - startTime;\
+		return;\
+	}\
+
 /*
 //check if tpos is within the tokens
 #define tinbounds() (tpos < tlength)
@@ -106,7 +111,8 @@ Pliers::Pliers(const char* pBaseFileName, bool pPrintProgress onlyInDebug(COMMA 
 : baseFileName(pBaseFileName)
 , printProgress(pPrintProgress)
 , allFiles(new Array<SourceFile*>())
-, errorMessages(new Array<ErrorMessage*>()) {
+, errorMessages(new Array<ErrorMessage*>())
+, totalElapsedMilliseconds(-1) {
 	int startTime = TimeUtils::getElapsedMilliseconds();
 	Include::loadFiles(this);
 	#ifdef DEBUG
@@ -156,8 +162,9 @@ Pliers::Pliers(const char* pBaseFileName, bool pPrintProgress onlyInDebug(COMMA 
 	Build::build(this);
 	returnIfErrors();
 
+	totalElapsedMilliseconds = TimeUtils::getElapsedMilliseconds() - startTime;
 	if (printProgress)
-		printf("Compilation complete in %dms\n", TimeUtils::getElapsedMilliseconds() - startTime);
+		printf("Compilation complete in %dms\n", totalElapsedMilliseconds);
 if (printProgress)
 puts("Suspended until the rewrite is complete");
 }

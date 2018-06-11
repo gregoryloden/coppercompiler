@@ -1561,23 +1561,22 @@ CVariableDefinition::~CVariableDefinition() {
 	//don't delete the type since it's owned by something else
 	delete name;
 }
-CVariableData::CVariableData()
+CVariableData::CVariableData(CVariableDefinition* pVariable)
 : onlyInDebug(ObjCounter(onlyWhenTrackingIDs("VARDATA")) COMMA)
-dataBitmask(0) {
-}
-CVariableData::CVariableData(CVariableData* other)
-: onlyInDebug(ObjCounter(onlyWhenTrackingIDs("VARDATA")) COMMA)
-dataBitmask(other->dataBitmask) {
+variable(pVariable)
+, dataBitmask(0) {
 }
 CVariableData::~CVariableData() {
+	//don't delete the variable, something else owns it
 }
 //union the new bitmask with any old one if present
 void CVariableData::addToVariableData(
-	PrefixTrie<char, CVariableData*>* allVariableData, string name, unsigned short dataBitmaskToAdd)
+	PrefixTrie<char, CVariableData*>* allVariableData, CVariableDefinition* pVariable, unsigned short dataBitmaskToAdd)
 {
+	string& name = pVariable->name->name;
 	CVariableData* c = allVariableData->get(name.c_str(), name.length());
 	if (c == nullptr) {
-		c = new CVariableData();
+		c = new CVariableData(pVariable);
 		allVariableData->set(name.c_str(), name.length(), c);
 	}
 	c->dataBitmask |= dataBitmaskToAdd;

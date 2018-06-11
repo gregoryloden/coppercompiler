@@ -1,10 +1,10 @@
-#include "../General/globals.h"
+#include "../Structure/Tokens.h"
 
 class Token;
 class CVariableDefinition;
 class StatementList;
 class IntConstant;
-template <class Type> class Array;
+template <class KeyElement, class Value> class PrefixTrie;
 
 class Statement onlyInDebug(: public ObjCounter) {
 protected:
@@ -34,6 +34,19 @@ public:
 };
 class IfStatement: public Statement {
 public:
+	class ConditionVisitor: public TokenVisitor {
+	private:
+		PrefixTrie<char, CVariableDefinition*>* variables;
+		TokenVisitor* secondaryVisitor;
+	public:
+		OperatorType conditionBooleanType; //copper: readonly
+
+		ConditionVisitor(PrefixTrie<char, CVariableDefinition*>* pVariables, TokenVisitor* pSecondaryVisitor);
+		virtual ~ConditionVisitor();
+
+		void handleExpression(Token* t);
+	};
+
 	Token* condition;
 	Array<Statement*>* thenBody;
 	Array<Statement*>* elseBody;

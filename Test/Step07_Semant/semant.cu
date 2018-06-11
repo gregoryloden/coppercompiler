@@ -66,5 +66,7 @@ Function getString = String() (
 		return true ? "true" : "false";
 );
 Function genericFunctionReturningFunction = Function() ( return getInt; );
+Function outerIntFunction = (Function innerIntFunction = laterIntFunction);
+Function laterIntFunction = getInt;
 //Function intFunction2, stringFunction2 = Group(getInt, getString);
 //int fromGroup = Group(3);

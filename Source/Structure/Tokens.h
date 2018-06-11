@@ -1,3 +1,5 @@
+#ifndef TOKENS_H
+#define TOKENS_H
 #include "../General/globals.h"
 
 class SourceFile;
@@ -7,6 +9,7 @@ class CDataType;
 class CVariableDefinition;
 class Statement;
 class LexToken;
+class TokenVisitor;
 template <class Type> class Array;
 
 enum class SeparatorType: unsigned char {
@@ -16,7 +19,7 @@ enum class SeparatorType: unsigned char {
 	Semicolon = 0x8
 };
 enum class OperatorType: unsigned char {
-//	None,
+	None,
 	StaticDot,
 	StaticMemberAccess,
 	Dot,
@@ -102,6 +105,17 @@ protected:
 	Token(Token* cloneSource, Identifier* pReplacementSource);
 public:
 	virtual ~Token();
+
+	virtual void visitSubtokens(TokenVisitor* visitor);
+};
+class TokenVisitor onlyInDebug(: public ObjCounter) {
+protected:
+	TokenVisitor(onlyWhenTrackingIDs(char* pObjType));
+public:
+	virtual ~TokenVisitor();
+
+	virtual void handleExpression(Token* t) = 0;
+	virtual bool shouldHandleBooleanRightSide();
 };
 //For empty contents (ex. errors, between commas or semicolons, etc.)
 class EmptyToken: public Token {
@@ -205,7 +219,7 @@ public:
 	virtual ~Operator();
 
 	Operator* cloneWithReplacementSource(Identifier* pReplacementSource);
-	OperatorTypePrecedence getPrecedence(OperatorType pOperatorType);
+	virtual void visitSubtokens(TokenVisitor* visitor);
 };
 class DirectiveTitle: public LexToken {
 public:
@@ -247,6 +261,8 @@ public:
 
 	ParenthesizedExpression(Token* pExpression, AbstractCodeBlock* source);
 	virtual ~ParenthesizedExpression();
+
+	virtual void visitSubtokens(TokenVisitor* visitor);
 };
 class Cast: public Operator {
 public:
@@ -270,6 +286,8 @@ public:
 
 	FunctionCall(Token* pFunction, Array<Token*>* pArguments, AbstractCodeBlock* argumentsBlock);
 	virtual ~FunctionCall();
+
+	virtual void visitSubtokens(TokenVisitor* visitor);
 };
 class FunctionDefinition: public Token {
 public:
@@ -287,4 +305,7 @@ public:
 
 	Group(Array<Token*>* pValues, Identifier* source);
 	virtual ~Group();
+
+	virtual void visitSubtokens(TokenVisitor* visitor);
 };
+#endif

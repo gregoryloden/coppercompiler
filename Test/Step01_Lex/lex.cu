@@ -3,7 +3,7 @@
 int a_1 = 0xaF / 5_ * -5;
 bool b = true;
 bool c = false;
-int d = 01 + 0o7 - 0b10101;
+short d = 01 + 0o7 - 0b10101;
 float e = 1.0 * 1.0^1 / 100.0^-2 + 0xF.0^F;
 String f = "a\n\r\t\0\b\x20\\\"\'";
 byte g = ' ';

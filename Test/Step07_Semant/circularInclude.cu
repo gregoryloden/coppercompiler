@@ -2,5 +2,5 @@
 int a = b;
 int c = 4;
 Function main = void() (
-	Main.print(Main.str(c));
+	Main.print(Main.str(a));
 );

@@ -13,6 +13,8 @@ template <class Type> class Array;
 
 #define forEach(Type, t, a, ti) ArrayIterator<Type> ti (a); for (Type t = ti.getThis(); ti.hasThis(); t = ti.getNext())
 #define forEachContinued(Type, t, ti) for (Type t = (ti)->getThis(); (ti)->hasThis(); t = (ti)->getNext())
+#define let(Type, var, value) ((var = dynamic_cast<Type>(value)) != nullptr)
+#define istype(value, Type) (dynamic_cast<Type>(value) != nullptr)
 #define COMMA ,
 #ifdef DEBUG
 	#define onlyInDebug(x) x

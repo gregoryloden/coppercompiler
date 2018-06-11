@@ -668,7 +668,7 @@ Separator* Lex::lexSeparator() {
 //lex location: no change | the first character after the operator
 Operator* Lex::lexOperator() {
 	int begin = pos;
-	OperatorType type = OperatorType::Dot;
+	OperatorType type = OperatorType::None;
 	OperatorTypeTrie* tries = baseOperatorTries;
 	int count = sizeof(baseOperatorTries) / sizeof(baseOperatorTries[0]);
 	bool found = false;

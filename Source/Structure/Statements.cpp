@@ -41,6 +41,40 @@ IfStatement::~IfStatement() {
 		delete elseBody;
 	}
 }
+IfStatement::ConditionVisitor::ConditionVisitor(
+	PrefixTrie<char, CVariableDefinition*>* pVariables, TokenVisitor* pSecondaryVisitor)
+: TokenVisitor(onlyWhenTrackingIDs("IFCNVTR"))
+, variables(pVariables)
+, secondaryVisitor(pSecondaryVisitor)
+, conditionBooleanType(OperatorType::None) {
+}
+IfStatement::ConditionVisitor::~ConditionVisitor() {
+	delete secondaryVisitor;
+	//don't delete the variables, they're owned by something else
+}
+//search through all tokens that will definitely happen for either the then-body or the else-body
+void IfStatement::ConditionVisitor::handleExpression(Token* t) {
+	Operator* o;
+	ParenthesizedExpression* p;
+	if ((o = dynamic_cast<Operator*>(t)) != nullptr) {
+		if (conditionBooleanType == OperatorType::None) {
+			if (o->operatorType == OperatorType::BooleanAnd || o->operatorType == OperatorType::BooleanOr) {
+				conditionBooleanType = o->operatorType;
+				t->visitSubtokens(this);
+			}
+			return;
+		} else if (conditionBooleanType == o->operatorType) {
+			t->visitSubtokens(this);
+			return;
+		}
+	} else if ((p = dynamic_cast<ParenthesizedExpression*>(t)) != nullptr) {
+		handleExpression(p->expression);
+		return;
+	} else if (conditionBooleanType == OperatorType::None)
+		return;
+	//we found a regular token within a boolean AND or OR, pass it on to the other visitor
+	secondaryVisitor->handleExpression(t);
+}
 LoopStatement::LoopStatement(
 	ExpressionStatement* pInitialization,
 	Token* pCondition,

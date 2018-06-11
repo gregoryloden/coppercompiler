@@ -1,6 +1,7 @@
 #include "string"
 using namespace std;
 
+class Pliers;
 class AbstractCodeBlock;
 class CDataType;
 class VariableDeclarationList;

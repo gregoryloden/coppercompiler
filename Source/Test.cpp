@@ -52,10 +52,12 @@
 		testFile("Step07_Semant/circularInclude.cu", 0);
 		testFile("Step07_Semant/badSemant.cu", 73);
 		testFile("Step07_Semant/includeClash.cu", 1);
+		testFile("Step08_Build/build.cu", 0);
+		testFile("Step08_Build/badBuild.cu", 4);
 		printf("  Finished testing files: %d total files tested\n", filesTested);
 	}
 	void Test::testFile(const char* fileName, int errorsExpected) {
-		printf("    Testing %s...\n", fileName);
+		printf("    Testing %s...", fileName);
 		string fullFileName = string("Test/") + fileName;
 		Pliers* p = new Pliers(fullFileName.c_str(), false, false);
 		assert(p->allFiles->length >= 1);
@@ -74,8 +76,8 @@
 			assert(p->errorMessages->length == errorsExpected);
 			assert(!wrongLines);
 		}
-		delete p;
 		filesTested++;
+		printf("finished in %dms\n", p->totalElapsedMilliseconds);
 		//TODO: at the end of the file is one empty line followed by the expected output with something like this:
 		//		/* expected output:
 		//		[line of expected output]
@@ -87,6 +89,7 @@
 		//if the file has errors, at the end it has a comment like
 		//		//char XX: [error]
 		//which matches the end of the first line of the error string
+		delete p;
 	}
 	void Test::testUtil() {
 		printf("  Testing util\n");

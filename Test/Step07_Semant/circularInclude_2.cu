@@ -1,2 +1,2 @@
 #include "circularInclude.cu"
-int b = a;
+int b = c;

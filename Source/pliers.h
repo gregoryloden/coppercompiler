@@ -6,10 +6,11 @@ template <class Type> class Array;
 
 class Pliers {
 public:
-	const char* baseFileName;
-	bool printProgress;
-	Array<SourceFile*>* allFiles;
-	Array<ErrorMessage*>* errorMessages;
+	const char* baseFileName; //copper: readonly
+	bool printProgress; //copper: readonly
+	Array<SourceFile*>* allFiles; //copper: readonly<Include>
+	Array<ErrorMessage*>* errorMessages; //copper: readonly
+	int totalElapsedMilliseconds; //copper: readonly
 
 	Pliers(const char* pBaseFileName, bool pPrintProgress onlyInDebug(COMMA bool printContents));
 	~Pliers();
