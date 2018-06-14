@@ -15,7 +15,7 @@ Semant::FindVisibleVariableDefinitionsVisitor::~FindVisibleVariableDefinitionsVi
 //search the token for variable initializations that will definitely happen and be visible to other expressions
 void Semant::FindVisibleVariableDefinitionsVisitor::handleExpression(Token* t) {
 	VariableDeclarationList* v;
-	if ((v = dynamic_cast<VariableDeclarationList*>(t)) != nullptr)
+	if (let(VariableDeclarationList*, v, t))
 		addVariablesToTrie(v->variables, variables, originFile);
 	else
 		t->visitSubtokens(this);
@@ -34,7 +34,7 @@ Semant::SemantFileStatementsVisitor::~SemantFileStatementsVisitor() {
 //search the token for function definitions and semant their statements
 void Semant::SemantFileStatementsVisitor::handleExpression(Token* t) {
 	FunctionDefinition* fd;
-	if ((fd = dynamic_cast<FunctionDefinition*>(t)) != nullptr)
+	if (let(FunctionDefinition*, fd, t))
 		semantFunctionDefinition(fd, variables);
 	else
 		t->visitSubtokens(this);
@@ -133,7 +133,7 @@ bool Semant::finalizeTypes(VariableDeclarationList* v, CDataType* valueType) {
 	//TODO: check for a Group valueType
 	forEach(CVariableDefinition*, c, v->variables, ci) {
 		if (c->type == CDataType::functionType) {
-			if (dynamic_cast<CSpecificFunction*>(valueType) != nullptr) {
+			if (istype(valueType, CSpecificFunction*)) {
 				c->type = valueType;
 				v->redetermineType();
 			} else
@@ -151,12 +151,12 @@ void Semant::semantFileDefinitions(
 	forEach(Token*, t, sourceFile->globalVariables, ti) {
 		Operator* o = nullptr;
 		VariableDeclarationList* v;
-		if ((v = dynamic_cast<VariableDeclarationList*>(t)) != nullptr)
+		if (let(VariableDeclarationList*, v, t))
 			continue;
-		else if ((o = dynamic_cast<Operator*>(t)) == nullptr || o->operatorType != OperatorType::Assign) {
+		else if (!let(Operator*, o, t) || o->operatorType != OperatorType::Assign) {
 			logSemantError(ErrorType::Expected, "a variable definition", t);
 			continue;
-		} else if ((v = dynamic_cast<VariableDeclarationList*>(o->left)) == nullptr) {
+		} else if (!let(VariableDeclarationList*, v, o->left)) {
 			logSemantError(ErrorType::Expected, "a variable declaration list", o->left);
 			continue;
 		} else {
@@ -182,31 +182,28 @@ void Semant::semantToken(
 	FunctionDefinition* fd;
 	Group* g;
 	VariableDeclarationList* v;
-	if ((i = dynamic_cast<Identifier*>(t)) != nullptr)
+	if (let(Identifier*, i, t))
 		semantIdentifier(i, variables);
-	else if ((d = dynamic_cast<DirectiveTitle*>(t)) != nullptr)
+	else if (let(DirectiveTitle*, d, t))
 		semantDirectiveTitle(d, variables);
-	else if ((p = dynamic_cast<ParenthesizedExpression*>(t)) != nullptr) {
+	else if (let(ParenthesizedExpression*, p, t)) {
 		semantToken(p->expression, variables, SemantExpressionLevel::TopLevelInParentheses);
 		p->dataType = p->expression->dataType;
-	} else if ((c = dynamic_cast<Cast*>(t)) != nullptr)
+	} else if (let(Cast*, c, t))
 		semantCast(c, variables);
-	else if ((s = dynamic_cast<StaticOperator*>(t)) != nullptr)
+	else if (let(StaticOperator*, s, t))
 		semantStaticOperator(s, variables);
-	else if ((o = dynamic_cast<Operator*>(t)) != nullptr)
+	else if (let(Operator*, o, t))
 		semantOperator(o, variables, semantExpressionLevel);
-	else if ((fc = dynamic_cast<FunctionCall*>(t)) != nullptr)
+	else if (let(FunctionCall*, fc, t))
 		semantFunctionCall(fc, variables);
-	else if ((fd = dynamic_cast<FunctionDefinition*>(t)) != nullptr)
+	else if (let(FunctionDefinition*, fd, t))
 		semantFunctionDefinition(fd, variables);
-	else if ((g = dynamic_cast<Group*>(t)) != nullptr)
+	else if (let(Group*, g, t))
 		semantGroup(g, variables);
-	else if (dynamic_cast<IntConstant*>(t) != nullptr ||
-			dynamic_cast<FloatConstant*>(t) != nullptr ||
-			dynamic_cast<BoolConstant*>(t) != nullptr ||
-			dynamic_cast<StringLiteral*>(t) != nullptr)
+	else if (istype(t, IntConstant*) || istype(t, FloatConstant*) || istype(t, BoolConstant*) || istype(t, StringLiteral*))
 		;
-	else if ((v = dynamic_cast<VariableDeclarationList*>(t)) != nullptr) {
+	else if (let(VariableDeclarationList*, v, t)) {
 		if (semantExpressionLevel != SemantExpressionLevel::TopLevel)
 			logSemantError(ErrorType::General, "uninitialized variables must be declared on their own in a statement", v);
 		addVariablesToTrie(v->variables, variables, nullptr);
@@ -236,9 +233,9 @@ void Semant::semantCast(Cast* c, PrefixTrie<char, CVariableDefinition*>* variabl
 		return;
 	bool canCast;
 	//casting to a primitive type
-	if (dynamic_cast<CPrimitive*>(c->castType) != nullptr)
+	if (istype(c->castType, CPrimitive*))
 		//this is only OK for other primitive types or raw casts
-		canCast = dynamic_cast<CPrimitive*>(c->right->dataType) != nullptr || c->isRaw;
+		canCast = istype(c->right->dataType, CPrimitive*) || c->isRaw;
 	//any other cast must be to the same type
 	//TODO: support pointer casting
 	//TODO: allow raw casting from ints to pointers if those errors are turned off
@@ -254,7 +251,7 @@ void Semant::semantCast(Cast* c, PrefixTrie<char, CVariableDefinition*>* variabl
 //find the right variable for this static operator
 void Semant::semantStaticOperator(StaticOperator* s, PrefixTrie<char, CVariableDefinition*>* variables) {
 	Identifier* i;
-	if ((i = dynamic_cast<Identifier*>(s->right)) == nullptr) {
+	if (!let(Identifier*, i, s->right)) {
 		logSemantError(ErrorType::ExpectedToFollow, "a member variable", s);
 		return;
 	}
@@ -484,30 +481,30 @@ void Semant::semantOperator(
 			break;
 		case OperatorSemanticsType::IntegerInteger:
 		case OperatorSemanticsType::IntegerIntegerBitShift:
-			if (dynamic_cast<CIntegerPrimitive*>(o->right->dataType) == nullptr) {
+			if (!istype(o->right->dataType, CIntegerPrimitive*)) {
 				logSemantErrorWithErrorCheck(ErrorType::Expected, "an integer value", o->right, o);
 				return;
 			}
 		case OperatorSemanticsType::SingleInteger:
-			if (dynamic_cast<CIntegerPrimitive*>(o->left->dataType) == nullptr) {
+			if (!istype(o->left->dataType, CIntegerPrimitive*)) {
 				logSemantErrorWithErrorCheck(ErrorType::Expected, "an integer value", o->left, o);
 				return;
 			}
 			break;
 		case OperatorSemanticsType::NumberNumber:
-			if (dynamic_cast<CNumericPrimitive*>(o->right->dataType) == nullptr) {
+			if (!istype(o->right->dataType, CNumericPrimitive*)) {
 				logSemantErrorWithErrorCheck(ErrorType::Expected, "a numeric value", o->right, o);
 				return;
 			}
 		case OperatorSemanticsType::SingleNumber:
-			if (dynamic_cast<CNumericPrimitive*>(o->left->dataType) == nullptr) {
+			if (!istype(o->left->dataType, CNumericPrimitive*)) {
 				logSemantErrorWithErrorCheck(ErrorType::Expected, "a numeric value", o->left, o);
 				return;
 			}
 			break;
 		case OperatorSemanticsType::NumberNumberOrStringString:
-			if (dynamic_cast<CNumericPrimitive*>(o->left->dataType) != nullptr) {
-				if (dynamic_cast<CNumericPrimitive*>(o->right->dataType) == nullptr) {
+			if (istype(o->left->dataType, CNumericPrimitive*)) {
+				if (!istype(o->right->dataType, CNumericPrimitive*)) {
 					logSemantErrorWithErrorCheck(ErrorType::Expected, "a numeric value", o->right, o);
 					return;
 				}
@@ -517,7 +514,7 @@ void Semant::semantOperator(
 					return;
 				}
 			} else {
-				if (dynamic_cast<CNumericPrimitive*>(o->right->dataType) != nullptr)
+				if (istype(o->right->dataType, CNumericPrimitive*))
 					logSemantErrorWithErrorCheck(ErrorType::Expected, "a numeric value", o->left, o);
 				else if (o->right->dataType == CDataType::stringType)
 					logSemantErrorWithErrorCheck(ErrorType::Expected, "a String value", o->left, o);
@@ -534,9 +531,7 @@ void Semant::semantOperator(
 				logSemantErrorWithErrorCheck(ErrorType::Expected, "a boolean value", o->left, o);
 				return;
 			}
-			if ((ternaryResult = dynamic_cast<Operator*>(o->right)) == nullptr ||
-				ternaryResult->operatorType != OperatorType::Colon)
-			{
+			if (!let(Operator*, ternaryResult, o->right) || ternaryResult->operatorType != OperatorType::Colon) {
 				logSemantError(ErrorType::General, "question mark missing colon in ternary operator", o);
 				return;
 			}
@@ -567,11 +562,11 @@ void Semant::semantOperator(
 		//make sure it's something we can assign to
 		Identifier* i;
 		VariableDeclarationList* v = nullptr;
-		if ((i = dynamic_cast<Identifier*>(o->left)) != nullptr) {
+		if (let(Identifier*, i, o->left)) {
 			semantIdentifier(i, variables);
 			if (!tokenHasKnownType(i))
 				return;
-		} else if ((v = dynamic_cast<VariableDeclarationList*>(o->left)) != nullptr) {
+		} else if (let(VariableDeclarationList*, v, o->left)) {
 			addVariablesToTrie(v->variables, variables, nullptr);
 			finalizeTypes(v, o->right->dataType);
 		} else {
@@ -583,7 +578,7 @@ void Semant::semantOperator(
 		while (CDataType::bestCompatibleType(o->left->dataType, o->right->dataType) != o->left->dataType) {
 			if (v != nullptr && v->variables->length > 1) {
 				CSpecificGroup* groupType;
-				if ((groupType = dynamic_cast<CSpecificGroup*>(v->dataType)) == nullptr) {
+				if (!let(CSpecificGroup*, groupType, v->dataType)) {
 					Error::logError(ErrorType::CompilerIssue, "determining the types of these variables", v);
 					return;
 				} else if (groupType->allSameType) {
@@ -615,7 +610,7 @@ void Semant::semantOperator(
 		o->dataType = CDataType::boolType;
 	//check that we have a variable to modify
 	} else if (variableModifier) {
-		if (dynamic_cast<Identifier*>(o->left) == nullptr) {
+		if (!istype(o->left, Identifier*)) {
 			logSemantErrorWithErrorCheck(ErrorType::Expected, "a variable", o->left, o);
 			return;
 		}
@@ -698,9 +693,9 @@ ScopeExitType Semant::semantStatementList(
 		ReturnStatement* r;
 		IfStatement* i;
 		LoopStatement* l;
-		if ((e = dynamic_cast<ExpressionStatement*>(s)) != nullptr)
+		if (let(ExpressionStatement*, e, s))
 			semantToken(e->expression, &variables, SemantExpressionLevel::TopLevel);
-		else if ((r = dynamic_cast<ReturnStatement*>(s)) != nullptr) {
+		else if (let(ReturnStatement*, r, s)) {
 			if (r->expression != nullptr) {
 				semantToken(r->expression, &variables, SemantExpressionLevel::TopLevel);
 				if (CDataType::bestCompatibleType(r->expression->dataType, returnType) != returnType) {
@@ -714,7 +709,7 @@ ScopeExitType Semant::semantStatementList(
 			}
 			if (exitType == ScopeExitType::None)
 				exitType = ScopeExitType::Return;
-		} else if ((i = dynamic_cast<IfStatement*>(s)) != nullptr) {
+		} else if (let(IfStatement*, i, s)) {
 			semantToken(i->condition, &variables, SemantExpressionLevel::TopLevelInParentheses);
 			if (tokenHasKnownType(i->condition) && i->condition->dataType != CDataType::boolType)
 				Error::logError(ErrorType::Expected, "a bool value", i->condition);
@@ -748,7 +743,7 @@ ScopeExitType Semant::semantStatementList(
 			if (exitType == ScopeExitType::None)
 				exitType = ((unsigned char)elseExitType) < ((unsigned char)thenExitType) ? elseExitType : thenExitType;
 			delete newScopeVariablesList;
-		} else if ((l = dynamic_cast<LoopStatement*>(s)) != nullptr) {
+		} else if (let(LoopStatement*, l, s)) {
 			PrefixTrieUnion<char, CVariableDefinition*> loopBodyVariables (&variables);
 			PrefixTrieUnion<char, CVariableDefinition*> conditionVariables (&loopBodyVariables);
 			PrefixTrieUnion<char, CVariableDefinition*> incrementVariables (&loopBodyVariables);
@@ -770,7 +765,7 @@ ScopeExitType Semant::semantStatementList(
 bool Semant::tokenHasKnownType(Token* t) {
 	return t->dataType != nullptr &&
 		t->dataType != CDataType::errorType &&
-		(!resemantingGenericTypeVariables || dynamic_cast<CGenericPointerType*>(t->dataType) == nullptr);
+		(!resemantingGenericTypeVariables || !istype(t->dataType, CGenericPointerType*));
 }
 //log an error and give the token an error type, unless we've already done so
 void Semant::logSemantError(ErrorType type, const char* message, Token* token) {

@@ -372,7 +372,7 @@ void ErrorMessage::showSnippet(SourceFile* snippetFile, int snippetContentPos) {
 		bool printedSpaces = false;
 		forEach(Token*, t, codeBlock->tokens, ti) {
 			DirectiveTitle* dt;
-			if ((dt = dynamic_cast<DirectiveTitle*>(t)) != nullptr && printedSpaces) {
+			if (let(DirectiveTitle*, dt, t) && printedSpaces) {
 				printf("\n");
 				printedSpaces = false;
 			}
@@ -384,7 +384,7 @@ void ErrorMessage::showSnippet(SourceFile* snippetFile, int snippetContentPos) {
 				printedSpaces = true;
 			}
 			AbstractCodeBlock* a;
-			if ((a = dynamic_cast<AbstractCodeBlock*>(t)) != nullptr) {
+			if (let(AbstractCodeBlock*, a, t)) {
 				if (a->tokens->length == 0) {
 					printf("()");
 				} else {
@@ -397,9 +397,7 @@ void ErrorMessage::showSnippet(SourceFile* snippetFile, int snippetContentPos) {
 			} else {
 				printLexToken(t);
 				Separator* separator;
-				if ((separator = dynamic_cast<Separator*>(t)) != nullptr &&
-					separator->separatorType == SeparatorType::Semicolon)
-				{
+				if (let(Separator*, separator, t) && separator->separatorType == SeparatorType::Semicolon) {
 					printf("\n");
 					printedSpaces = false;
 				}
@@ -419,7 +417,7 @@ void ErrorMessage::showSnippet(SourceFile* snippetFile, int snippetContentPos) {
 		ParenthesizedExpression* p;
 		FunctionCall* fc;
 		FunctionDefinition* fd;
-		if ((v = dynamic_cast<VariableDeclarationList*>(t)) != nullptr) {
+		if (let(VariableDeclarationList*, v, t)) {
 			bool printComma = false;
 			CDataType* lastDataType = nullptr;
 			forEach(CVariableDefinition*, d, v->variables, di) {
@@ -434,10 +432,10 @@ void ErrorMessage::showSnippet(SourceFile* snippetFile, int snippetContentPos) {
 				}
 				printf(d->name->name.c_str());
 			}
-		} else if ((o = dynamic_cast<Operator*>(t)) != nullptr) {
+		} else if (let(Operator*, o, t)) {
 			Cast* c;
 			StaticOperator* s;
-			if ((c = dynamic_cast<Cast*>(t)) != nullptr) {
+			if (let(Cast*, c, t)) {
 				printf("(");
 				if (c->isRaw)
 					printf("raw ");
@@ -445,7 +443,7 @@ void ErrorMessage::showSnippet(SourceFile* snippetFile, int snippetContentPos) {
 				printf(")(");
 				printTokenTree(c->right, tabsCount, false);
 				printf(")");
-			} else if ((s = dynamic_cast<StaticOperator*>(t)) != nullptr) {
+			} else if (let(StaticOperator*, s, t)) {
 				printf(s->ownerType->name.c_str());
 				printLexToken(s);
 				printLexToken(s->right);
@@ -465,9 +463,9 @@ void ErrorMessage::showSnippet(SourceFile* snippetFile, int snippetContentPos) {
 				if (printOperatorParentheses)
 					printf(")");
 			}
-		} else if ((p = dynamic_cast<ParenthesizedExpression*>(t)) != nullptr)
+		} else if (let(ParenthesizedExpression*, p, t))
 			printTokenTree(p->expression, tabsCount, true);
-		else if ((fc = dynamic_cast<FunctionCall*>(t)) != nullptr) {
+		else if (let(FunctionCall*, fc, t)) {
 			printTokenTree(fc->function, tabsCount, true);
 			printf("(");
 			bool printComma = false;
@@ -479,7 +477,7 @@ void ErrorMessage::showSnippet(SourceFile* snippetFile, int snippetContentPos) {
 				printTokenTree(argument, tabsCount, false);
 			}
 			printf(")");
-		} else if ((fd = dynamic_cast<FunctionDefinition*>(t)) != nullptr) {
+		} else if (let(FunctionDefinition*, fd, t)) {
 			printf(fd->returnType->name.c_str());
 			printf("(");
 			bool printComma = false;
@@ -507,9 +505,9 @@ void ErrorMessage::showSnippet(SourceFile* snippetFile, int snippetContentPos) {
 	//if not, the statement is over and we need to end on a new line
 	void Debug::printStatementList(Array<Statement*>* a, int tabsCount, bool statementContinuationFollows) {
 		if (a->length == 1 &&
-			(dynamic_cast<ExpressionStatement*>(a->get(0)) != nullptr ||
-				dynamic_cast<ReturnStatement*>(a->get(0)) != nullptr ||
-				dynamic_cast<LoopControlFlowStatement*>(a->get(0)) != nullptr))
+			(istype(a->get(0), ExpressionStatement*) ||
+				istype(a->get(0), ReturnStatement*) ||
+				istype(a->get(0), LoopControlFlowStatement*)))
 		{
 			printf("\n");
 			printStatement(a->get(0), tabsCount + 1);
@@ -540,17 +538,17 @@ void ErrorMessage::showSnippet(SourceFile* snippetFile, int snippetContentPos) {
 		IfStatement* i;
 		LoopStatement* l;
 		LoopControlFlowStatement* c;
-		if ((e = dynamic_cast<ExpressionStatement*>(s)) != nullptr) {
+		if (let(ExpressionStatement*, e, s)) {
 			printTokenTree(e->expression, tabsCount, false);
 			printf(";\n");
-		} else if ((r = dynamic_cast<ReturnStatement*>(s)) != nullptr) {
+		} else if (let(ReturnStatement*, r, s)) {
 			printf("return");
 			if (r->expression) {
 				printf(" ");
 				printTokenTree(r->expression, tabsCount, false);
 			}
 			printf(";\n");
-		} else if ((i = dynamic_cast<IfStatement*>(s)) != nullptr) {
+		} else if (let(IfStatement*, i, s)) {
 			//loop for multiple if statements
 			while (true) {
 				printf("if (");
@@ -561,7 +559,7 @@ void ErrorMessage::showSnippet(SourceFile* snippetFile, int snippetContentPos) {
 				if (elseBody != nullptr) {
 					printf("else");
 					IfStatement* elseI;
-					if (elseBody->length == 1 && (elseI = dynamic_cast<IfStatement*>(elseBody->get(0))) != nullptr) {
+					if (elseBody->length == 1 && let(IfStatement*, elseI, elseBody->get(0))) {
 						printf(" ");
 						i = elseI;
 						continue;
@@ -570,7 +568,7 @@ void ErrorMessage::showSnippet(SourceFile* snippetFile, int snippetContentPos) {
 				}
 				break;
 			}
-		} else if ((l = dynamic_cast<LoopStatement*>(s)) != nullptr) {
+		} else if (let(LoopStatement*, l, s)) {
 			if (l->initialization != nullptr || l->increment != nullptr) {
 				printf("for (");
 				if (l->initialization != nullptr)
@@ -594,14 +592,14 @@ void ErrorMessage::showSnippet(SourceFile* snippetFile, int snippetContentPos) {
 				printTokenTree(l->condition, tabsCount, false);
 				printf(")\n");
 			}
-		} else if ((c = dynamic_cast<LoopControlFlowStatement*>(s)) != nullptr) {
+		} else if (let(LoopControlFlowStatement*, c, s)) {
 			printf(c->continueLoop ? "continue" : "break");
 			if (c->levels != nullptr) {
 				printf(" ");
 				printLexToken(c->levels);
 			}
 			printf(";\n");
-		} else if (dynamic_cast<EmptyStatement*>(s) != nullptr)
+		} else if (istype(s, EmptyStatement*))
 			;
 		else {
 			assert(false);
@@ -610,12 +608,12 @@ void ErrorMessage::showSnippet(SourceFile* snippetFile, int snippetContentPos) {
 	//if it's an identifier or a string, it might have come from a replace, so print its contents
 	//if it's anything else, use the contentPos and endContentPos to print this token
 	void Debug::printLexToken(Token* t) {
-		assert(dynamic_cast<LexToken*>(t) != nullptr);
+		assert(istype(t, LexToken*));
 		Identifier* i;
 		StringLiteral* s;
-		if ((i = dynamic_cast<Identifier*>(t)) != nullptr)
+		if (let(Identifier*, i, t))
 			printf(i->name.c_str());
-		else if ((s = dynamic_cast<StringLiteral*>(t)) != nullptr)
+		else if (let(StringLiteral*, s, t))
 			printf("\"%s\"", s->val.c_str());
 		else {
 			char* contents = t->owningFile->contents;

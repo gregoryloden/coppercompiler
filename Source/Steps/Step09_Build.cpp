@@ -2,8 +2,6 @@
 
 //build the final executable file
 //TODO: finalize byte sizes for primitive types
-//TODO: circular definitions
-//TODO: unitialized variables (all uninitialized variable errors will be handled here)
 
 //variable data: global variable data stored in tree
 //each scope has a PrefixTrieUnion with the data
@@ -143,10 +141,3 @@ void Build::build(Pliers* pliers) {
 
 	//TODO: build
 }
-
-/*
-	if (!CVariableData::variableDataContains(variableData, i->name, CVariableData::isInitialized)) {
-		string errorMessage = "\"" + i->name + "\" may not have been initialized";
-		Error::logError(ErrorType::General, errorMessage.c_str(), i);
-	}
-*/

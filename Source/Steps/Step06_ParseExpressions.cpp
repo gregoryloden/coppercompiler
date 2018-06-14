@@ -32,7 +32,7 @@ template <class TokenType> TokenType* ParseExpressions::parseExpectedToken(
 	if (!ti->hasThis())
 		Error::makeError(ErrorType::ExpectedToFollow, tokenDescription, precedingToken);
 	TokenType* t;
-	if ((t = dynamic_cast<TokenType*>(nextToken)) == nullptr)
+	if (!let(TokenType*, t, nextToken))
 		Error::makeError(ErrorType::Expected, tokenDescription, nextToken);
 	return t;
 }
@@ -43,13 +43,13 @@ void ParseExpressions::parseNamespaceDefinitions(AbstractCodeBlock* a, Array<Tok
 			Identifier* i;
 			DirectiveTitle* dt;
 			Separator* s;
-			if ((i = dynamic_cast<Identifier*>(t)) != nullptr && i->name == classKeyword) {
+			if (let(Identifier*, i, t) && i->name == classKeyword) {
 				//TODO: handle definitions in types
 				Error::logError(ErrorType::General, "classes are not yet supported", i);
-			} else if ((dt = dynamic_cast<DirectiveTitle*>(t)) != nullptr)
+			} else if (let(DirectiveTitle*, dt, t))
 				//TODO: handle #enable directives
 				continue;
-			else if ((s = dynamic_cast<Separator*>(t)) != nullptr && s->separatorType == SeparatorType::Semicolon)
+			else if (let(Separator*, s, t) && s->separatorType == SeparatorType::Semicolon)
 				continue;
 			else
 				definitionList->add(
@@ -72,7 +72,7 @@ CDataType* ParseExpressions::parseType(Identifier* i, ArrayIterator<Token*>* ti)
 	//check whether we have a left angle bracket for type arguments
 	Token* t = ti->getNext();
 	Operator* o;
-	if (!ti->hasThis() || (o = dynamic_cast<Operator*>(t)) == nullptr || o->operatorType != OperatorType::LessThan) {
+	if (!ti->hasThis() || !let(Operator*, o, t) || o->operatorType != OperatorType::LessThan) {
 		ti->getPrevious();
 		return cdt;
 	}
@@ -93,8 +93,7 @@ CDataType* ParseExpressions::parseType(Identifier* i, ArrayIterator<Token*>* ti)
 		forEach(Token*, t2, typeArgumentsBlock->tokens, t2i) {
 			Identifier* typeArgumentToken;
 			CDataType* typeArgument;
-			if ((typeArgumentToken = dynamic_cast<Identifier*>(t2)) == nullptr ||
-					(typeArgument = parseType(typeArgumentToken, ti)) == nullptr)
+			if (!let(Identifier*, typeArgumentToken, t2) || (typeArgument = parseType(typeArgumentToken, ti)) == nullptr)
 				Error::makeError(ErrorType::Expected, "a type", t2);
 			parameterTypes->add(typeArgument);
 			comma = parseCommaInParenthesizedList(&t2i);
@@ -124,7 +123,7 @@ Token* ParseExpressions::parseCommaInParenthesizedList(ArrayIterator<Token*>* ti
 		return nullptr;
 
 	Separator* s;
-	if ((s = dynamic_cast<Separator*>(comma)) == nullptr || s->separatorType != SeparatorType::Comma) {
+	if (!let(Separator*, s, comma) || s->separatorType != SeparatorType::Comma) {
 		string errorMessage = buildExpectedSeparatorErrorMessage(
 			(unsigned char)SeparatorType::Comma | (unsigned char)SeparatorType::RightParenthesis, true);
 		Error::makeError(ErrorType::Expected, errorMessage.c_str(), comma);
@@ -145,7 +144,7 @@ VariableDeclarationList* ParseExpressions::completeVariableDeclarationList(
 	ti->getNext();
 	forEachContinued(Token*, t, ti) {
 		Separator* s;
-		if ((s = dynamic_cast<Separator*>(t)) == nullptr || s->separatorType != SeparatorType::Comma) {
+		if (!let(Separator*, s, t) || s->separatorType != SeparatorType::Comma) {
 			ti->getPrevious();
 			break;
 		}
@@ -186,7 +185,7 @@ Token* ParseExpressions::parseExpression(
 
 			//before we do anything, see if we're done parsing
 			Separator* s;
-			if ((s = dynamic_cast<Separator*>(t)) != nullptr) {
+			if (let(Separator*, s, t)) {
 				//stick the separator back in the token array, something else might need it
 				ti->replaceThis(tDeleter.release());
 				if (s->separatorType == SeparatorType::RightParenthesis || s->separatorType == SeparatorType::LeftParenthesis)
@@ -200,13 +199,13 @@ Token* ParseExpressions::parseExpression(
 			AbstractCodeBlock* a;
 			Operator* o;
 			//abstract code blocks and operators have their own handling
-			if ((a = dynamic_cast<AbstractCodeBlock*>(t)) != nullptr) {
+			if (let(AbstractCodeBlock*, a, t)) {
 				//check if we have an active expression for a function call
 				activeExpression = activeExpression != nullptr
 					? completeFunctionCall(activeExpression, a)
 					: completeParenthesizedExpression(a, ti);
 				continue; //we're done with the abstract code block so let it get deleted
-			} else if ((o = dynamic_cast<Operator*>(t)) != nullptr)
+			} else if (let(Operator*, o, t))
 				activeExpression = addToOperator(o, activeExpression, ti);
 			//we don't have anything yet so we expect a value expression
 			else if (activeExpression == nullptr)
@@ -250,16 +249,16 @@ Token* ParseExpressions::parseValueExpression(Token* t, ArrayIterator<Token*>* t
 	DirectiveTitle* dt;
 	Identifier* i;
 	//try to parse a prefix operator
-	if ((o = dynamic_cast<Operator*>(t)) != nullptr)
+	if (let(Operator*, o, t))
 		return addToOperator(o, nullptr, ti);
 	//parse a parenthesized expression or a cast
-	else if ((a = dynamic_cast<AbstractCodeBlock*>(t)) != nullptr)
+	else if (let(AbstractCodeBlock*, a, t))
 		return completeParenthesizedExpression(a, ti);
 	//a select few directives represent values or contain values like #file
-	else if ((dt = dynamic_cast<DirectiveTitle*>(t)) != nullptr) {
+	else if (let(DirectiveTitle*, dt, t)) {
 		//TODO: but not yet
 	//check if this is a type or a variable
-	} else if ((i = dynamic_cast<Identifier*>(t)) != nullptr) {
+	} else if (let(Identifier*, i, t)) {
 		CDataType* cdt = parseType(i, ti);
 		//we just have a variable
 		if (cdt == nullptr)
@@ -268,12 +267,9 @@ Token* ParseExpressions::parseValueExpression(Token* t, ArrayIterator<Token*>* t
 		delete i;
 		return t;
 	//parse a literal value
-	} else if (dynamic_cast<IntConstant*>(t) != nullptr ||
-			dynamic_cast<FloatConstant*>(t) != nullptr ||
-			dynamic_cast<BoolConstant*>(t) != nullptr ||
-			dynamic_cast<StringLiteral*>(t) != nullptr)
+	} else if (istype(t, IntConstant*) || istype(t, FloatConstant*) || istype(t, BoolConstant*) || istype(t, StringLiteral*))
 		return t;
-	if (dynamic_cast<ParenthesizedExpression*>(t) != nullptr)
+	if (istype(t, ParenthesizedExpression*))
 		Error::makeError(ErrorType::CompilerIssue, "resulting in an unrecognized parenthesized expression", t);
 	Error::makeError(ErrorType::Expected, "a value", t);
 	return nullptr;
@@ -319,13 +315,13 @@ Token* ParseExpressions::addToOperator(Operator* o, Token* activeExpression, Arr
 	//either way, the new operator will receive a left operand
 	//this handles postfix operators since their right side is nullptr
 	Operator* oNext;
-	if ((oNext = dynamic_cast<Operator*>(activeExpression)) != nullptr && newOperatorTakesRightSidePrecedence(o, oNext)) {
+	if (let(Operator*, oNext, activeExpression) && newOperatorTakesRightSidePrecedence(o, oNext)) {
 		Operator* oParent = oNext;
 		//colons have special parsing
 		if (o->operatorType == OperatorType::Colon) {
 			Operator* colonParent = oParent;
 			while (true) {
-				if ((oNext = dynamic_cast<Operator*>(colonParent->right)) == nullptr) {
+				if (!let(Operator*, oNext, colonParent->right)) {
 					if (colonParent->operatorType == OperatorType::QuestionMark)
 						oParent = colonParent;
 					break;
@@ -337,8 +333,7 @@ Token* ParseExpressions::addToOperator(Operator* o, Token* activeExpression, Arr
 				colonParent = oNext;
 			}
 		} else {
-			while ((oNext = dynamic_cast<Operator*>(oParent->right)) != nullptr &&
-					newOperatorTakesRightSidePrecedence(o, oNext))
+			while (let(Operator*, oNext, oParent->right) && newOperatorTakesRightSidePrecedence(o, oNext))
 				oParent = oNext;
 		}
 		o->left = oParent->right;
@@ -360,12 +355,12 @@ Token* ParseExpressions::completeExpressionStartingWithType(CDataType* type, Ide
 	Identifier* i;
 	Operator* o;
 	Token* t = parseExpectedToken<Token>(ti, typeToken, "function parameters or a member operator");
-	if ((a = dynamic_cast<AbstractCodeBlock*>(t)) != nullptr)
+	if (let(AbstractCodeBlock*, a, t))
 		return completeFunctionDefinition(type, typeToken, a, ti);
-	else if ((i = dynamic_cast<Identifier*>(t)) != nullptr) {
+	else if (let(Identifier*, i, t)) {
 		ti->replaceThis(nullptr);
 		return completeVariableDeclarationList(type, typeToken, i, ti);
-	} else if ((o = dynamic_cast<Operator*>(t)) != nullptr) {
+	} else if (let(Operator*, o, t)) {
 		OperatorType newType;
 		if (o->operatorType == OperatorType::Dot)
 			newType = OperatorType::StaticDot;
@@ -393,7 +388,7 @@ Token* ParseExpressions::completeParenthesizedExpression(AbstractCodeBlock* a, A
 	Identifier* i;
 	ArrayIterator<Token*> ai (a->tokens);
 	//check for "raw" or a type
-	if (ai.hasThis() && (i = dynamic_cast<Identifier*>(ai.getThis())) != nullptr) {
+	if (ai.hasThis() && let(Identifier*, i, ai.getThis())) {
 		CDataType* cdt;
 		//starts with "raw", this must be a cast
 		if (i->name == rawKeyword) {
@@ -443,7 +438,7 @@ FunctionDefinition* ParseExpressions::completeFunctionDefinition(
 	forEach(Token*, t, parametersBlock->tokens, pi) {
 		Identifier* i;
 		CDataType* cdt;
-		if ((i = dynamic_cast<Identifier*>(t)) == nullptr || (cdt = parseType(i, &pi)) == nullptr)
+		if (!let(Identifier*, i, t) || (cdt = parseType(i, &pi)) == nullptr)
 			Error::makeError(ErrorType::Expected, "a type name", t);
 		Identifier* variableName = parseExpectedToken<Identifier>(&pi, t, "a variable name");
 		if (parseType(variableName, &pi) != nullptr)
@@ -471,11 +466,11 @@ Token* ParseExpressions::completeFunctionCall(Token* activeExpression, AbstractC
 	//find the rightmost value of our active expression
 	Operator* oParent = nullptr;
 	Operator* oNext;
-	if ((oNext = dynamic_cast<Operator*>(activeExpression)) != nullptr) {
+	if (let(Operator*, oNext, activeExpression)) {
 		//function calls are like postfix operators, don't steal the right side of operators with a higher precedence
 		while (oNext->precedence < OperatorTypePrecedence::Postfix) {
 			oParent = oNext;
-			if ((oNext = dynamic_cast<Operator*>(oParent->right)) == nullptr)
+			if (!let(Operator*, oNext, oParent->right))
 				break;
 		}
 	}
@@ -532,7 +527,7 @@ Array<Statement*>* ParseExpressions::parseStatementOrStatementList(
 	//if the next token is an abstract code block, it might be a statement list
 	AbstractCodeBlock* a;
 	Statement* s;
-	if ((a = dynamic_cast<AbstractCodeBlock*>(t)) != nullptr) {
+	if (let(AbstractCodeBlock*, a, t)) {
 		//we have a statement list if
 		//	-it's empty OR
 		//	-it has a semicolon OR
@@ -584,12 +579,12 @@ Statement* ParseExpressions::parseStatement(Token* t, ArrayIterator<Token*>* ti,
 //may throw
 Statement* ParseExpressions::parseDirectiveStatementList(Token* t, ArrayIterator<Token*>* ti) {
 	DirectiveTitle* dt;
-	if ((dt = dynamic_cast<DirectiveTitle*>(t)) == nullptr)
+	if (!let(DirectiveTitle*, dt, t))
 		return nullptr;
 
 	CDirective* directive = dt->directive;
 	//these directives are valid syntactically but they don't do anything as statements
-	if (dynamic_cast<CDirectiveReplace*>(directive) != nullptr)
+	if (istype(directive, CDirectiveReplace*))
 		return new EmptyStatement();
 	//TODO: handle #enable stuff
 	return nullptr;
@@ -601,7 +596,7 @@ Statement* ParseExpressions::parseDirectiveStatementList(Token* t, ArrayIterator
 //may throw
 Statement* ParseExpressions::parseKeywordStatement(Token* t, ArrayIterator<Token*>* ti) {
 	Identifier* keywordToken;
-	if ((keywordToken = dynamic_cast<Identifier*>(t)) == nullptr)
+	if (!let(Identifier*, keywordToken, t))
 		return nullptr;
 
 	string keyword = keywordToken->name;
@@ -612,7 +607,7 @@ Statement* ParseExpressions::parseKeywordStatement(Token* t, ArrayIterator<Token
 		Token* returnValue = parseExpectedToken<Token>(ti, keywordToken, "an expression or semicolon");
 		Separator* s;
 		return new ReturnStatement(
-			(s = dynamic_cast<Separator*>(returnValue)) != nullptr && s->separatorType == SeparatorType::Semicolon
+			let(Separator*, s, returnValue) && s->separatorType == SeparatorType::Semicolon
 				? nullptr
 				: parseExpression(ti, (unsigned char)SeparatorType::Semicolon, ErrorType::General, nullptr, t),
 			returnKeywordToken.release());
@@ -623,7 +618,7 @@ Statement* ParseExpressions::parseKeywordStatement(Token* t, ArrayIterator<Token
 		Array<Statement*>* elseBody = nullptr;
 		Token* elseToken = ti->getNext();
 		Identifier* i;
-		if (ti->hasThis() && (i = dynamic_cast<Identifier*>(elseToken)) != nullptr && i->name == elseKeyword)
+		if (ti->hasThis() && let(Identifier*, i, elseToken) && i->name == elseKeyword)
 			elseBody = parseStatementOrStatementList(ti, i, "else-statement body");
 		//go back if it's not an else keyword
 		else
@@ -666,7 +661,7 @@ Statement* ParseExpressions::parseKeywordStatement(Token* t, ArrayIterator<Token
 	} else if ((continueLoop = (keyword == continueKeyword)) || keyword == breakKeyword) {
 		Token* t = parseExpectedToken<Token>(ti, keywordToken, "a semicolon or integer literal");
 		IntConstant* levels;
-		if ((levels = dynamic_cast<IntConstant*>(t)) == nullptr) {
+		if (!let(IntConstant*, levels, t)) {
 			ti->getPrevious();
 			t = keywordToken;
 		} else
@@ -686,7 +681,7 @@ Statement* ParseExpressions::parseKeywordStatement(Token* t, ArrayIterator<Token
 //may throw
 ExpressionStatement* ParseExpressions::parseExpressionStatement(Token* t, ArrayIterator<Token*>* ti) {
 	Separator* s;
-	if ((s = dynamic_cast<Separator*>(t)) != nullptr && s->separatorType == SeparatorType::Semicolon)
+	if (let(Separator*, s, t) && s->separatorType == SeparatorType::Semicolon)
 		return nullptr;
 	return new ExpressionStatement(
 		parseExpression(ti, (unsigned char)SeparatorType::Semicolon, ErrorType::General, nullptr, t));
@@ -711,7 +706,7 @@ bool ParseExpressions::newOperatorTakesRightSidePrecedence(Operator* oNew, Opera
 //get the right-most token of an operator tree, if there is one
 Token* ParseExpressions::getLastToken(Token* t) {
 	Operator* o;
-	while ((o = dynamic_cast<Operator*>(t)) != nullptr && o->right != nullptr)
+	while (let(Operator*, o, t) && o->right != nullptr)
 		t = o->right;
 	return t;
 }
@@ -719,7 +714,7 @@ Token* ParseExpressions::getLastToken(Token* t) {
 bool ParseExpressions::hasSemicolon(AbstractCodeBlock* a) {
 	forEach(Token*, t, a->tokens, ti) {
 		Separator* s;
-		if ((s = dynamic_cast<Separator*>(t)) != nullptr && s->separatorType == SeparatorType::Semicolon)
+		if (let(Separator*, s, t) && s->separatorType == SeparatorType::Semicolon)
 			return true;
 	}
 	return false;

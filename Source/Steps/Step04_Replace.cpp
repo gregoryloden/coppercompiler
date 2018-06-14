@@ -27,7 +27,7 @@ void Replace::replaceCodeInFiles(Pliers* pliers) {
 void Replace::addReplacesToTrie(Array<CDirective*>* directives, PrefixTrie<char, CDirectiveReplace*>* replaces) {
 	forEach(CDirective*, d, directives, di) {
 		CDirectiveReplace* r;
-		if ((r = dynamic_cast<CDirectiveReplace*>(d)) == nullptr)
+		if (!let(CDirectiveReplace*, r, d))
 			continue;
 
 		if (replaces->set(r->toReplace->name.c_str(), r->toReplace->name.length(), r) !=
@@ -45,7 +45,7 @@ void Replace::replaceTokens(Array<Token*>* tokens, PrefixTrie<char, CDirectiveRe
 		CDirectiveReplace* r;
 		//if it's an abstract code block, we need to replace all its contents with its replaces considered
 		//this is definitely not arguments for backtracking since it would have been used already
-		if ((a = dynamic_cast<AbstractCodeBlock*>(t)) != nullptr) {
+		if (let(AbstractCodeBlock*, a, t)) {
 			Array<CDirective*>* directives = a->directives;
 			if (directives != nullptr && directives->length > 0) {
 				PrefixTrieUnion<char, CDirectiveReplace*> newReplaces (replaces);
@@ -55,8 +55,7 @@ void Replace::replaceTokens(Array<Token*>* tokens, PrefixTrie<char, CDirectiveRe
 				replaceTokens(a->tokens, replaces);
 			continue;
 		//if it's not an identifier to replace, don't do anything
-		} else if ((i = dynamic_cast<Identifier*>(t)) == nullptr ||
-			(r = replaces->get(i->name.c_str(), i->name.length())) == nullptr)
+		} else if (!let(Identifier*, i, t) || (r = replaces->get(i->name.c_str(), i->name.length())) == nullptr)
 				continue;
 
 		//if the replace is already in use, that's an error
@@ -74,7 +73,7 @@ void Replace::replaceTokens(Array<Token*>* tokens, PrefixTrie<char, CDirectiveRe
 			if (ti >= tokens->length) {
 				Error::logError(ErrorType::ExpectedToFollow, "a replace-input argument list", i);
 				break;
-			} else if ((a = dynamic_cast<AbstractCodeBlock*>(t = tokens->get(ti))) == nullptr) {
+			} else if (!let(AbstractCodeBlock*, a, t = tokens->get(ti))) {
 				Error::logError(ErrorType::Expected, "a replace-input argument list", t);
 				continue;
 			}
@@ -114,7 +113,7 @@ Array<AbstractCodeBlock*>* Replace::collectArguments(
 	int nextArgumentStartPos = argumentsCodeBlock->contentPos + 1;
 	forEach(Token*, t, argumentsCodeBlock->tokens, ati) {
 		Separator* s;
-		if ((s = dynamic_cast<Separator*>(t)) != nullptr && s->separatorType == SeparatorType::Comma) {
+		if (let(Separator*, s, t) && s->separatorType == SeparatorType::Comma) {
 			arguments->add(new AbstractCodeBlock(
 				nextTokens, nullptr, nextArgumentStartPos, s->contentPos, argumentsCodeBlock->owningFile));
 			nextArgumentStartPos = s->endContentPos;
@@ -150,7 +149,7 @@ void Replace::buildReplacement(
 	forEach(Token*, t, replacementBody->tokens, ti) {
 		AbstractCodeBlock* a;
 		//abstract code block, recursively replace it
-		if ((a = dynamic_cast<AbstractCodeBlock*>(t)) != nullptr) {
+		if (let(AbstractCodeBlock*, a, t)) {
 			Array<Token*>* replacementTokens = new Array<Token*>();
 			buildReplacement(replacementTokens, a, arguments, input, replacementSource);
 			tokensOutput->add(new AbstractCodeBlock(replacementTokens, a, replacementSource));
@@ -159,10 +158,10 @@ void Replace::buildReplacement(
 		if (hasInput) {
 			StringLiteral* s;
 			Identifier* i;
-			if ((s = dynamic_cast<StringLiteral*>(t)) != nullptr) {
+			if (let(StringLiteral*, s, t)) {
 				tokensOutput->add(replaceStringLiteral(s, arguments, input, replacementSource));
 				continue;
-			} else if ((i = dynamic_cast<Identifier*>(t)) != nullptr) {
+			} else if (let(Identifier*, i, t)) {
 				replaceIdentifier(tokensOutput, i, arguments, input, replacementSource);
 				continue;
 			}
@@ -228,9 +227,7 @@ void Replace::replaceIdentifier(
 				//we are only replacing one part of the name, so we expect exactly one identifier
 				} else {
 					Identifier* i;
-					if (argument->tokens->length != 1 ||
-						(i = dynamic_cast<Identifier*>(argument->tokens->first())) == nullptr)
-					{
+					if (argument->tokens->length != 1 || !let(Identifier*, i, argument->tokens->first())) {
 						Error::logError(ErrorType::Expected, "one identifier", argument);
 						ni = nameLength;
 						break;

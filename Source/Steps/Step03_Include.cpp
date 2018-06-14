@@ -24,7 +24,7 @@ void Include::loadFiles(Pliers* pliers) {
 
 		forEach(CDirective*, d, nextFile->abstractContents->directives, di) {
 			CDirectiveInclude* i;
-			if ((i = dynamic_cast<CDirectiveInclude*>(d)) == nullptr)
+			if (!let(CDirectiveInclude*, i, d))
 				continue;
 
 			resolveIncludedFiles(nextFile, nextFile->path->parentDirectory, i->path, i->pathName, false);

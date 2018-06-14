@@ -35,13 +35,13 @@ AbstractCodeBlock* ParseDirectives::parseAbstractCodeBlock(bool endsWithParenthe
 
 			DirectiveTitle* dt;
 			Separator* s;
-			if ((dt = dynamic_cast<DirectiveTitle*>(next)) != nullptr) {
+			if (let(DirectiveTitle*, dt, next)) {
 				Deleter<DirectiveTitle> dtDeleter (dt);
 				if (directives == nullptr)
 					directives = new Array<CDirective*>();
 				directives->add(dt->directive = completeDirective(dt));
 				dtDeleter.release();
-			} else if ((s = dynamic_cast<Separator*>(next)) != nullptr) {
+			} else if (let(Separator*, s, next)) {
 				if (s->separatorType == SeparatorType::LeftParenthesis) {
 					next = parseAbstractCodeBlock(true, s->contentPos);
 					delete s;
@@ -68,7 +68,7 @@ AbstractCodeBlock* ParseDirectives::parseAbstractCodeBlock(bool endsWithParenthe
 					if (next == nullptr)
 						throw 0;
 					Separator* s;
-					if ((s = dynamic_cast<Separator*>(next)) != nullptr) {
+					if (let(Separator*, s, next)) {
 						if (s->separatorType == SeparatorType::LeftParenthesis)
 							parentheses++;
 						else if (s->separatorType == SeparatorType::RightParenthesis)
@@ -126,7 +126,7 @@ template <class TokenType> TokenType* ParseDirectives::parseToken(
 	if (l == nullptr)
 		Error::makeError(ErrorType::EndOfFileWhileSearching, expectedTokenTypeName, endOfFileErrorToken);
 	TokenType* t;
-	if ((t = dynamic_cast<TokenType*>(l)) == nullptr) {
+	if (!let(TokenType*, t, l)) {
 		Deleter<LexToken> lDeleter (l);
 		Error::makeError(ErrorType::Expected, expectedTokenTypeName, l);
 	}
@@ -155,9 +155,9 @@ Array<string>* ParseDirectives::parseReplaceParameters(Identifier* endOfFileErro
 	if (initial == nullptr)
 		Error::makeError(ErrorType::EndOfFileWhileSearching, "the replace-input parameters", endOfFileErrorToken);
 	Identifier* identifier;
-	if ((identifier = dynamic_cast<Identifier*>(initial)) == nullptr) {
+	if (!let(Identifier*, identifier, initial)) {
 		Separator* s;
-		if ((s = dynamic_cast<Separator*>(initial)) == nullptr || s->separatorType != SeparatorType::RightParenthesis) {
+		if (!let(Separator*, s, initial) || s->separatorType != SeparatorType::RightParenthesis) {
 			Deleter<LexToken> initialDeleter (initial);
 			Error::makeError(ErrorType::Expected, "an identifier or right parenthesis", initial);
 		}

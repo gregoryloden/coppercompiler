@@ -77,20 +77,17 @@ CDataType* CDataType::bestCompatibleType(CDataType* type1, CDataType* type2) {
 		return type1;
 	CNumericPrimitive* npType1;
 	CNumericPrimitive* npType2;
-	if ((npType1 = dynamic_cast<CNumericPrimitive*>(type1)) != nullptr &&
-		(npType2 = dynamic_cast<CNumericPrimitive*>(type2)) != nullptr)
-	{
+	if (let(CNumericPrimitive*, npType1, type1) && let(CNumericPrimitive*, npType2, type2)) {
 		bool firstIsFloat;
-		if ((firstIsFloat = (dynamic_cast<CFloatingPointPrimitive*>(npType1) != nullptr)) !=
-				(dynamic_cast<CFloatingPointPrimitive*>(npType2) != nullptr))
+		if ((firstIsFloat = (istype(npType1, CFloatingPointPrimitive*))) != (istype(npType2, CFloatingPointPrimitive*)))
 			return firstIsFloat ? npType1 : npType2;
 		else if (npType1 == infiniteByteSizeIntType || npType1 == infinitePrecisionFloatType)
 			return npType2;
 		else if (npType2 == infiniteByteSizeIntType || npType2 == infinitePrecisionFloatType)
 			return npType1;
 		return npType1->bitSize > npType2->bitSize ? npType1 : npType2;
-	} else if ((type1 == CDataType::functionType && dynamic_cast<CSpecificFunction*>(type2) != nullptr) ||
-			(type2 == CDataType::functionType && dynamic_cast<CSpecificFunction*>(type1) != nullptr))
+	} else if ((type1 == CDataType::functionType && istype(type2, CSpecificFunction*)) ||
+			(type2 == CDataType::functionType && istype(type1, CSpecificFunction*)))
 		return CDataType::functionType;
 	//TODO: classes
 	return nullptr;

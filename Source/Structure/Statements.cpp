@@ -56,7 +56,7 @@ IfStatement::ConditionVisitor::~ConditionVisitor() {
 void IfStatement::ConditionVisitor::handleExpression(Token* t) {
 	Operator* o;
 	ParenthesizedExpression* p;
-	if ((o = dynamic_cast<Operator*>(t)) != nullptr) {
+	if (let(Operator*, o, t)) {
 		if (conditionBooleanType == OperatorType::None) {
 			if (o->operatorType == OperatorType::BooleanAnd || o->operatorType == OperatorType::BooleanOr) {
 				conditionBooleanType = o->operatorType;
@@ -67,7 +67,7 @@ void IfStatement::ConditionVisitor::handleExpression(Token* t) {
 			t->visitSubtokens(this);
 			return;
 		}
-	} else if ((p = dynamic_cast<ParenthesizedExpression*>(t)) != nullptr) {
+	} else if (let(ParenthesizedExpression*, p, t)) {
 		handleExpression(p->expression);
 		return;
 	} else if (conditionBooleanType == OperatorType::None)
