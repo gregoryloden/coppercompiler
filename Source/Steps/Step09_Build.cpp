@@ -16,7 +16,9 @@ Build::FindUninitializedVariablesVisitor::FindUninitializedVariablesVisitor(
 , errorForUninitializedVariables(pErrorForUninitializedVariables)
 , variableData(pVariableData) {
 }
-Build::FindUninitializedVariablesVisitor::~FindUninitializedVariablesVisitor() {}
+Build::FindUninitializedVariablesVisitor::~FindUninitializedVariablesVisitor() {
+	//don't delete the variable data, something else owns it
+}
 //go through the expression and make sure all of the variables it uses are initialized
 void Build::FindUninitializedVariablesVisitor::handleExpression(Token* t) {
 	Operator* o;
@@ -56,19 +58,16 @@ void Build::FindUninitializedVariablesVisitor::handleExpression(Token* t) {
 			forEach(CVariableData*, c, leftVariableDataList, ci) {
 				string& name = c->variable->name->name;
 				CVariableData* other = rightVariableData.get(name.c_str(), name.length());
-				if (other == nullptr) {
-					delete c;
-					continue;
+				if (other != nullptr) {
+					//TODO: variable overloading
+					if (c->variable != other->variable)
+						Error::logError(ErrorType::CompilerIssue, "resulting in mismatched variables", other->variable->name);
+					else {
+						unsigned short combinedBitmask = c->dataBitmask & other->dataBitmask;
+						if (combinedBitmask != 0)
+							CVariableData::addToVariableData(variableData, c->variable, combinedBitmask);
+					}
 				}
-				//TODO: variable overloading
-				if (c->variable != other->variable) {
-					Error::logError(ErrorType::CompilerIssue, "resulting in mismatched variables", other->variable->name);
-					delete c;
-					continue;
-				}
-				unsigned short combinedBitmask = c->dataBitmask & other->dataBitmask;
-				if (combinedBitmask != 0)
-					CVariableData::addToVariableData(variableData, c->variable, combinedBitmask);
 				delete c;
 			}
 			delete leftVariableDataList;
@@ -139,5 +138,10 @@ void Build::build(Pliers* pliers) {
 
 	globalVariableData.deleteValues();
 
+	Array<AssemblyInstruction*>* globalAssembly = new Array<AssemblyInstruction*>();
+	globalAssembly->add(new NOP());
+
 	//TODO: build
+	globalAssembly->deleteContents();
+	delete globalAssembly;
 }

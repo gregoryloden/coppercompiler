@@ -1,3 +1,126 @@
+#include "../General/globals.h"
+
+enum class SpecificRegister: unsigned char {
+	None,
+	EAX,
+	ECX,
+	EDX,
+	EBX,
+	ESP,
+	EBP,
+	ESI,
+	EDI,
+	Register32BitEnd,
+	AX,
+	CX,
+	DX,
+	BX,
+	SP,
+	BP,
+	SI,
+	DI,
+	Register16BitEnd,
+	AL,
+	CL,
+	DL,
+	BL,
+	AH,
+	CH,
+	DH,
+	BH,
+	Register8BitEnd
+};
+
+//assembly storage
+class AssemblyStorage onlyInDebug(: public ObjCounter) {
+protected:
+	AssemblyStorage(onlyWhenTrackingIDs(char* pObjType));
+public:
+	virtual ~AssemblyStorage();
+};
+class Register: public AssemblyStorage {
+private:
+	SpecificRegister specificRegister;
+
+public:
+	Register(SpecificRegister pSpecificRegister);
+	virtual ~Register();
+};
+class MemoryPointer: public AssemblyStorage {
+private:
+	SpecificRegister primaryRegister;
+	unsigned char primaryRegisterPower;
+	SpecificRegister secondaryRegister;
+	int constant;
+
+public:
+	MemoryPointer(
+		SpecificRegister pPrimaryRegister,
+		unsigned char pPrimaryRegisterPower,
+		SpecificRegister pSecondaryRegister,
+		int pConstant);
+	virtual ~MemoryPointer();
+};
+class TempStorage: public AssemblyStorage {
+private:
+	AssemblyStorage* finalStorage;
+
+public:
+	TempStorage();
+	virtual ~TempStorage();
+};
+
+//assembly instructions
+class AssemblyInstruction onlyInDebug(: public ObjCounter) {
+private:
+	AssemblyStorage* source;
+	AssemblyStorage* destination;
+
+protected:
+	AssemblyInstruction(onlyWhenTrackingIDs(char* pObjType COMMA) AssemblyStorage* pSource, AssemblyStorage* pDestination);
+public:
+	virtual ~AssemblyInstruction();
+};
+//0-1 operand instructions
+class NOP: public AssemblyInstruction {
+public:
+	NOP();
+	virtual ~NOP();
+};
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 /*
 #include "string"
 using namespace std;

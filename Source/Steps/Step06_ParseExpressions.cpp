@@ -293,10 +293,10 @@ Token* ParseExpressions::addToOperator(Operator* o, Token* activeExpression, Arr
 		Token* t = parseExpectedToken<Token>(ti, o, "a value");
 		ti->replaceThis(nullptr);
 		Deleter<Token> tDeleter (t);
-		AbstractCodeBlock* a = dynamic_cast<AbstractCodeBlock*>(t);
+		//we want to delete an abstract code block that was used as a value, and release anything else
+		bool shouldDeleteValue = istype(t, AbstractCodeBlock*);
 		o->right = parseValueExpression(t, ti);
-		//if it's an abstract code block then we're done with it and actually do want to delete it, but otherwise release it
-		if (a == nullptr)
+		if (!shouldDeleteValue)
 			tDeleter.release();
 	}
 

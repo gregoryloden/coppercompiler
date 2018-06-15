@@ -8,6 +8,7 @@
 	template <> void Array<type>::deleteContents() {}
 
 instantiateArrayTypes(AbstractCodeBlock*);
+instantiateArrayTypes(AssemblyInstruction*);
 instantiateArrayTypes(CDataType*);
 instantiateArrayTypes(CDirective*);
 instantiateArrayTypes(CDirectiveReplace*);

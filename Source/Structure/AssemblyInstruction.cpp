@@ -1,5 +1,72 @@
 #include "Project.h"
 
+AssemblyStorage::AssemblyStorage(onlyWhenTrackingIDs(char* pObjType))
+onlyInDebug(: ObjCounter(onlyWhenTrackingIDs(pObjType))) {
+}
+AssemblyStorage::~AssemblyStorage() {}
+Register::Register(SpecificRegister pSpecificRegister)
+: AssemblyStorage(onlyWhenTrackingIDs("REGISTR"))
+, specificRegister(pSpecificRegister) {
+}
+Register::~Register() {}
+MemoryPointer::MemoryPointer(
+	SpecificRegister pPrimaryRegister, unsigned char pPrimaryRegisterPower, SpecificRegister pSecondaryRegister, int pConstant)
+: AssemblyStorage(onlyWhenTrackingIDs("MEMPTR"))
+, primaryRegister(pPrimaryRegister)
+, primaryRegisterPower(pPrimaryRegisterPower)
+, secondaryRegister(pSecondaryRegister)
+, constant(pConstant) {
+}
+MemoryPointer::~MemoryPointer() {}
+TempStorage::TempStorage()
+: AssemblyStorage(onlyWhenTrackingIDs("TMPSTRG"))
+, finalStorage(nullptr) {
+}
+TempStorage::~TempStorage() {
+	delete finalStorage;
+}
+AssemblyInstruction::AssemblyInstruction(
+	onlyWhenTrackingIDs(char* pObjType COMMA) AssemblyStorage* pSource, AssemblyStorage* pDestination)
+: onlyInDebug(ObjCounter(onlyWhenTrackingIDs(pObjType)) COMMA)
+source(pSource)
+, destination(pDestination) {
+}
+AssemblyInstruction::~AssemblyInstruction() {
+	delete source;
+	delete destination;
+}
+NOP::NOP()
+: AssemblyInstruction(onlyWhenTrackingIDs("NOP" COMMA) nullptr, nullptr) {
+}
+NOP::~NOP() {}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 /*
 MEMPTR mblankdataptr (-1, -1, -1, IMAGEBASE, false);
 intptr_t blankdataptr = (intptr_t)(&mblankdataptr);

@@ -80,7 +80,6 @@ void Semant::semant(Pliers* pliers) {
 		for (int i = redoVariables.length - 1; i >= 0; i--) {
 			Operator* o = redoVariables.get(i);
 			semantToken(o->right, o->owningFile->variablesVisibleToFile, SemantExpressionLevel::TopLevel);
-			VariableDeclarationList* v = dynamic_cast<VariableDeclarationList*>(o->left);
 			//check if we can find a specific version of the variable's type
 			//if we don't have any generic versions, we don't need to check again
 			if (finalizeTypes(dynamic_cast<VariableDeclarationList*>(o->left), o->right->dataType)) {
