@@ -1,4 +1,5 @@
 #include "AssemblyInstruction.h"
+#include "AssemblyStorage.h"
 #include "DataTypes.h"
 #include "Directives.h"
 #include "Representation.h"

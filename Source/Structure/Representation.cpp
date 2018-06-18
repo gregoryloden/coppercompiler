@@ -1555,11 +1555,13 @@ int SourceFile::getRow(int contentPos) {
 CVariableDefinition::CVariableDefinition(CDataType* pType, Identifier* pName)
 : onlyInDebug(ObjCounter(onlyWhenTrackingIDs("VARDEF")) COMMA)
 type(pType)
-, name(pName) {
+, name(pName)
+, storage(new TempStorage(0)) {
 }
 CVariableDefinition::~CVariableDefinition() {
 	//don't delete the type since it's owned by something else
 	delete name;
+	delete storage;
 }
 CVariableData::CVariableData(CVariableDefinition* pVariable)
 : onlyInDebug(ObjCounter(onlyWhenTrackingIDs("VARDATA")) COMMA)

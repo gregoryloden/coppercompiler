@@ -1,93 +1,123 @@
 #include "../General/globals.h"
 
-enum class SpecificRegister: unsigned char {
-	None,
-	EAX,
-	ECX,
-	EDX,
-	EBX,
-	ESP,
-	EBP,
-	ESI,
-	EDI,
-	Register32BitEnd,
-	AX,
-	CX,
-	DX,
-	BX,
-	SP,
-	BP,
-	SI,
-	DI,
-	Register16BitEnd,
-	AL,
-	CL,
-	DL,
-	BL,
-	AH,
-	CH,
-	DH,
-	BH,
-	Register8BitEnd
-};
-
-//assembly storage
-class AssemblyStorage onlyInDebug(: public ObjCounter) {
-protected:
-	AssemblyStorage(onlyWhenTrackingIDs(char* pObjType));
-public:
-	virtual ~AssemblyStorage();
-};
-class Register: public AssemblyStorage {
-private:
-	SpecificRegister specificRegister;
-
-public:
-	Register(SpecificRegister pSpecificRegister);
-	virtual ~Register();
-};
-class MemoryPointer: public AssemblyStorage {
-private:
-	SpecificRegister primaryRegister;
-	unsigned char primaryRegisterPower;
-	SpecificRegister secondaryRegister;
-	int constant;
-
-public:
-	MemoryPointer(
-		SpecificRegister pPrimaryRegister,
-		unsigned char pPrimaryRegisterPower,
-		SpecificRegister pSecondaryRegister,
-		int pConstant);
-	virtual ~MemoryPointer();
-};
-class TempStorage: public AssemblyStorage {
-private:
-	AssemblyStorage* finalStorage;
-
-public:
-	TempStorage();
-	virtual ~TempStorage();
-};
-
-//assembly instructions
 class AssemblyInstruction onlyInDebug(: public ObjCounter) {
-private:
-	AssemblyStorage* source;
+protected:
 	AssemblyStorage* destination;
+	AssemblyStorage* source;
+public:
+	int globalVariableIndex; //copper: private<Build>
 
 protected:
-	AssemblyInstruction(onlyWhenTrackingIDs(char* pObjType COMMA) AssemblyStorage* pSource, AssemblyStorage* pDestination);
+	AssemblyInstruction(onlyWhenTrackingIDs(char* pObjType COMMA) AssemblyStorage* pDestination, AssemblyStorage* pSource);
 public:
 	virtual ~AssemblyInstruction();
 };
-//0-1 operand instructions
+class AssemblyLabel: public AssemblyInstruction {
+public:
+	AssemblyLabel();
+	virtual ~AssemblyLabel();
+};
+//0 operand instructions
 class NOP: public AssemblyInstruction {
 public:
 	NOP();
 	virtual ~NOP();
 };
-
+class CBW: public AssemblyInstruction {
+public:
+	CBW();
+	virtual ~CBW();
+};
+class CWDE: public AssemblyInstruction {
+public:
+	CWDE();
+	virtual ~CWDE();
+};
+//class CWD: public AssemblyInstruction {
+//class CDQ: public AssemblyInstruction {
+//class CLD: public AssemblyInstruction {
+//class REPMOVSB: public AssemblyInstruction {
+//0-1 operand instructions
+class RET: public AssemblyInstruction {
+public:
+	RET(unsigned short bytesToPop);
+	RET(): RET(0) {}
+	virtual ~RET();
+};
+//class LOOP: public AssemblyInstruction {
+//1 operand instructions
+//class JMP: public AssemblyInstruction {
+class CALL: public AssemblyInstruction {
+public:
+	CALL(AssemblyStorage* pDestination);
+	virtual ~CALL();
+};
+//class INC: public AssemblyInstruction {
+//class DEC: public AssemblyInstruction {
+//class PUSH: public AssemblyInstruction {
+//class POP: public AssemblyInstruction {
+//class NOT: public AssemblyInstruction {
+//class NEG: public AssemblyInstruction {
+//	class DIV: public AssemblyInstruction {
+//class IDIV: public AssemblyInstruction {
+//	class MUL: public AssemblyInstruction {
+//class IMUL: public AssemblyInstruction {
+//class JE: public AssemblyInstruction {
+//class JNE: public AssemblyInstruction {
+//	class JB: public AssemblyInstruction {
+//	class JBE: public AssemblyInstruction {
+//	class JA: public AssemblyInstruction {
+//	class JAE: public AssemblyInstruction {
+//class JL: public AssemblyInstruction {
+//class JLE: public AssemblyInstruction {
+//class JG: public AssemblyInstruction {
+//class JGE: public AssemblyInstruction {
+//class SETE: public AssemblyInstruction {
+//class SETNE: public AssemblyInstruction {
+//class SETLE: public AssemblyInstruction {
+//class SETGE: public AssemblyInstruction {
+//class SETL: public AssemblyInstruction {
+//class SETG: public AssemblyInstruction {
+//2 operand instructions
+class ADD: public AssemblyInstruction {
+public:
+	ADD(AssemblyStorage* pDestination, AssemblyStorage* pSource);
+	virtual ~ADD();
+};
+class SUB: public AssemblyInstruction {
+public:
+	SUB(AssemblyStorage* pDestination, AssemblyStorage* pSource);
+	virtual ~SUB();
+};
+class MOV: public AssemblyInstruction {
+public:
+	MOV(AssemblyStorage* pDestination, AssemblyStorage* pSource);
+	virtual ~MOV();
+};
+//	class ADC: public AssemblyInstruction {
+//	class SBB: public AssemblyInstruction {
+//class AND: public AssemblyInstruction {
+//class OR: public AssemblyInstruction {
+//class XOR: public AssemblyInstruction {
+//class CMP: public AssemblyInstruction {
+class LEA: public AssemblyInstruction {
+public:
+	LEA(Register* pDestination, AssemblyStorage* pSource);
+	virtual ~LEA();
+};
+//	class TEST: public AssemblyInstruction {
+//class SHL: public AssemblyInstruction {
+//class SHR: public AssemblyInstruction {
+//class ROL: public AssemblyInstruction {
+//class ROR: public AssemblyInstruction {
+//class SAR: public AssemblyInstruction {
+//	class RCL: public AssemblyInstruction {
+//	class RCR: public AssemblyInstruction {
+class MOVSX: public AssemblyInstruction {
+public:
+	MOVSX(Register* pDestination, AssemblyStorage* pSource);
+	virtual ~MOVSX();
+};
 
 
 

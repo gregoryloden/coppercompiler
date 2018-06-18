@@ -4,7 +4,6 @@
 //	(builds #replace, evaluates #buildSetting, groups code for #if, #enable, etc.)
 
 thread_local SourceFile* ParseDirectives::sourceFile = nullptr;
-thread_local Token* ParseDirectives::searchOrigin = nullptr;
 thread_local int ParseDirectives::expectedFallbackParentheses = 1;
 
 //get the list of tokens and directives

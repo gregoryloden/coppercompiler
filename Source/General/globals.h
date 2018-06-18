@@ -182,7 +182,7 @@ public:
 		int pErrorSourceContentPos,
 		ErrorMessage* pErrorSourceContinuation,
 		SourceFile* pErrorOriginFile);
-	~ErrorMessage();
+	virtual ~ErrorMessage();
 
 	int getRow();
 	void printError();

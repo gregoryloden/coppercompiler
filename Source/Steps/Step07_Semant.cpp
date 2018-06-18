@@ -59,6 +59,7 @@ void Semant::semant(Pliers* pliers) {
 	//now go through all files and give them an initial semant
 	forEach(SourceFile*, s, pliers->allFiles, si2) {
 		//find all the variables visible to this file
+		//add them in reverse order so that the deepest included file's variables get set first, and higher files will error
 		Array<AVLNode<SourceFile*, bool>*>* allIncludedEntries = s->includedFiles->entrySet();
 		for (int i = allIncludedEntries->length - 1; i >= 0; i--) {
 			AVLNode<SourceFile* COMMA bool>* includedEntry = allIncludedEntries->get(i);
@@ -264,20 +265,20 @@ void Semant::semantStaticOperator(StaticOperator* s, PrefixTrie<char, CVariableD
 		logSemantError(ErrorType::General, "currently only the . member operator is supported", s);
 		return;
 	}
-	if (i->name == "str") {
+	if (i->name == "exit") {
 		Array<CDataType*>* parameterTypes = new Array<CDataType*>();
 		parameterTypes->add(CDataType::intType);
-		s->dataType = CGenericFunction::typeFor(CDataType::stringType, parameterTypes);
+		s->dataType = CGenericFunction::typeFor(CDataType::voidType, parameterTypes);
 	} else if (i->name == "print") {
 		Array<CDataType*>* parameterTypes = new Array<CDataType*>();
 		parameterTypes->add(CDataType::stringType);
 		s->dataType = CGenericFunction::typeFor(CDataType::voidType, parameterTypes);
-	} else if (i->name == "exit") {
+	} else if (i->name == "str") {
 		Array<CDataType*>* parameterTypes = new Array<CDataType*>();
 		parameterTypes->add(CDataType::intType);
-		s->dataType = CGenericFunction::typeFor(CDataType::voidType, parameterTypes);
+		s->dataType = CGenericFunction::typeFor(CDataType::stringType, parameterTypes);
 	} else
-		logSemantErrorWithErrorCheck(ErrorType::General, "currently Main only has support for print, str, and exit", i, s);
+		logSemantErrorWithErrorCheck(ErrorType::General, "currently Main only has support for exit, print, and str", i, s);
 	//TODO: implement classes
 }
 //verify that this operator has the right types for its subexpressions
@@ -676,7 +677,7 @@ void Semant::semantGroup(Group* g, PrefixTrie<char, CVariableDefinition*>* varia
 }
 //semant all the statments in the given statement list
 //functions will pass a return type, to be recursively passed for other statement lists
-//returns whether the statement list returns a value of the provided type
+//returns the strongest exit that definitely happens in the statement list
 ScopeExitType Semant::semantStatementList(
 	Array<Statement*>* statements,
 	PrefixTrie<char, CVariableDefinition*>* previousVariables,
@@ -706,8 +707,7 @@ ScopeExitType Semant::semantStatementList(
 				string errorMessage = "a returned value of type " + returnType->name;
 				Error::logError(ErrorType::Expected, errorMessage.c_str(), r->returnKeywordToken);
 			}
-			if (exitType == ScopeExitType::None)
-				exitType = ScopeExitType::Return;
+			exitType = ScopeExitType::Return;
 		} else if (let(IfStatement*, i, s)) {
 			semantToken(i->condition, &variables, SemantExpressionLevel::TopLevelInParentheses);
 			if (tokenHasKnownType(i->condition) && i->condition->dataType != CDataType::boolType)
@@ -739,8 +739,10 @@ ScopeExitType Semant::semantStatementList(
 					(conditionVisitor.conditionBooleanType == OperatorType::BooleanAnd &&
 						elseExitType != ScopeExitType::None)))
 				addVariablesToTrie(newScopeVariablesList, &variables, nullptr);
-			if (exitType == ScopeExitType::None)
-				exitType = ((unsigned char)elseExitType) < ((unsigned char)thenExitType) ? elseExitType : thenExitType;
+			ScopeExitType ifExitType =
+				((unsigned char)elseExitType) < ((unsigned char)thenExitType) ? elseExitType : thenExitType;
+			if ((unsigned char)exitType < (unsigned char)ifExitType)
+				exitType = ifExitType;
 			delete newScopeVariablesList;
 		} else if (let(LoopStatement*, l, s)) {
 			PrefixTrieUnion<char, CVariableDefinition*> loopBodyVariables (&variables);
@@ -754,8 +756,11 @@ ScopeExitType Semant::semantStatementList(
 			if (l->increment != nullptr)
 				semantToken(l->increment, &incrementVariables, SemantExpressionLevel::TopLevel);
 			ScopeExitType loopExitType = semantStatementList(l->body, &loopBodyVariables, nullptr, returnType);
-			if (exitType == ScopeExitType::None)
-				exitType = loopExitType;
+			if (loopExitType == ScopeExitType::Return)
+				exitType = ScopeExitType::Return;
+		} else if (istype(s, LoopControlFlowStatement*)) {
+			if ((unsigned char)exitType < (unsigned char)ScopeExitType::LoopJump)
+				exitType = ScopeExitType::LoopJump;
 		}
 	}
 	return exitType;

@@ -111,6 +111,7 @@ class StatementList;
 class Token;
 class Pliers;
 class Path;
+class TempStorage;
 template <class Key, class Value> class AVLTree;
 template <class KeyElement, class Value> class PrefixTrie;
 /*
@@ -437,6 +438,7 @@ class CVariableDefinition onlyInDebug(: public ObjCounter) {
 public:
 	CDataType* type;
 	Identifier* name;
+	TempStorage* storage;
 	//CClass* owningClass;
 
 	CVariableDefinition(CDataType* pType, Identifier* pName);

@@ -12,6 +12,7 @@ public:
 	virtual ~Array();
 
 	void deleteContents();
+	static Array<Type>* newArrayWith(Type val);
 private:
 	void resize(int scale);
 	void shiftBack(int pos, int shift);

@@ -136,7 +136,7 @@ SourceFile* Include::getSourceFile(Path* path, StringLiteral* inclusionSource, b
 	FILE* file = nullptr;
 	fopen_s(&file, fileName.c_str(), "rb");
 	//if we have an invalid wildcard file, don't error and don't make a placeholder file, just return nullptr
-	//wildcard includes can point to 0+ files, even if they match directories
+	//the parent directories may have matched but the actual file might not be there
 	if (file == nullptr && wasWildcard)
 		return nullptr;
 	//now make the file itself, whether it exists or not- if not we will use it to produce an error message

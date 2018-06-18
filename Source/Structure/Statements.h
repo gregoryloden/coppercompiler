@@ -1,9 +1,8 @@
 #include "../Structure/Tokens.h"
 
-class Token;
 class CVariableDefinition;
 class StatementList;
-class IntConstant;
+class AssemblyInstruction;
 template <class KeyElement, class Value> class PrefixTrie;
 
 class Statement onlyInDebug(: public ObjCounter) {
@@ -77,4 +76,11 @@ public:
 
 	LoopControlFlowStatement(bool pContinueLoop, IntConstant* pLevels);
 	virtual ~LoopControlFlowStatement();
+};
+class AssemblyStatement: public Statement {
+public:
+	Array<AssemblyInstruction*>* assembly;
+
+	AssemblyStatement(Array<AssemblyInstruction*>* pAssembly);
+	virtual ~AssemblyStatement();
 };

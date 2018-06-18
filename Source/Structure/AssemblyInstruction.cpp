@@ -1,44 +1,67 @@
 #include "Project.h"
 
-AssemblyStorage::AssemblyStorage(onlyWhenTrackingIDs(char* pObjType))
-onlyInDebug(: ObjCounter(onlyWhenTrackingIDs(pObjType))) {
-}
-AssemblyStorage::~AssemblyStorage() {}
-Register::Register(SpecificRegister pSpecificRegister)
-: AssemblyStorage(onlyWhenTrackingIDs("REGISTR"))
-, specificRegister(pSpecificRegister) {
-}
-Register::~Register() {}
-MemoryPointer::MemoryPointer(
-	SpecificRegister pPrimaryRegister, unsigned char pPrimaryRegisterPower, SpecificRegister pSecondaryRegister, int pConstant)
-: AssemblyStorage(onlyWhenTrackingIDs("MEMPTR"))
-, primaryRegister(pPrimaryRegister)
-, primaryRegisterPower(pPrimaryRegisterPower)
-, secondaryRegister(pSecondaryRegister)
-, constant(pConstant) {
-}
-MemoryPointer::~MemoryPointer() {}
-TempStorage::TempStorage()
-: AssemblyStorage(onlyWhenTrackingIDs("TMPSTRG"))
-, finalStorage(nullptr) {
-}
-TempStorage::~TempStorage() {
-	delete finalStorage;
-}
 AssemblyInstruction::AssemblyInstruction(
-	onlyWhenTrackingIDs(char* pObjType COMMA) AssemblyStorage* pSource, AssemblyStorage* pDestination)
+	onlyWhenTrackingIDs(char* pObjType COMMA) AssemblyStorage* pDestination, AssemblyStorage* pSource)
 : onlyInDebug(ObjCounter(onlyWhenTrackingIDs(pObjType)) COMMA)
-source(pSource)
-, destination(pDestination) {
+destination(pDestination)
+, source(pSource)
+, globalVariableIndex(-1) {
 }
 AssemblyInstruction::~AssemblyInstruction() {
-	delete source;
-	delete destination;
+	//don't delete source or destination, something else will track the storages to delete them
 }
+AssemblyLabel::AssemblyLabel()
+: AssemblyInstruction(onlyWhenTrackingIDs("ASMLBL" COMMA) nullptr, nullptr) {
+}
+AssemblyLabel::~AssemblyLabel() {}
 NOP::NOP()
 : AssemblyInstruction(onlyWhenTrackingIDs("NOP" COMMA) nullptr, nullptr) {
 }
 NOP::~NOP() {}
+CBW::CBW()
+: AssemblyInstruction(onlyWhenTrackingIDs("CBW" COMMA) nullptr, nullptr) {
+}
+CBW::~CBW() {}
+CWDE::CWDE()
+: AssemblyInstruction(onlyWhenTrackingIDs("CWDE" COMMA) nullptr, nullptr) {
+}
+CWDE::~CWDE() {}
+RET::RET(unsigned short bytesToPop)
+: AssemblyInstruction(onlyWhenTrackingIDs("RET" COMMA) nullptr, new AssemblyConstant(bytesToPop, 16)) {
+}
+RET::~RET() {
+	delete source;
+}
+CALL::CALL(AssemblyStorage* pDestination)
+: AssemblyInstruction(onlyWhenTrackingIDs("CALL" COMMA) pDestination, nullptr) {
+}
+CALL::~CALL() {}
+ADD::ADD(AssemblyStorage* pDestination, AssemblyStorage* pSource)
+: AssemblyInstruction(onlyWhenTrackingIDs("ADD" COMMA) pDestination, pSource) {
+}
+ADD::~ADD() {}
+SUB::SUB(AssemblyStorage* pDestination, AssemblyStorage* pSource)
+: AssemblyInstruction(onlyWhenTrackingIDs("SUB" COMMA) pDestination, pSource) {
+}
+SUB::~SUB() {}
+MOV::MOV(AssemblyStorage* pDestination, AssemblyStorage* pSource)
+: AssemblyInstruction(onlyWhenTrackingIDs("MOV" COMMA) pDestination, pSource) {
+}
+MOV::~MOV() {}
+LEA::LEA(Register* pDestination, AssemblyStorage* pSource)
+: AssemblyInstruction(onlyWhenTrackingIDs("LEA" COMMA) pDestination, pSource) {
+}
+LEA::~LEA() {}
+MOVSX::MOVSX(Register* pDestination, AssemblyStorage* pSource)
+: AssemblyInstruction(onlyWhenTrackingIDs("MOVSX" COMMA) pDestination, pSource) {
+}
+MOVSX::~MOVSX() {}
+Thunk::Thunk(string pName, unsigned short pThunkID)
+: onlyInDebug(ObjCounter(onlyWhenTrackingIDs("THUNK")) COMMA)
+name(pName)
+, thunkID(pThunkID) {
+}
+Thunk::~Thunk() {}
 
 
 

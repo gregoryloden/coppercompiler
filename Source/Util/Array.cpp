@@ -9,18 +9,23 @@
 
 instantiateArrayTypes(AbstractCodeBlock*);
 instantiateArrayTypes(AssemblyInstruction*);
+instantiateArrayTypes(AssemblyStorage*);
 instantiateArrayTypes(CDataType*);
 instantiateArrayTypes(CDirective*);
 instantiateArrayTypes(CDirectiveReplace*);
 instantiateArrayTypes(CVariableData*);
 instantiateArrayTypes(CVariableDefinition*);
 instantiateArrayTypes(ErrorMessage*);
+instantiateArrayTypes(FunctionStaticStorage*);
+instantiateArrayTypes(FunctionDefinition*);
 instantiateArrayTypes(Identifier*);
 instantiateArrayTypes(LexToken*);
 instantiateArrayTypes(Operator*);
 instantiateArrayTypes(Path*);
 instantiateArrayTypes(SourceFile*);
 instantiateArrayTypes(Statement*);
+instantiateArrayTypes(StringStaticStorage*);
+instantiateArrayTypes(StringLiteral*);
 instantiateArrayTypes(Token*);
 instantiateArrayTypes(VariableDeclarationList*);
 instantiateArrayTypes(Array<Token*>*);
@@ -49,6 +54,11 @@ template <class Type> Array<Type>::~Array() {
 template <class Type> void Array<Type>::deleteContents() {
 	forEach(Type, t, this, ti)
 		delete t;
+}
+template <class Type> Array<Type>* Array<Type>::newArrayWith(Type val) {
+	Array<Type>* result = new Array<Type>();
+	result->add(val);
+	return result;
 }
 //resize the array by the given scale
 template <class Type> void Array<Type>::resize(int scale) {

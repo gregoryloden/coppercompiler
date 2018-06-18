@@ -16,7 +16,6 @@ template <class Type> class Array;
 class ParseDirectives {
 private:
 	static thread_local SourceFile* sourceFile;
-	static thread_local Token* searchOrigin;
 	static thread_local int expectedFallbackParentheses;
 
 public:

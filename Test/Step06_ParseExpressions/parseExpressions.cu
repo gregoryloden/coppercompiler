@@ -48,6 +48,7 @@ Function main = void() (
 		;
 	for (; p < 10;)
 		p++;
+	bool t = 3 * 4 + 5 * 6 == 3 * 4 + 5 * 6 && 3 * 4 + 5 * 6 == 3 * 4 + 5 * 6;
 );
 Function i = int(int j) (
 	return k(j, j);

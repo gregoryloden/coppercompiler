@@ -13,7 +13,7 @@ public:
 	int totalElapsedMilliseconds; //copper: readonly
 
 	Pliers(const char* pBaseFileName, bool pPrintProgress onlyInDebug(COMMA bool printContents));
-	~Pliers();
+	virtual ~Pliers();
 };
 /*
 class Function;

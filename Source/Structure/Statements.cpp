@@ -103,3 +103,11 @@ LoopControlFlowStatement::LoopControlFlowStatement(bool pContinueLoop, IntConsta
 LoopControlFlowStatement::~LoopControlFlowStatement() {
 	delete levels;
 }
+AssemblyStatement::AssemblyStatement(Array<AssemblyInstruction*>* pAssembly)
+: Statement(onlyWhenTrackingIDs("ASMSTMT"))
+, assembly(pAssembly) {
+}
+AssemblyStatement::~AssemblyStatement() {
+	assembly->deleteContents();
+	delete assembly;
+}
