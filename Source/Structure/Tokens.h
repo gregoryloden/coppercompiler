@@ -10,6 +10,7 @@ class CVariableDefinition;
 class Statement;
 class LexToken;
 class TokenVisitor;
+class TempStorage;
 template <class Type> class Array;
 
 enum class SeparatorType: unsigned char {
@@ -160,9 +161,11 @@ public:
 //	static const int FLOAT_TOO_BIG_EXPONENT = 0x100000;
 
 	BigInt* significand; //copper: readonly
+	int fractionDigits; //copper: readonly
 	int exponent; //copper: readonly
 
-	FloatConstant(BigInt* pSignificand, int pExponent, int pContentPos, int pEndContentPos, SourceFile* pOwningFile);
+	FloatConstant(
+		BigInt* pSignificand, int pFractionDigits, int pExponent, int pContentPos, int pEndContentPos, SourceFile* pOwningFile);
 	FloatConstant(FloatConstant* cloneSource, Identifier* pReplacementSource);
 	virtual ~FloatConstant();
 
@@ -205,6 +208,7 @@ public:
 	OperatorTypePrecedence precedence; //copper: readonly
 	Token* left; //copper: readonly
 	Token* right; //copper: readonly
+	bool wasParenthesized;
 
 	#ifdef TRACK_OBJ_IDS
 		Operator(OperatorType pOperatorType, int pContentPos, int pEndContentPos, SourceFile* pOwningFile);
@@ -294,6 +298,8 @@ public:
 	CDataType* returnType;
 	Array<CVariableDefinition*>* parameters;
 	Array<Statement*>* body;
+	bool eligibleForRegisterParameters;
+	TempStorage* resultStorage;
 
 	FunctionDefinition(
 		CDataType* pReturnType, Array<CVariableDefinition*>* pParameters, Array<Statement*>* pBody, Identifier* typeToken);

@@ -249,6 +249,11 @@ void Error::logErrorWithErrorSourceAndOriginFile(
 	token->owningFile->owningPliers->errorMessages->add(buildErrorMessage(type, message, token, errorSource, errorOriginFile));
 	assert(type != ErrorType::CompilerIssue);
 }
+//add a warning to the warnings list without throwing
+void Error::logWarning(const char* message, Token* token) {
+	token->owningFile->owningPliers->warningMessages->add(
+		buildErrorMessage(ErrorType::Warning, message, token, nullptr, nullptr));
+}
 //build an error message list from the given input
 ErrorMessage* Error::buildErrorMessage(
 	ErrorType type, const char* message, Token* token, Token* errorSource, SourceFile* errorOriginFile)
@@ -319,9 +324,18 @@ void ErrorMessage::printError() {
 	//print the error
 	if (errorOriginFile != nullptr && errorOriginFile != owningFile && errorOriginFile != errorSourceOwningFile)
 		printf("From \"%s\":\n", errorOriginFile->path->fileName.c_str());
-	char* errorPrefix = type == ErrorType::Continuation
-		? "  -- in \"%s\" at line %d char %d\n"
-		: "Error in \"%s\" at line %d char %d: ";
+	const char* errorPrefix;
+	switch (type) {
+		case ErrorType::Continuation:
+			errorPrefix = "     -- in \"%s\" at line %d char %d\n";
+			break;
+		case ErrorType::Warning:
+			errorPrefix = "Warning in \"%s\" at line %d char %d: ";
+			break;
+		default:
+			errorPrefix = "  Error in \"%s\" at line %d char %d: ";
+			break;
+	}
 	printf(errorPrefix, owningFile->path->fileName.c_str(), row + 1, contentPos - owningFile->rowStarts->get(row) + 1);
 	switch (type) {
 		case ErrorType::General: puts(message); break;
@@ -331,6 +345,7 @@ void ErrorMessage::printError() {
 		case ErrorType::ExpectedToFollow: printf("expected %s to follow\n", message); break;
 		case ErrorType::Continuation: break;
 		case ErrorType::CompilerIssue: printf("A bug in the compiler caused an issue %s\n", message); break;
+		case ErrorType::Warning: puts(message); break;
 	}
 	showSnippet(owningFile, contentPos);
 	if (continuation != nullptr)
@@ -504,10 +519,10 @@ void ErrorMessage::showSnippet(SourceFile* snippetFile, int snippetContentPos) {
 	//if a statement continuation follows, add appropriate whitespace so that it can immediately follow
 	//if not, the statement is over and we need to end on a new line
 	void Debug::printStatementList(Array<Statement*>* a, int tabsCount, bool statementContinuationFollows) {
-		if (a->length == 1 &&
-			(istype(a->get(0), ExpressionStatement*) ||
-				istype(a->get(0), ReturnStatement*) ||
-				istype(a->get(0), LoopControlFlowStatement*)))
+		if (a->length == 1
+			&& (istype(a->get(0), ExpressionStatement*)
+				|| istype(a->get(0), ReturnStatement*)
+				|| istype(a->get(0), LoopControlFlowStatement*)))
 		{
 			printf("\n");
 			printStatement(a->get(0), tabsCount + 1);

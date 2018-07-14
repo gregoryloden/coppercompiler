@@ -86,8 +86,8 @@ template <class Key, class Value> AVLNode<Key, Value>* AVLTree<Key, Value>::setA
 	//                X+2: B   C: X    >    X+1: D   A: X+1
 	//                    / \                       / \
 	//              X+1: D   E: X               X: E   C: X
-	} else if (AVLNode<Key, Value>::nodeHeight(leftAccessor.get(leftNode)) >
-		AVLNode<Key, Value>::nodeHeight(leftNodeRightChild = rightAccessor.get(leftNode)))
+	} else if (AVLNode<Key, Value>::nodeHeight(leftAccessor.get(leftNode))
+		> AVLNode<Key, Value>::nodeHeight(leftNodeRightChild = rightAccessor.get(leftNode)))
 	{
 		leftAccessor.set(node, leftNodeRightChild);
 		node->height = rightNodeHeight + 1;

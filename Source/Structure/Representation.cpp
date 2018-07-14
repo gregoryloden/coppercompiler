@@ -1556,11 +1556,13 @@ CVariableDefinition::CVariableDefinition(CDataType* pType, Identifier* pName)
 : onlyInDebug(ObjCounter(onlyWhenTrackingIDs("VARDEF")) COMMA)
 type(pType)
 , name(pName)
-, storage(new TempStorage(0)) {
+, initialValue(nullptr)
+, storage(new TempStorage(BitSize::BInfinite)) {
 }
 CVariableDefinition::~CVariableDefinition() {
 	//don't delete the type since it's owned by something else
 	delete name;
+	//don't delete the initial value since it's owned by something else
 	delete storage;
 }
 CVariableData::CVariableData(CVariableDefinition* pVariable)

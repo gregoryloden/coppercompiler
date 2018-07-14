@@ -91,7 +91,7 @@ template <class Type> void Array<Type>::set(int pos, Type t) {
 	inner[pos] = t;
 }
 //add an item to the array at the given spot
-template <class Type> void Array<Type>::add(Type t, int pos) {
+template <class Type> void Array<Type>::insert(Type t, int pos) {
 	shiftBack(pos, 1);
 	inner[pos] = t;
 }
@@ -102,27 +102,17 @@ template <class Type> void Array<Type>::add(Type t) {
 	inner[length] = t;
 	length++;
 }
-//add another array's items to this array at the given spot, deleting the array if indicated
-template <class Type> void Array<Type>::add(Array<Type>* a, int pos, bool deletable) {
+//add another array's items to this array at the given spot
+template <class Type> void Array<Type>::insert(Array<Type>* a, int pos) {
 	int shift = a->length;
 	shiftBack(pos, shift);
 	Type* otherInner = a->inner;
 	for (int i = shift - 1; i >= 0; i--)
 		inner[i + pos] = otherInner[i];
-	if (deletable)
-		delete a;
-}
-//add another array's items to the end of this array, deleting the array if indicated
-template <class Type> void Array<Type>::add(Array<Type>* a, bool deletable) {
-	add(a, length, deletable);
-}
-//add another array's items to this array at the given spot
-template <class Type> void Array<Type>::add(Array<Type>* a, int pos) {
-	add(a, pos, true);
 }
 //add another array's items to the end of this array
 template <class Type> void Array<Type>::add(Array<Type>* a) {
-	add(a, length, true);
+	insert(a, length);
 }
 //remove the given number of items at the given spot
 template <class Type> void Array<Type>::remove(int pos, int num) {

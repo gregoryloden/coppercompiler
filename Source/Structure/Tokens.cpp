@@ -68,9 +68,10 @@ IntConstant::~IntConstant() {
 }
 cloneWithReplacementSourceForType(IntConstant)
 FloatConstant::FloatConstant(
-	BigInt* pSignificand, int pExponent, int pContentPos, int pEndContentPos, SourceFile* pOwningFile)
+	BigInt* pSignificand, int pFractionDigits, int pExponent, int pContentPos, int pEndContentPos, SourceFile* pOwningFile)
 : LexToken(onlyWhenTrackingIDs("FLTCNST" COMMA) pContentPos, pEndContentPos, pOwningFile)
 , significand(pSignificand)
+, fractionDigits(pFractionDigits)
 , exponent(pExponent) {
 	dataType = CDataType::infinitePrecisionFloatType;
 //TODO:
@@ -79,6 +80,7 @@ FloatConstant::FloatConstant(
 FloatConstant::FloatConstant(FloatConstant* cloneSource, Identifier* pReplacementSource)
 : LexToken(cloneSource, pReplacementSource)
 , significand(new BigInt(cloneSource->significand, false))
+, fractionDigits(cloneSource->fractionDigits)
 , exponent(cloneSource->exponent) {
 }
 FloatConstant::~FloatConstant() {
@@ -138,10 +140,11 @@ Operator::Operator(
 	SourceFile* pOwningFile)
 : LexToken(onlyWhenTrackingIDs(pObjType COMMA) pContentPos, pEndContentPos, pOwningFile)
 , operatorType(pOperatorType)
+, precedence(OperatorTypePrecedence::Assignment)
 , left(nullptr)
-, right(nullptr) {
+, right(nullptr)
+, wasParenthesized(false) {
 	switch (pOperatorType) {
-//		case OperatorType::None:
 		case OperatorType::StaticDot:
 		case OperatorType::StaticMemberAccess:
 			precedence = OperatorTypePrecedence::StaticMember;
@@ -226,6 +229,7 @@ Operator::Operator(
 //		case OperatorType::AssignBooleanOr:
 			precedence = OperatorTypePrecedence::Assignment;
 			break;
+		case OperatorType::None:
 		default:
 			Error::makeError(ErrorType::CompilerIssue, "determining the operator precedence of this operator", this);
 			break;
@@ -236,7 +240,8 @@ Operator::Operator(Operator* cloneSource, Identifier* pReplacementSource)
 , operatorType(cloneSource->operatorType)
 , precedence(cloneSource->precedence)
 , left(nullptr)
-, right(nullptr) {
+, right(nullptr)
+, wasParenthesized(cloneSource->wasParenthesized) {
 }
 Operator::~Operator() {
 	delete left;
@@ -247,9 +252,9 @@ cloneWithReplacementSourceForType(Operator)
 void Operator::visitSubtokens(TokenVisitor* visitor) {
 	if (left != nullptr)
 		visitor->handleExpression(left);
-	if (right != nullptr &&
-			(visitor->shouldHandleBooleanRightSide() ||
-				(operatorType != OperatorType::BooleanAnd && operatorType != OperatorType::BooleanOr)))
+	if (right != nullptr
+			&& (visitor->shouldHandleBooleanRightSide()
+				|| (operatorType != OperatorType::BooleanAnd && operatorType != OperatorType::BooleanOr)))
 		visitor->handleExpression(right);
 }
 DirectiveTitle::DirectiveTitle(string pTitle, int pContentPos, int pEndContentPos, SourceFile* pOwningFile)
@@ -358,7 +363,9 @@ FunctionDefinition::FunctionDefinition(
 : Token(onlyWhenTrackingIDs("FNDEF" COMMA) typeToken->contentPos, typeToken->endContentPos, typeToken->owningFile)
 , returnType(pReturnType)
 , parameters(pParameters)
-, body(pBody) {
+, body(pBody)
+, eligibleForRegisterParameters(true)
+, resultStorage(new TempStorage(BitSize::BInfinite)) {
 	replacementSource = typeToken->replacementSource;
 	Array<CDataType*>* parameterTypes = new Array<CDataType*>();
 	forEach(CVariableDefinition*, c, pParameters, ci) {
@@ -372,6 +379,7 @@ FunctionDefinition::~FunctionDefinition() {
 	delete parameters;
 	body->deleteContents();
 	delete body;
+	delete resultStorage;
 }
 Group::Group(Array<Token*>* pValues, Identifier* source)
 : Token(onlyWhenTrackingIDs("GROUP" COMMA) source->contentPos, source->endContentPos, source->owningFile)

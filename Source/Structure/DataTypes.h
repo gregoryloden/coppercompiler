@@ -11,6 +11,15 @@ class CVariableDefinition;
 template <class Key, class Value> class PrefixTrie;
 template <class Type> class Array;
 
+enum class BitSize: unsigned char {
+	BNone = 0,
+	B1 = 1,
+	B8 = 8,
+	B16 = 16,
+	B32 = 32,
+	BInfinite = 255
+};
+
 //superclass types
 class CDataType onlyInDebug(: public ObjCounter) {
 public:
@@ -42,16 +51,16 @@ public:
 };
 class CPrimitive: public CDataType {
 public:
-	short bitSize; //copper: readonly
+	BitSize bitSize; //copper: readonly
 
 protected:
-	CPrimitive(onlyWhenTrackingIDs(char* pObjType COMMA) string pName, short pBitSize);
+	CPrimitive(onlyWhenTrackingIDs(char* pObjType COMMA) string pName, BitSize pBitSize);
 public:
 	virtual ~CPrimitive();
 };
 class CNumericPrimitive: public CPrimitive {
 protected:
-	CNumericPrimitive(onlyWhenTrackingIDs(char* pObjType COMMA) string pName, short pBitSize);
+	CNumericPrimitive(onlyWhenTrackingIDs(char* pObjType COMMA) string pName, BitSize pBitSize);
 public:
 	virtual ~CNumericPrimitive();
 };
@@ -80,12 +89,12 @@ public:
 };
 class CIntegerPrimitive: public CNumericPrimitive {
 public:
-	CIntegerPrimitive(string pName, short pBitSize);
+	CIntegerPrimitive(string pName, BitSize pBitSize);
 	virtual ~CIntegerPrimitive();
 };
 class CFloatingPointPrimitive: public CNumericPrimitive {
 public:
-	CFloatingPointPrimitive(string pName, short pBitSize);
+	CFloatingPointPrimitive(string pName, BitSize pBitSize);
 	virtual ~CFloatingPointPrimitive();
 };
 class CGenericFunction: public CGenericPointerType {

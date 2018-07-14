@@ -1,6 +1,8 @@
 #include "Project.h"
 #ifdef WIN32
 	#include <Windows.h>
+	#undef min
+	#undef max
 #endif
 
 #define returnIfErrors() \
@@ -55,12 +57,8 @@ int main(int argc, char* argv[]) {
 		return -1;
 	}
 	Pliers* p = new Pliers(argv[1], true onlyInDebug(COMMA true));
-	if (p->errorMessages->length > 0) {
-		forEach(ErrorMessage*, errorMessage, p->errorMessages, ei) {
-			errorMessage->printError();
-		}
+	if (p->errorMessages->length > 0)
 		printf("Quit with %d errors\n", p->errorMessages->length);
-	}
 	/*
 	setRowsAndColumns();
 	//prepare the error snippet
@@ -112,6 +110,7 @@ Pliers::Pliers(const char* pBaseFileName, bool pPrintProgress onlyInDebug(COMMA 
 , printProgress(pPrintProgress)
 , allFiles(new Array<SourceFile*>())
 , errorMessages(new Array<ErrorMessage*>())
+, warningMessages(new Array<ErrorMessage*>())
 , totalElapsedMilliseconds(-1) {
 	int startTime = TimeUtils::getElapsedMilliseconds();
 	Include::loadFiles(this);
@@ -163,8 +162,15 @@ Pliers::Pliers(const char* pBaseFileName, bool pPrintProgress onlyInDebug(COMMA 
 	returnIfErrors();
 
 	totalElapsedMilliseconds = TimeUtils::getElapsedMilliseconds() - startTime;
-	if (printProgress)
+	if (printProgress) {
+		forEach(ErrorMessage*, warningMessage, warningMessages, wi) {
+			warningMessage->printError();
+		}
+		forEach(ErrorMessage*, errorMessage, errorMessages, ei) {
+			errorMessage->printError();
+		}
 		printf("Compilation complete in %dms\n", totalElapsedMilliseconds);
+	}
 if (printProgress)
 puts("Suspended until the rewrite is complete");
 }
@@ -173,6 +179,8 @@ Pliers::~Pliers() {
 	delete allFiles;
 	errorMessages->deleteContents();
 	delete errorMessages;
+	warningMessages->deleteContents();
+	delete warningMessages;
 }
 /*
 //get the contents of a file as a char*

@@ -325,8 +325,8 @@ Token* ParseExpressions::addToOperator(Operator* o, Token* activeExpression, Arr
 					if (colonParent->operatorType == OperatorType::QuestionMark)
 						oParent = colonParent;
 					break;
-				} else if (colonParent->operatorType == OperatorType::QuestionMark &&
-						oNext->operatorType != OperatorType::Colon)
+				} else if (colonParent->operatorType == OperatorType::QuestionMark
+						&& oNext->operatorType != OperatorType::Colon)
 					oParent = colonParent;
 				if (!newOperatorTakesRightSidePrecedence(o, oNext))
 					break;
@@ -535,10 +535,10 @@ Array<Statement*>* ParseExpressions::parseStatementOrStatementList(
 		//	-it starts with a keyword statement
 		ArrayIterator<Token*> ai (a->tokens);
 		Statement* firstStatement = nullptr;
-		if (a->tokens->length == 0 ||
-			hasSemicolon(a) ||
-			(firstStatement = parseDirectiveStatementList(ai.getThis(), &ai)) != nullptr ||
-			(firstStatement = parseKeywordStatement(ai.getThis(), &ai)) != nullptr)
+		if (a->tokens->length == 0
+			|| hasSemicolon(a)
+			|| (firstStatement = parseDirectiveStatementList(ai.getThis(), &ai)) != nullptr
+			|| (firstStatement = parseKeywordStatement(ai.getThis(), &ai)) != nullptr)
 		{
 			if (firstStatement != nullptr) {
 				statements->add(firstStatement);

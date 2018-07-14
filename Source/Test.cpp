@@ -22,58 +22,71 @@
 	void Test::testFiles() {
 		printf("  Testing files\n");
 		filesTested = 0;
-		testFile("Step01_Lex/lex.cu", 0);
-		testFile("Step01_Lex/badLex.cu", 10);
-		testFile("Step01_Lex/blockCommentEOF.cu", 1);
-		testFile("Step01_Lex/intBaseEOF.cu", 1);
-		testFile("Step01_Lex/floatEOF.cu", 1);
-		testFile("Step01_Lex/stringEOF.cu", 1);
-		testFile("Step01_Lex/stringEscapeSequenceEOF.cu", 1);
-		testFile("Step01_Lex/stringHexEscapeSequenceEOF.cu", 1);
-		testFile("Step01_Lex/characterEOF.cu", 1);
-		testFile("Step01_Lex/characterUnterminatedEOF.cu", 1);
-		testFile("Step01_Lex/directiveEOF.cu", 1);
-		testFile("Step02_ParseDirectives/parseDirectives.cu", 0);
-		testFile("Step02_ParseDirectives/badParseDirectives.cu", 10);
-		testFile("Step02_ParseDirectives/leftParenthesisEOF.cu", 1);
-		testFile("Step02_ParseDirectives/replaceNameEOF.cu", 1);
-		testFile("Step02_ParseDirectives/replaceBodyEOF.cu", 1);
-		testFile("Step02_ParseDirectives/includeFileEOF.cu", 1);
-		testFile("Step02_ParseDirectives/replaceInputParametersParenthesisEOF.cu", 1);
-		testFile("Step02_ParseDirectives/replaceInputParametersEOF.cu", 1);
-		testFile("Step02_ParseDirectives/replaceInputParametersCommaEOF.cu", 1);
-		testFile("Step02_ParseDirectives/replaceInputSecondParameterEOF.cu", 1);
-		testFile("Step03_Include/complexWildcard.cu", 0);
-		testFile("Step04_Replace/replace.cu", 0);
-		testFile("Step04_Replace/badReplace.cu", 11);
-		testFile("Step06_ParseExpressions/parseExpressions.cu", 0);
-		testFile("Step06_ParseExpressions/badParseExpressions.cu", 65);
-		testFile("Step07_Semant/semant.cu", 0);
-		testFile("Step07_Semant/circularInclude.cu", 0);
-		testFile("Step07_Semant/badSemant.cu", 73);
-		testFile("Step07_Semant/includeClash.cu", 1);
-		testFile("Step08_Build/build.cu", 0);
-		testFile("Step08_Build/badBuild.cu", 4);
+		testFile("Step01_Lex/lex.cu", 0, 0);
+		testFile("Step01_Lex/badLex.cu", 10, 0);
+		testFile("Step01_Lex/blockCommentEOF.cu", 1, 0);
+		testFile("Step01_Lex/intBaseEOF.cu", 1, 0);
+		testFile("Step01_Lex/floatEOF.cu", 1, 0);
+		testFile("Step01_Lex/stringEOF.cu", 1, 0);
+		testFile("Step01_Lex/stringEscapeSequenceEOF.cu", 1, 0);
+		testFile("Step01_Lex/stringHexEscapeSequenceEOF.cu", 1, 0);
+		testFile("Step01_Lex/characterEOF.cu", 1, 0);
+		testFile("Step01_Lex/characterUnterminatedEOF.cu", 1, 0);
+		testFile("Step01_Lex/directiveEOF.cu", 1, 0);
+		testFile("Step02_ParseDirectives/parseDirectives.cu", 0, 0);
+		testFile("Step02_ParseDirectives/badParseDirectives.cu", 10, 0);
+		testFile("Step02_ParseDirectives/leftParenthesisEOF.cu", 1, 0);
+		testFile("Step02_ParseDirectives/replaceNameEOF.cu", 1, 0);
+		testFile("Step02_ParseDirectives/replaceBodyEOF.cu", 1, 0);
+		testFile("Step02_ParseDirectives/includeFileEOF.cu", 1, 0);
+		testFile("Step02_ParseDirectives/replaceInputParametersParenthesisEOF.cu", 1, 0);
+		testFile("Step02_ParseDirectives/replaceInputParametersEOF.cu", 1, 0);
+		testFile("Step02_ParseDirectives/replaceInputParametersCommaEOF.cu", 1, 0);
+		testFile("Step02_ParseDirectives/replaceInputSecondParameterEOF.cu", 1, 0);
+		testFile("Step03_Include/complexWildcard.cu", 0, 0);
+		testFile("Step04_Replace/replace.cu", 0, 0);
+		testFile("Step04_Replace/badReplace.cu", 11, 0);
+		testFile("Step06_ParseExpressions/parseExpressions.cu", 0, 0);
+		testFile("Step06_ParseExpressions/badParseExpressions.cu", 65, 0);
+		testFile("Step07_Semant/semant.cu", 0, 0);
+		testFile("Step07_Semant/circularInclude.cu", 0, 0);
+		testFile("Step07_Semant/badSemant.cu", 73, 0);
+		testFile("Step07_Semant/includeClash.cu", 1, 0);
+		testFile("Step08_Build/build.cu", 0, 0);
+		testFile("Step08_Build/badBuild.cu", 4, 1);
 		printf("  Finished testing files: %d total files tested\n", filesTested);
 	}
-	void Test::testFile(const char* fileName, int errorsExpected) {
+	void Test::testFile(const char* fileName, int errorsExpected, int warningsExpected) {
 		printf("    Testing %s...", fileName);
 		string fullFileName = string("Test/") + fileName;
 		Pliers* p = new Pliers(fullFileName.c_str(), false, false);
 		assert(p->allFiles->length >= 1);
 		assert(p->allFiles->first()->contentsLength > 0);
+		int errorsCount = p->errorMessages->length;
 		bool wrongLines = false;
-		for (int errorMessageI = 0; errorMessageI < p->errorMessages->length; errorMessageI++) {
+		for (int errorMessageI = 0; errorMessageI < errorsCount; errorMessageI++) {
 			if (p->errorMessages->get(errorMessageI)->getRow() != errorMessageI) {
 				wrongLines = true;
 				break;
 			}
 		}
-		if (p->errorMessages->length != errorsExpected || wrongLines) {
+		int warningsCount = p->warningMessages->length;
+		for (int warningMessageI = 0; warningMessageI < warningsCount; warningMessageI++) {
+			if (p->warningMessages->get(warningMessageI)->getRow() != warningMessageI + errorsCount) {
+				wrongLines = true;
+				break;
+			}
+		}
+		if (errorsCount != errorsExpected || warningsCount != warningsExpected || wrongLines) {
+			printf("\n");
 			forEach(ErrorMessage*, errorMessage, p->errorMessages, ei) {
 				errorMessage->printError();
 			}
-			assert(p->errorMessages->length == errorsExpected);
+			forEach(ErrorMessage*, warningMessage, p->warningMessages, wi) {
+				warningMessage->printError();
+			}
+			assert(errorsCount == errorsExpected);
+			assert(warningsCount == warningsExpected);
 			assert(!wrongLines);
 		}
 		filesTested++;

@@ -1,5 +1,7 @@
 #include "../General/globals.h"
 
+class FunctionDefinition;
+
 class AssemblyInstruction onlyInDebug(: public ObjCounter) {
 protected:
 	AssemblyStorage* destination;
@@ -16,6 +18,14 @@ class AssemblyLabel: public AssemblyInstruction {
 public:
 	AssemblyLabel();
 	virtual ~AssemblyLabel();
+};
+class JCC: public AssemblyInstruction {
+protected:
+	AssemblyLabel* jumpDestination;
+
+	JCC(onlyWhenTrackingIDs(char* pObjType COMMA) AssemblyLabel* pJumpDestination);
+public:
+	virtual ~JCC();
 };
 //0 operand instructions
 class NOP: public AssemblyInstruction {
@@ -34,32 +44,69 @@ public:
 	virtual ~CWDE();
 };
 //class CWD: public AssemblyInstruction {
-//class CDQ: public AssemblyInstruction {
-//class CLD: public AssemblyInstruction {
-//class REPMOVSB: public AssemblyInstruction {
+class CDQ: public AssemblyInstruction {
+public:
+	CDQ();
+	virtual ~CDQ();
+};
+class CLD: public AssemblyInstruction {
+public:
+	CLD();
+	virtual ~CLD();
+};
+class REPMOVSB: public AssemblyInstruction {
+public:
+	REPMOVSB();
+	virtual ~REPMOVSB();
+};
 //0-1 operand instructions
 class RET: public AssemblyInstruction {
+private:
+	FunctionDefinition* owningFunction;
+
 public:
-	RET(unsigned short bytesToPop);
-	RET(): RET(0) {}
+	RET(FunctionDefinition* pOwningFunction);
 	virtual ~RET();
 };
 //class LOOP: public AssemblyInstruction {
 //1 operand instructions
-//class JMP: public AssemblyInstruction {
+class JMP: public AssemblyInstruction {
+private:
+	AssemblyLabel* jumpDestination;
+
+public:
+	JMP(AssemblyLabel* pJumpDestination);
+	virtual ~JMP();
+};
 class CALL: public AssemblyInstruction {
 public:
 	CALL(AssemblyStorage* pDestination);
 	virtual ~CALL();
 };
-//class INC: public AssemblyInstruction {
-//class DEC: public AssemblyInstruction {
+class INC: public AssemblyInstruction {
+public:
+	INC(AssemblyStorage* pDestination);
+	virtual ~INC();
+};
+class DEC: public AssemblyInstruction {
+public:
+	DEC(AssemblyStorage* pDestination);
+	virtual ~DEC();
+};
 //class PUSH: public AssemblyInstruction {
 //class POP: public AssemblyInstruction {
 //class NOT: public AssemblyInstruction {
-//class NEG: public AssemblyInstruction {
+class NEG: public AssemblyInstruction {
+public:
+	NEG(AssemblyStorage* divisor);
+	virtual ~NEG();
+};
 //	class DIV: public AssemblyInstruction {
-//class IDIV: public AssemblyInstruction {
+class IDIV: public AssemblyInstruction {
+public:
+	IDIV(AssemblyStorage* divisor);
+	virtual ~IDIV();
+};
 //	class MUL: public AssemblyInstruction {
 //class IMUL: public AssemblyInstruction {
 //class JE: public AssemblyInstruction {
@@ -68,10 +115,22 @@ public:
 //	class JBE: public AssemblyInstruction {
 //	class JA: public AssemblyInstruction {
 //	class JAE: public AssemblyInstruction {
-//class JL: public AssemblyInstruction {
-//class JLE: public AssemblyInstruction {
+class JL: public JCC {
+public:
+	JL(AssemblyLabel* pJumpDestination);
+	virtual ~JL();
+};
+class JLE: public JCC {
+public:
+	JLE(AssemblyLabel* pJumpDestination);
+	virtual ~JLE();
+};
 //class JG: public AssemblyInstruction {
-//class JGE: public AssemblyInstruction {
+class JGE: public JCC {
+public:
+	JGE(AssemblyLabel* pJumpDestination);
+	virtual ~JGE();
+};
 //class SETE: public AssemblyInstruction {
 //class SETNE: public AssemblyInstruction {
 //class SETLE: public AssemblyInstruction {
@@ -96,21 +155,49 @@ public:
 };
 //	class ADC: public AssemblyInstruction {
 //	class SBB: public AssemblyInstruction {
-//class AND: public AssemblyInstruction {
-//class OR: public AssemblyInstruction {
-//class XOR: public AssemblyInstruction {
-//class CMP: public AssemblyInstruction {
+class AND: public AssemblyInstruction {
+public:
+	AND(AssemblyStorage* pDestination, AssemblyStorage* pSource);
+	virtual ~AND();
+};
+class OR: public AssemblyInstruction {
+public:
+	OR(AssemblyStorage* pDestination, AssemblyStorage* pSource);
+	virtual ~OR();
+};
+class XOR: public AssemblyInstruction {
+public:
+	XOR(AssemblyStorage* pDestination, AssemblyStorage* pSource);
+	virtual ~XOR();
+};
+class CMP: public AssemblyInstruction {
+public:
+	CMP(AssemblyStorage* pFirst, AssemblyStorage* pSecond);
+	virtual ~CMP();
+};
 class LEA: public AssemblyInstruction {
 public:
 	LEA(Register* pDestination, AssemblyStorage* pSource);
 	virtual ~LEA();
 };
 //	class TEST: public AssemblyInstruction {
-//class SHL: public AssemblyInstruction {
-//class SHR: public AssemblyInstruction {
+class SHL: public AssemblyInstruction {
+public:
+	SHL(AssemblyStorage* pDestination, AssemblyStorage* pSource);
+	virtual ~SHL();
+};
+class SHR: public AssemblyInstruction {
+public:
+	SHR(AssemblyStorage* pDestination, AssemblyStorage* pSource);
+	virtual ~SHR();
+};
 //class ROL: public AssemblyInstruction {
 //class ROR: public AssemblyInstruction {
-//class SAR: public AssemblyInstruction {
+class SAR: public AssemblyInstruction {
+public:
+	SAR(AssemblyStorage* pDestination, AssemblyStorage* pSource);
+	virtual ~SAR();
+};
 //	class RCL: public AssemblyInstruction {
 //	class RCR: public AssemblyInstruction {
 class MOVSX: public AssemblyInstruction {

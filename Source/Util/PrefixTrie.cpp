@@ -71,9 +71,9 @@ template <class KeyElement, class Value> Value PrefixTrie<KeyElement, Value>::se
 						continue;
 					}
 				//we have no more common prefix to compare, see if we have a next tree
-				} else if (next->nextTree != nullptr &&
-					(nextNext = next->nextTree->get(key[keyIndex])) !=
-						AVLTree<KeyElement, PrefixTrie<KeyElement, Value>*>::emptyValue)
+				} else if (next->nextTree != nullptr
+					&& (nextNext = next->nextTree->get(key[keyIndex]))
+						!= AVLTree<KeyElement, PrefixTrie<KeyElement, Value>*>::emptyValue)
 				{
 					keyIndex++;
 					next = nextNext;
@@ -133,9 +133,9 @@ template <class KeyElement, class Value> Value PrefixTrie<KeyElement, Value>::ge
 				if (keyIndex == keyLength)
 					return next->value;
 				//we have more key to go, find the next trie if it's there
-				else if (next->nextTree != nullptr &&
-					(next = next->nextTree->get(key[keyIndex])) !=
-						AVLTree<KeyElement, PrefixTrie<KeyElement, Value>*>::emptyValue)
+				else if (next->nextTree != nullptr
+					&& (next = next->nextTree->get(key[keyIndex]))
+						!= AVLTree<KeyElement, PrefixTrie<KeyElement, Value>*>::emptyValue)
 				{
 					keyIndex++;
 					break; //break to set the bounds of the next common prefix

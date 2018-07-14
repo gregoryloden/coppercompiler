@@ -140,13 +140,13 @@ LexToken* Lex::lex() {
 	} while (skipComment());
 	LexToken* t;
 //int oldPos = pos;
-	if ((t = lexIdentifier()) != nullptr ||
-			(t = lexNumber()) != nullptr ||
-			(t = lexString()) != nullptr ||
-			(t = lexCharacter()) != nullptr ||
-			(t = lexSeparator()) != nullptr ||
-			(t = lexOperator()) != nullptr ||
-			(t = lexDirectiveTitle()) != nullptr)
+	if ((t = lexIdentifier()) != nullptr
+			|| (t = lexNumber()) != nullptr
+			|| (t = lexString()) != nullptr
+			|| (t = lexCharacter()) != nullptr
+			|| (t = lexSeparator()) != nullptr
+			|| (t = lexOperator()) != nullptr
+			|| (t = lexDirectiveTitle()) != nullptr)
 //{
 //char cp = contents[pos];
 //contents[pos] = 0;
@@ -497,7 +497,7 @@ LexToken* Lex::lexNumber() {
 		return new IntConstant(numDeleter.release(), begin, pos, sourceFile);
 	else
 		return new FloatConstant(
-			numDeleter.release(), (negativeExponent ? -baseExponent : baseExponent) - fractionDigits, begin, pos, sourceFile);
+			numDeleter.release(), fractionDigits, negativeExponent ? -baseExponent : baseExponent, begin, pos, sourceFile);
 /*
 	//it's a float
 	//first, adjust baseExponent

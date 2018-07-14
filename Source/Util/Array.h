@@ -19,11 +19,9 @@ private:
 public:
 	Type get(int pos);
 	void set(int pos, Type t);
-	void add(Type t, int pos);
+	void insert(Type t, int pos);
 	void add(Type t);
-	void add(Array<Type>* a, int pos, bool deletable);
-	void add(Array<Type>* a, bool deletable);
-	void add(Array<Type>* a, int pos);
+	void insert(Array<Type>* a, int pos);
 	void add(Array<Type>* a);
 	void remove(int pos, int num);
 	void remove(int pos);

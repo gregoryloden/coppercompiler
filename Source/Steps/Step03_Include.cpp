@@ -113,8 +113,8 @@ void Include::resolveIncludedFiles(
 		forEach(Path*, nextPath, &folderContents, fi) {
 			//if the name matches (and its directory-ness matches our target next path),
 			//	we want to continue with the rest of the path
-			if (nextPath->isDirectory == shouldWildcardsMatchDirectories &&
-					StringUtils::stringMatchesWildcard(nextPath->fileName, wildcardMatchSubstrings))
+			if (nextPath->isDirectory == shouldWildcardsMatchDirectories
+					&& StringUtils::stringMatchesWildcard(nextPath->fileName, wildcardMatchSubstrings))
 				resolveIncludedFiles(file, nextPath, targetNextPath->parentDirectory, inclusionSource, true);
 			//for recursive directory searches, we also want to continue the search whether it matches or not
 			if (targetNextPath != path && nextPath->isDirectory)

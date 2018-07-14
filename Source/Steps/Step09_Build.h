@@ -9,11 +9,11 @@ class CDataType;
 class Register;
 class StringStaticStorage;
 class FunctionStaticStorage;
-class StaticOperator;
 class FunctionDefinition;
 class CVariableDefinition;
 class ValueStaticStorage;
 class MemoryPointer;
+enum class BitSize: unsigned char;
 template <class KeyElement, class Value> class PrefixTrie;
 template <class Type> class Array;
 
@@ -38,9 +38,14 @@ private:
 	static thread_local Array<StringStaticStorage*>* stringDefinitions;
 	static thread_local Array<FunctionStaticStorage*>* functionDefinitions;
 	static thread_local Array<AssemblyStorage*>* assemblyStorageToDelete;
-	static thread_local unsigned char cpuBitSize;
+	static thread_local BitSize cpuBitSize;
 	static thread_local Register* cpuARegister;
+	static thread_local Register* cpuCRegister;
+	static thread_local Register* cpuDRegister;
+	static thread_local Register* cpuBRegister;
 	static thread_local Register* cpuSPRegister;
+	static thread_local Register* cpuSIRegister;
+	static thread_local Register* cpuDIRegister;
 	static thread_local FunctionStaticStorage* Main_exit;
 	static thread_local FunctionStaticStorage* Main_print;
 	static thread_local FunctionStaticStorage* Main_str;
@@ -56,14 +61,22 @@ private:
 public:
 	static void build(Pliers* pliers);
 private:
-	static void buildForBitSize(Pliers* pliers, unsigned char pCPUBitSize);
+	static void buildForBitSize(Pliers* pliers, BitSize pCPUBitSize);
 	static void setupAssemblyObjects();
 	static void cleanupAssemblyObjects();
 	static void build32BitMainFunctions();
 	static AssemblyStorage* addTokenAssembly(Token* t, CDataType* expectedType);
+	static AssemblyStorage* getIdentifierStorage(Identifier* i, bool isBeingFunctionCalled);
 	static AssemblyStorage* addCastAssembly(Cast* c);
 	static AssemblyStorage* getStaticOperatorStorage(StaticOperator* s);
-	static int typeBitSize(CDataType* dt);
+	static AssemblyStorage* getOperatorAssembly(Operator* o);
+	static AssemblyStorage* getFunctionCallAssembly(FunctionCall* f);
+	static AssemblyStorage* getFunctionDefinitionStorage(FunctionDefinition* f, bool couldBeEligibleForRegisterParameters);
+	static AssemblyStorage* getIntConstantStorage(IntConstant* i, CDataType* expectedType);
+	static AssemblyStorage* getFloatConstantStorage(FloatConstant* f, CDataType* expectedType);
+	static BitSize typeBitSize(CDataType* dt);
 	template <class AssemblyStorageType> static AssemblyStorageType* globalTrackedStorage(AssemblyStorageType* a);
-	static MemoryPointer* getArgumentStorage(unsigned char argumentIndex);
+	static Register* addMemoryToMemoryMove(
+		Array<AssemblyInstruction*>* assembly, AssemblyStorage* destination, AssemblyStorage* source);
+	static Array<int>* getParameterStackOrder(Array<Token*>* parameters);
 };

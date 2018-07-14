@@ -3,30 +3,9 @@
 class StringLiteral;
 class FunctionDefinition;
 class Thunk;
+enum class BitSize: unsigned char;
 
 enum class SpecificRegister: unsigned char {
-	EAX,
-	ECX,
-	EDX,
-	EBX,
-	ESP,
-	EBP,
-	ESI,
-	EDI,
-	Undecided32BitRegister,
-	Register32BitStart = EAX,
-	Register32BitEnd = Undecided32BitRegister,
-	AX,
-	CX,
-	DX,
-	BX,
-	SP,
-	BP,
-	SI,
-	DI,
-	Undecided16BitRegister,
-	Register16BitStart = AX,
-	Register16BitEnd = Undecided16BitRegister,
 	AL,
 	CL,
 	DL,
@@ -38,22 +17,44 @@ enum class SpecificRegister: unsigned char {
 	Undecided8BitRegister,
 	Register8BitStart = AL,
 	Register8BitEnd = Undecided8BitRegister,
+	AX,
+	CX,
+	DX,
+	BX,
+	SP,
+	BP,
+	SI,
+	DI,
+	Undecided16BitRegister,
+	Register16BitStart = AX,
+	Register16BitEnd = Undecided16BitRegister,
+	EAX,
+	ECX,
+	EDX,
+	EBX,
+	ESP,
+	EBP,
+	ESI,
+	EDI,
+	Undecided32BitRegister,
+	Register32BitStart = EAX,
+	Register32BitEnd = Undecided32BitRegister,
 	SpecificRegisterCount
 };
 
 //assembly storage
 class AssemblyStorage onlyInDebug(: public ObjCounter) {
 public:
-	unsigned char bitSize; //copper: readonly
+	BitSize bitSize; //copper: readonly
 
 protected:
-	AssemblyStorage(onlyWhenTrackingIDs(char* pObjType COMMA) unsigned char pBitSize);
+	AssemblyStorage(onlyWhenTrackingIDs(char* pObjType COMMA) BitSize pBitSize);
 public:
 	virtual ~AssemblyStorage();
 };
 class StaticStorage: public AssemblyStorage {
 protected:
-	StaticStorage(onlyWhenTrackingIDs(char* pObjType COMMA) unsigned char pBitSize);
+	StaticStorage(onlyWhenTrackingIDs(char* pObjType COMMA) BitSize pBitSize);
 public:
 	virtual ~StaticStorage();
 };
@@ -61,7 +62,7 @@ class AssemblyConstant: public AssemblyStorage {
 public:
 	int val; //copper: readonly
 
-	AssemblyConstant(int pVal, unsigned char pBitSize);
+	AssemblyConstant(int pVal, BitSize pBitSize);
 	virtual ~AssemblyConstant();
 };
 class Register: public AssemblyStorage {
@@ -75,41 +76,39 @@ public:
 	virtual ~Register();
 
 	static Register* registerFor(SpecificRegister pSpecificRegister);
-	static unsigned char bitSizeForSpecificRegister(SpecificRegister pSpecificRegister);
-	static Register* aRegisterForBitSize(unsigned char pBitSize);
-	static Register* spRegisterForBitSize(unsigned char pBitSize);
-	static Register* newUndecidedRegisterForBitSize(unsigned char pBitSize);
+	static BitSize bitSizeForSpecificRegister(SpecificRegister pSpecificRegister);
+	static Register* aRegisterForBitSize(BitSize pBitSize);
+	static Register* cRegisterForBitSize(BitSize pBitSize);
+	static Register* dRegisterForBitSize(BitSize pBitSize);
+	static Register* bRegisterForBitSize(BitSize pBitSize);
+	static Register* spRegisterForBitSize(BitSize pBitSize);
+	static Register* siRegisterForBitSize(BitSize pBitSize);
+	static Register* diRegisterForBitSize(BitSize pBitSize);
+	static Register* newUndecidedRegisterForBitSize(BitSize pBitSize);
 };
 class MemoryPointer: public AssemblyStorage {
 private:
-	AssemblyStorage* primaryRegister;
+	Register* primaryRegister;
 	unsigned char primaryRegisterMultiplierPower;
-	AssemblyStorage* secondaryRegister;
+	Register* secondaryRegister;
 	int constant;
+	bool expectsShiftedStack;
 
 public:
 	MemoryPointer(
-		AssemblyStorage* pPrimaryRegister,
+		Register* pPrimaryRegister,
 		unsigned char pPrimaryRegisterMultiplierPower,
-		AssemblyStorage* pSecondaryRegister,
+		Register* pSecondaryRegister,
 		int pConstant,
-		unsigned char pBitSize);
-	MemoryPointer(AssemblyStorage* pPrimaryRegister, int pConstant, unsigned char pBitSize)
-		: MemoryPointer(pPrimaryRegister, 0, nullptr, pConstant, pBitSize) {}
+		bool pExpectsShiftedStack,
+		BitSize pBitSize);
+	MemoryPointer(Register* pPrimaryRegister, int pConstant, BitSize pBitSize)
+		: MemoryPointer(pPrimaryRegister, 0, nullptr, pConstant, false, pBitSize) {}
 	virtual ~MemoryPointer();
-};
-class OffsetMemoryPointer: public AssemblyStorage {
-private:
-	AssemblyStorage* storage;
-	int offset;
-
-public:
-	OffsetMemoryPointer(AssemblyStorage* pStorage, int pOffset);
-	virtual ~OffsetMemoryPointer();
 };
 class ValueStaticStorage: public StaticStorage {
 public:
-	ValueStaticStorage(unsigned char pBitSize);
+	ValueStaticStorage(BitSize pBitSize);
 	virtual ~ValueStaticStorage();
 };
 class StringStaticStorage: public StaticStorage {
@@ -117,14 +116,14 @@ private:
 	StringLiteral* val;
 
 public:
-	StringStaticStorage(StringLiteral* pVal, unsigned char pointerBitSize);
+	StringStaticStorage(StringLiteral* pVal, BitSize pointerBitSize);
 	virtual ~StringStaticStorage();
 };
 class FunctionStaticStorage: public StaticStorage {
 public:
 	FunctionDefinition* val; //copper: readonly
 
-	FunctionStaticStorage(FunctionDefinition* pVal, unsigned char pointerBitSize);
+	FunctionStaticStorage(FunctionDefinition* pVal, BitSize pointerBitSize);
 	virtual ~FunctionStaticStorage();
 };
 class ThunkStaticStorage: public StaticStorage {
@@ -132,7 +131,7 @@ private:
 	Thunk* val;
 
 public:
-	ThunkStaticStorage(Thunk* pVal, unsigned char pointerBitSize);
+	ThunkStaticStorage(Thunk* pVal, BitSize pointerBitSize);
 	virtual ~ThunkStaticStorage();
 };
 class StaticAddress: public AssemblyStorage {
@@ -140,7 +139,7 @@ private:
 	StaticStorage* storage;
 
 public:
-	StaticAddress(StaticStorage* pStorage, unsigned char pointerBitSize);
+	StaticAddress(StaticStorage* pStorage, BitSize pointerBitSize);
 	virtual ~StaticAddress();
 };
 class TempStorage: public AssemblyStorage {
@@ -148,7 +147,7 @@ private:
 	AssemblyStorage* finalStorage;
 
 public:
-	TempStorage(unsigned char pBitSize);
+	TempStorage(BitSize pBitSize);
 	virtual ~TempStorage();
 };
 

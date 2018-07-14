@@ -438,6 +438,7 @@ class CVariableDefinition onlyInDebug(: public ObjCounter) {
 public:
 	CDataType* type;
 	Identifier* name;
+	Token* initialValue;
 	TempStorage* storage;
 	//CClass* owningClass;
 

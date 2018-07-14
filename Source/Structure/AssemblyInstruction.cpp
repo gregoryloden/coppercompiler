@@ -14,6 +14,13 @@ AssemblyLabel::AssemblyLabel()
 : AssemblyInstruction(onlyWhenTrackingIDs("ASMLBL" COMMA) nullptr, nullptr) {
 }
 AssemblyLabel::~AssemblyLabel() {}
+JCC::JCC(onlyWhenTrackingIDs(char* pObjType COMMA) AssemblyLabel* pJumpDestination)
+: AssemblyInstruction(onlyWhenTrackingIDs(pObjType COMMA) nullptr, nullptr)
+, jumpDestination(pJumpDestination) {
+}
+JCC::~JCC() {
+	//don't delete the jump destination, something else owns it
+}
 NOP::NOP()
 : AssemblyInstruction(onlyWhenTrackingIDs("NOP" COMMA) nullptr, nullptr) {
 }
@@ -26,16 +33,64 @@ CWDE::CWDE()
 : AssemblyInstruction(onlyWhenTrackingIDs("CWDE" COMMA) nullptr, nullptr) {
 }
 CWDE::~CWDE() {}
-RET::RET(unsigned short bytesToPop)
-: AssemblyInstruction(onlyWhenTrackingIDs("RET" COMMA) nullptr, new AssemblyConstant(bytesToPop, 16)) {
+CDQ::CDQ()
+: AssemblyInstruction(onlyWhenTrackingIDs("CDQ" COMMA) nullptr, nullptr) {
+}
+CDQ::~CDQ() {}
+CLD::CLD()
+: AssemblyInstruction(onlyWhenTrackingIDs("CLD" COMMA) nullptr, nullptr) {
+}
+CLD::~CLD() {}
+REPMOVSB::REPMOVSB()
+: AssemblyInstruction(onlyWhenTrackingIDs("REPMVSB" COMMA) nullptr, nullptr) {
+}
+REPMOVSB::~REPMOVSB() {}
+RET::RET(FunctionDefinition* pOwningFunction)
+: AssemblyInstruction(onlyWhenTrackingIDs("RET" COMMA) nullptr, nullptr)
+, owningFunction(pOwningFunction) {
 }
 RET::~RET() {
-	delete source;
+	//don't delete the owning function, something else owns it
+}
+JMP::JMP(AssemblyLabel* pJumpDestination)
+: AssemblyInstruction(onlyWhenTrackingIDs("JMP" COMMA) nullptr, nullptr)
+, jumpDestination(pJumpDestination) {
+}
+JMP::~JMP() {
+	//don't delete the jump destination, something else owns it
 }
 CALL::CALL(AssemblyStorage* pDestination)
 : AssemblyInstruction(onlyWhenTrackingIDs("CALL" COMMA) pDestination, nullptr) {
 }
 CALL::~CALL() {}
+INC::INC(AssemblyStorage* pDestination)
+: AssemblyInstruction(onlyWhenTrackingIDs("INC" COMMA) pDestination, nullptr) {
+}
+INC::~INC() {}
+DEC::DEC(AssemblyStorage* pDestination)
+: AssemblyInstruction(onlyWhenTrackingIDs("DEC" COMMA) pDestination, nullptr) {
+}
+DEC::~DEC() {}
+NEG::NEG(AssemblyStorage* pDestination)
+: AssemblyInstruction(onlyWhenTrackingIDs("NEG" COMMA) pDestination, nullptr) {
+}
+NEG::~NEG() {}
+IDIV::IDIV(AssemblyStorage* divisor)
+: AssemblyInstruction(onlyWhenTrackingIDs("IDIV" COMMA) nullptr, divisor) {
+}
+IDIV::~IDIV() {}
+JL::JL(AssemblyLabel* pJumpDestination)
+: JCC(onlyWhenTrackingIDs("JL" COMMA) pJumpDestination) {
+}
+JL::~JL() {}
+JLE::JLE(AssemblyLabel* pJumpDestination)
+: JCC(onlyWhenTrackingIDs("JLE" COMMA) pJumpDestination) {
+}
+JLE::~JLE() {}
+JGE::JGE(AssemblyLabel* pJumpDestination)
+: JCC(onlyWhenTrackingIDs("JGE" COMMA) pJumpDestination) {
+}
+JGE::~JGE() {}
 ADD::ADD(AssemblyStorage* pDestination, AssemblyStorage* pSource)
 : AssemblyInstruction(onlyWhenTrackingIDs("ADD" COMMA) pDestination, pSource) {
 }
@@ -48,10 +103,38 @@ MOV::MOV(AssemblyStorage* pDestination, AssemblyStorage* pSource)
 : AssemblyInstruction(onlyWhenTrackingIDs("MOV" COMMA) pDestination, pSource) {
 }
 MOV::~MOV() {}
+AND::AND(AssemblyStorage* pDestination, AssemblyStorage* pSource)
+: AssemblyInstruction(onlyWhenTrackingIDs("AND" COMMA) pDestination, pSource) {
+}
+AND::~AND() {}
+OR::OR(AssemblyStorage* pDestination, AssemblyStorage* pSource)
+: AssemblyInstruction(onlyWhenTrackingIDs("OR" COMMA) pDestination, pSource) {
+}
+OR::~OR() {}
+XOR::XOR(AssemblyStorage* pDestination, AssemblyStorage* pSource)
+: AssemblyInstruction(onlyWhenTrackingIDs("XOR" COMMA) pDestination, pSource) {
+}
+XOR::~XOR() {}
+CMP::CMP(AssemblyStorage* pFirst, AssemblyStorage* pSecond)
+: AssemblyInstruction(onlyWhenTrackingIDs("CMP" COMMA) pFirst, pSecond) {
+}
+CMP::~CMP() {}
 LEA::LEA(Register* pDestination, AssemblyStorage* pSource)
 : AssemblyInstruction(onlyWhenTrackingIDs("LEA" COMMA) pDestination, pSource) {
 }
 LEA::~LEA() {}
+SHL::SHL(AssemblyStorage* pFirst, AssemblyStorage* pSecond)
+: AssemblyInstruction(onlyWhenTrackingIDs("SHL" COMMA) pFirst, pSecond) {
+}
+SHL::~SHL() {}
+SHR::SHR(AssemblyStorage* pFirst, AssemblyStorage* pSecond)
+: AssemblyInstruction(onlyWhenTrackingIDs("SHR" COMMA) pFirst, pSecond) {
+}
+SHR::~SHR() {}
+SAR::SAR(AssemblyStorage* pFirst, AssemblyStorage* pSecond)
+: AssemblyInstruction(onlyWhenTrackingIDs("SAR" COMMA) pFirst, pSecond) {
+}
+SAR::~SAR() {}
 MOVSX::MOVSX(Register* pDestination, AssemblyStorage* pSource)
 : AssemblyInstruction(onlyWhenTrackingIDs("MOVSX" COMMA) pDestination, pSource) {
 }

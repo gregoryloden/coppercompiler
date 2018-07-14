@@ -26,7 +26,7 @@ BigInt::~BigInt() {
 BigInt* BigInt::createFrom(int i) {
 	BigInt* b = new BigInt(16);
 	for (char shift = 28; shift >= 0; shift -= 4)
-		b->digit(i & (15 << shift));
+		b->digit((unsigned char)(i >> shift) & 15);
 	return b;
 }
 //add a digit of this BigInt's base
@@ -81,8 +81,8 @@ void BigInt::multiply(BigInt* other) {
 	int oldHighByte = highByte;
 	int otherHighByte = other->highByte;
 	//calculate what the new highByte will be and make a new array to fit it
-	highByte = oldHighByte + otherHighByte +
-		(((short)(oldInner[oldHighByte]) * (short)(otherInner[otherHighByte])) >= 256 ? 1 : 0);
+	highByte =
+		oldHighByte + otherHighByte + (((short)(oldInner[oldHighByte]) * (short)(otherInner[otherHighByte])) >= 256 ? 1 : 0);
 	while (highByte >= innerLength)
 		innerLength *= 2;
 	unsigned char* newInner = new unsigned char[innerLength];

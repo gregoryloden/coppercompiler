@@ -10,7 +10,7 @@
 		static void testAll();
 	private:
 		static void testFiles();
-		static void testFile(const char* fileName, int errorsExpected);
+		static void testFile(const char* fileName, int errorsExpected, int warningsExpected);
 		static void testUtil();
 		template <class Key, class Value> static void setAndValidateTree(AVLTree<Key, Value>* tree, Key key, Value value);
 		template <class KeyElement, class Value> static void setAndValidateTrie(

@@ -142,7 +142,8 @@ enum class ErrorType: unsigned char {
 	Expected,
 	ExpectedToFollow,
 	Continuation,
-	CompilerIssue
+	CompilerIssue,
+	Warning
 };
 class Error {
 public:
@@ -150,6 +151,7 @@ public:
 	static void logError(ErrorType type, const char* message, Token* token);
 	static void logErrorWithErrorSourceAndOriginFile(
 		ErrorType type, const char* message, Token* token, Token* errorSource, SourceFile* errorOriginFile);
+	static void logWarning(const char* message, Token* token);
 private:
 	static ErrorMessage* buildErrorMessage(
 		ErrorType type, const char* message, Token* token, Token* errorSource, SourceFile* errorOriginFile);

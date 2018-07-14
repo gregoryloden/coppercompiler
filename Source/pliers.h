@@ -10,6 +10,7 @@ public:
 	bool printProgress; //copper: readonly
 	Array<SourceFile*>* allFiles; //copper: readonly<Include>
 	Array<ErrorMessage*>* errorMessages; //copper: readonly
+	Array<ErrorMessage*>* warningMessages; //copper: readonly
 	int totalElapsedMilliseconds; //copper: readonly
 
 	Pliers(const char* pBaseFileName, bool pPrintProgress onlyInDebug(COMMA bool printContents));

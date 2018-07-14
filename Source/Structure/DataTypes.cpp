@@ -27,12 +27,12 @@ void CDataType::initializeGlobalDataTypes() {
 		(errorType = new CErrorType()),
 		(voidType = new CVoid()),
 		(boolType = new CBool()),
-		(infiniteByteSizeIntType = new CIntegerPrimitive("(int)", Math::SHORT_MAX)),
-		(byteType = new CIntegerPrimitive("byte", 8)),
-		(shortType = new CIntegerPrimitive("short", 16)),
-		(intType = new CIntegerPrimitive("int", 32)),
-		(infinitePrecisionFloatType = new CFloatingPointPrimitive("(float)", Math::SHORT_MAX)),
-		(floatType = new CFloatingPointPrimitive("float", 32)),
+		(infiniteByteSizeIntType = new CIntegerPrimitive("(int)", BitSize::BInfinite)),
+		(byteType = new CIntegerPrimitive("byte", BitSize::B8)),
+		(shortType = new CIntegerPrimitive("short", BitSize::B16)),
+		(intType = new CIntegerPrimitive("int", BitSize::B32)),
+		(infinitePrecisionFloatType = new CFloatingPointPrimitive("(float)", BitSize::BInfinite)),
+		(floatType = new CFloatingPointPrimitive("float", BitSize::B32)),
 		(functionType = new CGenericFunction()),
 		(stringType = new CClass("String")),
 		(mainType = new CClass("Main"))
@@ -86,18 +86,18 @@ CDataType* CDataType::bestCompatibleType(CDataType* type1, CDataType* type2) {
 		else if (npType2 == infiniteByteSizeIntType || npType2 == infinitePrecisionFloatType)
 			return npType1;
 		return npType1->bitSize > npType2->bitSize ? npType1 : npType2;
-	} else if ((type1 == CDataType::functionType && istype(type2, CSpecificFunction*)) ||
-			(type2 == CDataType::functionType && istype(type1, CSpecificFunction*)))
+	} else if ((type1 == CDataType::functionType && istype(type2, CSpecificFunction*))
+			|| (type2 == CDataType::functionType && istype(type1, CSpecificFunction*)))
 		return CDataType::functionType;
 	//TODO: classes
 	return nullptr;
 }
-CPrimitive::CPrimitive(onlyWhenTrackingIDs(char* pObjType COMMA) string pName, short pBitSize)
+CPrimitive::CPrimitive(onlyWhenTrackingIDs(char* pObjType COMMA) string pName, BitSize pBitSize)
 : CDataType(onlyWhenTrackingIDs(pObjType COMMA) pName)
 , bitSize(pBitSize) {
 }
 CPrimitive::~CPrimitive() {}
-CNumericPrimitive::CNumericPrimitive(onlyWhenTrackingIDs(char* pObjType COMMA) string pName, short pBitSize)
+CNumericPrimitive::CNumericPrimitive(onlyWhenTrackingIDs(char* pObjType COMMA) string pName, BitSize pBitSize)
 : CPrimitive(onlyWhenTrackingIDs(pObjType COMMA) pName, pBitSize) {
 }
 CNumericPrimitive::~CNumericPrimitive() {}
@@ -114,14 +114,14 @@ CVoid::CVoid()
 }
 CVoid::~CVoid() {}
 CBool::CBool()
-: CPrimitive(onlyWhenTrackingIDs("BOOLTYP" COMMA) "bool", 1) {
+: CPrimitive(onlyWhenTrackingIDs("BOOLTYP" COMMA) "bool", BitSize::B1) {
 }
 CBool::~CBool() {}
-CIntegerPrimitive::CIntegerPrimitive(string pName, short pBitSize)
+CIntegerPrimitive::CIntegerPrimitive(string pName, BitSize pBitSize)
 : CNumericPrimitive(onlyWhenTrackingIDs("INPMTYP" COMMA) pName, pBitSize) {
 }
 CIntegerPrimitive::~CIntegerPrimitive() {}
-CFloatingPointPrimitive::CFloatingPointPrimitive(string pName, short pBitSize)
+CFloatingPointPrimitive::CFloatingPointPrimitive(string pName, BitSize pBitSize)
 : CNumericPrimitive(onlyWhenTrackingIDs("FLPMTYP" COMMA) pName, pBitSize) {
 }
 CFloatingPointPrimitive::~CFloatingPointPrimitive() {}

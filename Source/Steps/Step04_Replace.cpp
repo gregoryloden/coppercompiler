@@ -30,8 +30,8 @@ void Replace::addReplacesToTrie(Array<CDirective*>* directives, PrefixTrie<char,
 		if (!let(CDirectiveReplace*, r, d))
 			continue;
 
-		if (replaces->set(r->toReplace->name.c_str(), r->toReplace->name.length(), r) !=
-				PrefixTrie<char, CDirectiveReplace*>::emptyValue)
+		if (replaces->set(r->toReplace->name.c_str(), r->toReplace->name.length(), r)
+				!= PrefixTrie<char, CDirectiveReplace*>::emptyValue)
 			Error::logError(ErrorType::General, "replacement has already been defined", r->toReplace);
 	}
 }
