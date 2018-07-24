@@ -206,9 +206,10 @@ class Operator: public LexToken {
 public:
 	OperatorType operatorType; //copper: readonly
 	OperatorTypePrecedence precedence; //copper: readonly
+	bool modifiesVariable; //copper: readonly
 	Token* left; //copper: readonly
 	Token* right; //copper: readonly
-	bool wasParenthesized;
+	bool wasParenthesized; //copper: readonly<Semant>
 
 	#ifdef TRACK_OBJ_IDS
 		Operator(OperatorType pOperatorType, int pContentPos, int pEndContentPos, SourceFile* pOwningFile);

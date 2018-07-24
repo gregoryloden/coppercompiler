@@ -32,6 +32,7 @@ Thunk TWriteFile ("WriteFile", 0x2F7);
 Thunk TGetProcessHeap ("GetProcessHeap", 0x156);
 Thunk THeapAlloc ("HeapAlloc", 0x1BD);
 Thunk THeapReAlloc ("HeapReAlloc", 0x1C4);
+//BuildInitialAssembly
 Build::FindUninitializedVariablesVisitor::FindUninitializedVariablesVisitor(
 	PrefixTrie<char, CVariableData*>* pVariableData, bool pErrorForUninitializedVariables)
 : TokenVisitor(onlyWhenTrackingIDs("FUVVTR"))
@@ -199,11 +200,14 @@ void Build::buildForBitSize(Pliers* pliers, BitSize pCPUBitSize) {
 	setupAssemblyObjects();
 
 	forEach(Operator*, o, &initializationOrder, oi2) {
-		addTokenAssembly(o, nullptr);
+		addTokenAssembly(o, nullptr, nullptr);
 	}
 
 	//TODO: build the functions
 	//TODO: get the actual assembly bytes
+	//TODO: optimize the assembly
+	//	-remove unnecessary double jumps from boolean conditions
+	//	-assign temps and remove MOVs where possible (same register or same memory address)
 	//TODO: write the file
 
 	cleanupAssemblyObjects();
@@ -388,7 +392,7 @@ void Build::build32BitMainFunctions() {
 	Main_strAssembly->add(new CLD());
 	Main_strAssembly->add(new LEA(cpuDIRegister, globalTrackedStorage(new MemoryPointer(cpuDRegister, 8, BitSize::B32))));
 	Main_strAssembly->add(new REPMOVSB());
-	//save the char array in the string and return the string
+	//save the char array in the string
 	Main_strAssembly->add(new MOV(globalTrackedStorage(new MemoryPointer(cpuARegister, 4, BitSize::B32)), cpuDRegister));
 	Main_str = new FunctionStaticStorage(
 		new FunctionDefinition(
@@ -402,7 +406,7 @@ void Build::build32BitMainFunctions() {
 }
 //add the assembly that this token produces to the global assembly array
 //returns the storage of the result of the token's assembly
-AssemblyStorage* Build::addTokenAssembly(Token* t, CDataType* expectedType) {
+AssemblyStorage* Build::addTokenAssembly(Token* t, CDataType* expectedType, ConditionLabelPair* jumpDests) {
 	Identifier* i;
 	DirectiveTitle* d;
 	Cast* c;
@@ -426,7 +430,7 @@ AssemblyStorage* Build::addTokenAssembly(Token* t, CDataType* expectedType) {
 		else if (let(StaticOperator*, so, t))
 			return getStaticOperatorStorage(so);
 		else
-			return getOperatorAssembly(o);
+			return getOperatorAssembly(o, jumpDests);
 	} else if (let(FunctionCall*, fc, t))
 		return getFunctionCallAssembly(fc);
 	else if (let(FunctionDefinition*, fd, t))
@@ -450,7 +454,7 @@ AssemblyStorage* Build::addTokenAssembly(Token* t, CDataType* expectedType) {
 	return cpuARegister;
 }
 //get the storage of the identifier
-AssemblyStorage* Build::getIdentifierStorage(Identifier* i, bool isBeingFunctionCalled) {
+TempStorage* Build::getIdentifierStorage(Identifier* i, bool isBeingFunctionCalled) {
 	FunctionDefinition* f;
 	if (!isBeingFunctionCalled && let(FunctionDefinition*, f, i->variable->initialValue))
 		f->eligibleForRegisterParameters = false;
@@ -458,7 +462,7 @@ AssemblyStorage* Build::getIdentifierStorage(Identifier* i, bool isBeingFunction
 }
 //get the assembly for the inner token and add any assembly needed to cast it to the expected type
 AssemblyStorage* Build::addCastAssembly(Cast* c) {
-	AssemblyStorage* result = addTokenAssembly(c->right, c->dataType);
+	AssemblyStorage* result = addTokenAssembly(c->right, c->dataType, nullptr);
 	BitSize targetBitSize = typeBitSize(c->dataType);
 	BitSize valueBitSize = result->bitSize;
 	if ((unsigned char)valueBitSize < (unsigned char)targetBitSize) {
@@ -488,21 +492,85 @@ AssemblyStorage* Build::getStaticOperatorStorage(StaticOperator* s) {
 	}
 }
 //get the assembly for the inner tokens and the assembly to perform this operator on them
-AssemblyStorage* Build::getOperatorAssembly(Operator* o) {
-	AssemblyStorage* resultStorage = cpuARegister;
+//returns nullptr if jump destinations were passed and they were used instead
+Register* Build::getOperatorAssembly(Operator* o, ConditionLabelPair* jumpDests) {
 	VariableDeclarationList* v = nullptr;
 	CDataType* expectedType = o->precedence == OperatorTypePrecedence::Comparison
 		? CDataType::bestCompatibleType(o->left->dataType, o->right->dataType)
 		: o->dataType;
 	//operators were rewritten to be postfix so the left token will always be present
-	AssemblyStorage* leftStorage =
-		o->precedence == OperatorTypePrecedence::Assignment && let(VariableDeclarationList*, v, o->left)
-			? nullptr
-			: addTokenAssembly(o->left, typeBitSize(o->left->dataType) == BitSize::BInfinite ? expectedType : nullptr);
-	AssemblyStorage* rightStorage = o->right != nullptr && o->precedence != OperatorTypePrecedence::Ternary
-		? addTokenAssembly(o->right, typeBitSize(o->right->dataType) == BitSize::BInfinite ? expectedType : nullptr)
-		: nullptr;
-//TODO: ensure we don't have memory-memory or constant-constant or other invalid operands
+	CDataType* leftExpectedType = typeBitSize(o->left->dataType) == BitSize::BInfinite ? expectedType : nullptr;
+	CDataType* rightExpectedType =
+		o->right != nullptr && typeBitSize(o->right->dataType) == BitSize::BInfinite ? expectedType : nullptr;
+	AssemblyStorage* originalLeftStorage = nullptr;
+	AssemblyStorage* leftStorage = nullptr;
+	AssemblyStorage* rightStorage = nullptr;
+	Register* resultStorage = globalTrackedStorage(Register::newUndecidedRegisterForBitSize(typeBitSize(expectedType)));
+	//before we get the assembly for the left and right storages, we need to check for a few boolean comparison cases
+	//if we do have jump destinations we'll return early
+	if (o->operatorType == OperatorType::BooleanAnd || o->operatorType == OperatorType::BooleanOr) {
+		AssemblyLabel* continueBooleanLabel = new AssemblyLabel();
+		if (o->operatorType == OperatorType::BooleanAnd) {
+			ConditionLabelPair andJumpDests (continueBooleanLabel, jumpDests->falseJumpDest);
+			leftStorage = addTokenAssembly(o->left, leftExpectedType, &andJumpDests);
+			if (leftStorage != nullptr) {
+				globalAssembly->add(new CMP(leftStorage, globalTrackedStorage(new AssemblyConstant(0, leftStorage->bitSize))));
+				globalAssembly->add(new JE(jumpDests->falseJumpDest));
+			}
+		} else {
+			ConditionLabelPair orJumpDests (jumpDests->trueJumpDest, continueBooleanLabel);
+			leftStorage = addTokenAssembly(o->left, leftExpectedType, &orJumpDests);
+			if (leftStorage != nullptr) {
+				globalAssembly->add(new CMP(leftStorage, globalTrackedStorage(new AssemblyConstant(0, leftStorage->bitSize))));
+				globalAssembly->add(new JNE(jumpDests->trueJumpDest));
+			}
+		}
+		globalAssembly->add(continueBooleanLabel);
+		return getOperatorFinalConditionAssembly(o->right, resultStorage, rightExpectedType, jumpDests);
+	} else if (o->operatorType == OperatorType::QuestionMark) {
+		AssemblyLabel* ternaryTrueLabel = new AssemblyLabel();
+		AssemblyLabel* ternaryFalseLabel = new AssemblyLabel();
+		AssemblyLabel* ternaryAfterLabel = new AssemblyLabel();
+		ConditionLabelPair ternaryJumpDests (ternaryTrueLabel, ternaryFalseLabel);
+		leftStorage = addTokenAssembly(o->left, leftExpectedType, &ternaryJumpDests);
+		if (leftStorage != nullptr) {
+			globalAssembly->add(new CMP(leftStorage, globalTrackedStorage(new AssemblyConstant(0, leftStorage->bitSize))));
+			globalAssembly->add(new JE(ternaryFalseLabel));
+		}
+		Operator* ternaryResult = dynamic_cast<Operator*>(o->right);
+		if (ternaryResult == nullptr) {
+			Error::logError(ErrorType::CompilerIssue, "getting the results of this ternary operator", o);
+			return cpuARegister;
+		}
+		globalAssembly->add(ternaryTrueLabel);
+		resultStorage = getOperatorFinalConditionAssembly(ternaryResult->left, resultStorage, rightExpectedType, jumpDests);
+		if (resultStorage != nullptr)
+			globalAssembly->add(new JMP(ternaryAfterLabel));
+		globalAssembly->add(ternaryFalseLabel);
+		resultStorage = getOperatorFinalConditionAssembly(ternaryResult->right, resultStorage, rightExpectedType, jumpDests);
+		globalAssembly->add(ternaryAfterLabel);
+		return resultStorage;
+	} else if (o->operatorType == OperatorType::LogicalNot && jumpDests != nullptr) {
+		ConditionLabelPair reversedJumpDests (jumpDests->falseJumpDest, jumpDests->trueJumpDest);
+		leftStorage = addTokenAssembly(o->left, leftExpectedType, &reversedJumpDests);
+		if (leftStorage != nullptr) {
+			globalAssembly->add(new CMP(leftStorage, globalTrackedStorage(new AssemblyConstant(0, leftStorage->bitSize))));
+			//jump to the true dest if the inner expression is false
+			globalAssembly->add(new JE(jumpDests->trueJumpDest));
+			globalAssembly->add(new JMP(jumpDests->falseJumpDest));
+		}
+		return nullptr;
+	}
+	//we did not reach any of those special boolean comparison cases, we're just getting the value of the expression
+	if (o->operatorType != OperatorType::Assign || !let(VariableDeclarationList*, v, o->left)) {
+		originalLeftStorage = addTokenAssembly(o->left, leftExpectedType, nullptr);
+		leftStorage = globalTrackedStorage(new TempStorage(originalLeftStorage->bitSize));
+		//if both storages are memory addresses, we'll make them the same and remove the MOV
+		globalAssembly->add(new MOV(leftStorage, originalLeftStorage));
+	}
+	rightStorage = o->right != nullptr ? addTokenAssembly(o->right, rightExpectedType, nullptr) : nullptr;
+	if (o->operatorType != OperatorType::Assign)
+		globalAssembly->add(new MOV(resultStorage, leftStorage));
 	switch (o->operatorType) {
 		//TODO: classes
 		case OperatorType::Dot:
@@ -512,134 +580,159 @@ AssemblyStorage* Build::getOperatorAssembly(Operator* o) {
 		case OperatorType::ObjectMemberAccess:
 			Error::logError(ErrorType::CompilerIssue, "getting the assembly for this operator", o);
 			break;
-		case OperatorType::Increment:
-//TODO: add assembly
-			break;
-		case OperatorType::Decrement:
-//TODO: add assembly
-			break;
+		case OperatorType::Increment: globalAssembly->add(new INC(resultStorage)); break;
+		case OperatorType::Decrement: globalAssembly->add(new DEC(resultStorage)); break;
 		case OperatorType::VariableLogicalNot:
-//TODO: add assembly
+		case OperatorType::LogicalNot:
+			globalAssembly->add(new CMP(resultStorage, globalTrackedStorage(new AssemblyConstant(0, resultStorage->bitSize))));
+			globalAssembly->add(new SETE(resultStorage));
 			break;
 		case OperatorType::VariableBitwiseNot:
-//TODO: add assembly
+		case OperatorType::BitwiseNot:
+			globalAssembly->add(new NOT(resultStorage));
 			break;
 		case OperatorType::VariableNegate:
-//TODO: add assembly
-			break;
-		case OperatorType::LogicalNot:
-//TODO: add assembly
-			break;
-		case OperatorType::BitwiseNot:
-//TODO: add assembly
-			break;
 		case OperatorType::Negate:
-//TODO: add assembly
+			globalAssembly->add(new NEG(resultStorage));
 			break;
 		case OperatorType::Multiply:
-//TODO: add assembly
+		case OperatorType::AssignMultiply: {
+			//use as many operands as possible (as recommended by performance testing)
+			AssemblyConstant* rightConstant;
+			if (let(AssemblyConstant*, rightConstant, rightStorage))
+				globalAssembly->add(new IMUL(resultStorage, resultStorage, rightConstant));
+			else
+				globalAssembly->add(new IMUL(resultStorage, rightStorage, nullptr));
 			break;
+		}
 		case OperatorType::Divide:
-//TODO: add assembly
-			break;
 		case OperatorType::Modulus:
-//TODO: add assembly
+		case OperatorType::AssignDivide:
+		case OperatorType::AssignModulus:
+			resultStorage->specificRegister = Register::aRegisterForBitSize(resultStorage->bitSize)->specificRegister;
+			if (resultStorage->bitSize == BitSize::B32)
+				globalAssembly->add(new CDQ());
+			else if (resultStorage->bitSize == BitSize::B16)
+				globalAssembly->add(new CWD());
+			else
+				globalAssembly->add(new CBW());
+			globalAssembly->add(new IDIV(resultStorage));
+			if (o->operatorType == OperatorType::Modulus || o->operatorType == OperatorType::AssignModulus)
+				resultStorage = Register::dRegisterForBitSize(resultStorage->bitSize);
 			break;
 		case OperatorType::Add:
-//TODO: add assembly
+		case OperatorType::AssignAdd:
+			globalAssembly->add(new ADD(resultStorage, rightStorage));
 			break;
 		case OperatorType::Subtract:
-//TODO: add assembly
+		case OperatorType::AssignSubtract:
+			globalAssembly->add(new SUB(resultStorage, rightStorage));
 			break;
 		case OperatorType::ShiftLeft:
-//TODO: add assembly
+		case OperatorType::AssignShiftLeft:
+			if (istype(rightStorage, AssemblyConstant*))
+				globalAssembly->add(new SHL(resultStorage, rightStorage));
+			else {
+				Register* clRegister = Register::cRegisterForBitSize(BitSize::B8);
+				globalAssembly->add(new MOV(Register::cRegisterForBitSize(BitSize::B8), rightStorage));
+				globalAssembly->add(new SHL(resultStorage, clRegister));
+			}
 			break;
 		case OperatorType::ShiftRight:
-//TODO: add assembly
+		case OperatorType::AssignShiftRight:
+			if (istype(rightStorage, AssemblyConstant*))
+				globalAssembly->add(new SHR(resultStorage, rightStorage));
+			else {
+				Register* clRegister = Register::cRegisterForBitSize(BitSize::B8);
+				globalAssembly->add(new MOV(Register::cRegisterForBitSize(BitSize::B8), rightStorage));
+				globalAssembly->add(new SHR(resultStorage, clRegister));
+			}
 			break;
 		case OperatorType::ShiftArithmeticRight:
-//TODO: add assembly
+		case OperatorType::AssignShiftArithmeticRight:
+			if (istype(rightStorage, AssemblyConstant*))
+				globalAssembly->add(new SAR(resultStorage, rightStorage));
+			else {
+				Register* clRegister = Register::cRegisterForBitSize(BitSize::B8);
+				globalAssembly->add(new MOV(Register::cRegisterForBitSize(BitSize::B8), rightStorage));
+				globalAssembly->add(new SAR(resultStorage, clRegister));
+			}
 			break;
 //		case OperatorType::RotateLeft:
 //			break;
 //		case OperatorType::RotateRight:
 //			break;
 		case OperatorType::BitwiseAnd:
-//TODO: add assembly
+		case OperatorType::AssignBitwiseAnd:
+			globalAssembly->add(new AND(resultStorage, rightStorage));
 			break;
 		case OperatorType::BitwiseXor:
-//TODO: add assembly
+		case OperatorType::AssignBitwiseXor:
+			globalAssembly->add(new XOR(resultStorage, rightStorage));
 			break;
 		case OperatorType::BitwiseOr:
-//TODO: add assembly
+		case OperatorType::AssignBitwiseOr:
+			globalAssembly->add(new OR(resultStorage, rightStorage));
 			break;
 		case OperatorType::Equal:
-//TODO: add assembly
+			globalAssembly->add(new CMP(resultStorage, rightStorage));
+			if (jumpDests != nullptr) {
+				globalAssembly->add(new JE(jumpDests->trueJumpDest));
+				globalAssembly->add(new JMP(jumpDests->falseJumpDest));
+				return nullptr;
+			} else
+				globalAssembly->add(new SETE(resultStorage));
 			break;
 		case OperatorType::NotEqual:
-//TODO: add assembly
+			globalAssembly->add(new CMP(resultStorage, rightStorage));
+			if (jumpDests != nullptr) {
+				globalAssembly->add(new JNE(jumpDests->trueJumpDest));
+				globalAssembly->add(new JMP(jumpDests->falseJumpDest));
+				return nullptr;
+			} else
+				globalAssembly->add(new SETNE(resultStorage));
 			break;
 		case OperatorType::LessOrEqual:
-//TODO: add assembly
+			globalAssembly->add(new CMP(resultStorage, rightStorage));
+			if (jumpDests != nullptr) {
+				globalAssembly->add(new JLE(jumpDests->trueJumpDest));
+				globalAssembly->add(new JMP(jumpDests->falseJumpDest));
+				return nullptr;
+			} else
+				globalAssembly->add(new SETLE(resultStorage));
 			break;
 		case OperatorType::GreaterOrEqual:
-//TODO: add assembly
+			globalAssembly->add(new CMP(resultStorage, rightStorage));
+			if (jumpDests != nullptr) {
+				globalAssembly->add(new JGE(jumpDests->trueJumpDest));
+				globalAssembly->add(new JMP(jumpDests->falseJumpDest));
+				return nullptr;
+			} else
+				globalAssembly->add(new SETGE(resultStorage));
 			break;
 		case OperatorType::LessThan:
-//TODO: add assembly
+			globalAssembly->add(new CMP(resultStorage, rightStorage));
+			if (jumpDests != nullptr) {
+				globalAssembly->add(new JL(jumpDests->trueJumpDest));
+				globalAssembly->add(new JMP(jumpDests->falseJumpDest));
+				return nullptr;
+			} else
+				globalAssembly->add(new SETL(resultStorage));
 			break;
 		case OperatorType::GreaterThan:
-//TODO: add assembly
+			globalAssembly->add(new CMP(resultStorage, rightStorage));
+			if (jumpDests != nullptr) {
+				globalAssembly->add(new JG(jumpDests->trueJumpDest));
+				globalAssembly->add(new JMP(jumpDests->falseJumpDest));
+				return nullptr;
+			} else
+				globalAssembly->add(new SETG(resultStorage));
 			break;
-		case OperatorType::BooleanAnd:
-//TODO: add assembly
-			break;
-		case OperatorType::BooleanOr:
-//TODO: add assembly
-			break;
-		case OperatorType::QuestionMark:
-//TODO: add assembly
-			break;
-		case OperatorType::Assign:
-//TODO: add assembly
-			break;
-		case OperatorType::AssignAdd:
-//TODO: add assembly
-			break;
-		case OperatorType::AssignSubtract:
-//TODO: add assembly
-			break;
-		case OperatorType::AssignMultiply:
-//TODO: add assembly
-			break;
-		case OperatorType::AssignDivide:
-//TODO: add assembly
-			break;
-		case OperatorType::AssignModulus:
-//TODO: add assembly
-			break;
-		case OperatorType::AssignShiftLeft:
-//TODO: add assembly
-			break;
-		case OperatorType::AssignShiftRight:
-//TODO: add assembly
-			break;
-		case OperatorType::AssignShiftArithmeticRight:
-//TODO: add assembly
-			break;
+		case OperatorType::Assign: globalAssembly->add(new MOV(resultStorage, rightStorage)); break;
 //		case OperatorType::AssignRotateLeft:
 //			break;
 //		case OperatorType::AssignRotateRight:
 //			break;
-		case OperatorType::AssignBitwiseAnd:
-//TODO: add assembly
-			break;
-		case OperatorType::AssignBitwiseXor:
-//TODO: add assembly
-			break;
-		case OperatorType::AssignBitwiseOr:
-//TODO: add assembly
-			break;
 //		case OperatorType::AssignBooleanAnd:
 //			break;
 //		case OperatorType::AssignBooleanOr:
@@ -649,24 +742,45 @@ AssemblyStorage* Build::getOperatorAssembly(Operator* o) {
 		case OperatorType::StaticDot:
 		case OperatorType::StaticMemberAccess:
 		case OperatorType::Cast:
+		case OperatorType::BooleanAnd:
+		case OperatorType::BooleanOr:
 		case OperatorType::Colon:
+		case OperatorType::QuestionMark:
 		default:
 			Error::logError(ErrorType::CompilerIssue, "getting the assembly for this operator", o);
 			break;
 	}
-	if (o->precedence == OperatorTypePrecedence::Assignment) {
-		if (o->operatorType == OperatorType::Assign) {
-			if (leftStorage != nullptr)
-				return addMemoryToMemoryMove(globalAssembly, leftStorage, rightStorage);
-			else
-//TODO: assign the result to each variable in the variable declaration list
-				;
-		} else {
+	if (o->modifiesVariable) {
+		//multiple variable assignment
+		if (v != nullptr) {
+			forEach(CVariableDefinition*, vd, v->variables, vdi) {
+				globalAssembly->add(new MOV(vd->storage, resultStorage));
+			}
+		//any other type of variable modifier
+		} else
 			globalAssembly->add(new MOV(leftStorage, resultStorage));
-			return resultStorage;
-		}
 	}
 	return resultStorage;
+}
+//get the storage and the assembly for the final value of a condition operator (and, or, ternary)
+Register* Build::getOperatorFinalConditionAssembly(
+	Token* t, Register* resultStorage, CDataType* expectedType, ConditionLabelPair* jumpDests)
+{
+	AssemblyStorage* valueStorage = addTokenAssembly(t, expectedType, jumpDests);
+	if (jumpDests != nullptr) {
+		if (valueStorage != nullptr) {
+			globalAssembly->add(new CMP(valueStorage, globalTrackedStorage(new AssemblyConstant(0, valueStorage->bitSize))));
+			globalAssembly->add(new JNE(jumpDests->trueJumpDest));
+			globalAssembly->add(new JMP(jumpDests->falseJumpDest));
+		}
+		return nullptr;
+	} else {
+		if (valueStorage != nullptr)
+			globalAssembly->add(new MOV(resultStorage, valueStorage));
+		else
+			Error::logError(ErrorType::CompilerIssue, "getting assembly for the boolean value of this token", t);
+		return resultStorage;
+	}
 }
 //get the assembly for the arguments and the function and call it, returning the value
 AssemblyStorage* Build::getFunctionCallAssembly(FunctionCall* f) {
@@ -681,9 +795,10 @@ AssemblyStorage* Build::getFunctionCallAssembly(FunctionCall* f) {
 	} else if (let(FunctionDefinition*, fd, f->function)) {
 		functionSourceStorage = getFunctionDefinitionStorage(fd, true);
 	} else {
-		functionSourceStorage = addTokenAssembly(f->function, nullptr);
+		functionSourceStorage = addTokenAssembly(f->function, nullptr, nullptr);
 	}
-	AssemblyStorage* functionStorage = globalTrackedStorage(new TempStorage(cpuBitSize));
+	//if both storages are memory addresses, we'll make them the same and remove the MOV
+	TempStorage* functionStorage = globalTrackedStorage(new TempStorage(cpuBitSize));
 	globalAssembly->add(new MOV(functionStorage, functionSourceStorage));
 	//find out how much we need to shift the stack and shift it
 	int shiftTotalBits = 0;
@@ -692,24 +807,29 @@ AssemblyStorage* Build::getFunctionCallAssembly(FunctionCall* f) {
 	}
 	globalAssembly->add(
 		new SUB(cpuSPRegister, globalTrackedStorage(new AssemblyConstant((shiftTotalBits / 8 + 3) & 0xFFFFFFFC, cpuBitSize))));
+	AssemblyStorage* resultStorage;
 	//then go through and add all the arguments
 	//if we have a function definition, we can use its temps to save arguments, and return its result storage
 	//sometime later we will adjust or remove the SUB for the stack if we were able to use register parameters
 	if (fd != nullptr) {
 		for (int i = 0; i < f->arguments->length; i++) {
-			Token* argument = f->arguments->get(i);
-			addMemoryToMemoryMove(
-				globalAssembly, fd->parameters->get(i)->storage, addTokenAssembly(argument, argument->dataType));
+			CVariableDefinition* vd = fd->parameters->get(i);
+			addMemoryToMemoryMove(globalAssembly, vd->storage, addTokenAssembly(f->arguments->get(i), vd->type, nullptr));
 		}
-		return fd->resultStorage;
+		resultStorage = fd->resultStorage;
 	//if not, then they will have to be on the stack and return in the *A* register
 	//get the positions that they will be
 	} else {
+		CSpecificFunction* sf = dynamic_cast<CSpecificFunction*>(f->function->dataType);
+		if (sf == nullptr) {
+			Error::logError(ErrorType::CompilerIssue, "determining the signature of this function", f->function);
+			return cpuARegister;
+		}
 		Array<int>* parameterStackOrder = getParameterStackOrder(f->arguments);
 		int stackOffset = 0;
 		forEach(int, parameterIndex, parameterStackOrder, pi) {
 			Token* argument = f->arguments->get(parameterIndex);
-			AssemblyStorage* argumentStorage = addTokenAssembly(argument, argument->dataType);
+			AssemblyStorage* argumentStorage = addTokenAssembly(argument, sf->parameterTypes->get(parameterIndex), nullptr);
 			addMemoryToMemoryMove(
 				globalAssembly,
 				globalTrackedStorage(new MemoryPointer(cpuSPRegister, 0, nullptr, stackOffset, true, argumentStorage->bitSize)),
@@ -717,17 +837,22 @@ AssemblyStorage* Build::getFunctionCallAssembly(FunctionCall* f) {
 			stackOffset += (int)((unsigned char)argumentStorage->bitSize) / 8;
 		}
 		delete parameterStackOrder;
-		return cpuARegister;
+		resultStorage = cpuARegister;
 	}
+	Register* functionStorageRegister = globalTrackedStorage(Register::newUndecidedRegisterForBitSize(cpuBitSize));
+	globalAssembly->add(new MOV(functionStorageRegister, functionStorage));
+	globalAssembly->add(
+		new CALL(globalTrackedStorage(new MemoryPointer(functionStorageRegister, (unsigned char)cpuBitSize / 8, cpuBitSize))));
+	return resultStorage;
 }
 //get the storage of the function definition
-AssemblyStorage* Build::getFunctionDefinitionStorage(FunctionDefinition* f, bool couldBeEligibleForRegisterParameters) {
+FunctionStaticStorage* Build::getFunctionDefinitionStorage(FunctionDefinition* f, bool couldBeEligibleForRegisterParameters) {
 	if (!couldBeEligibleForRegisterParameters)
 		f->eligibleForRegisterParameters = false;
 	return globalTrackedStorage(new FunctionStaticStorage(f, cpuBitSize));
 }
 //get the int constant using the bit size of the expected type
-AssemblyStorage* Build::getIntConstantStorage(IntConstant* i, CDataType* expectedType) {
+AssemblyConstant* Build::getIntConstantStorage(IntConstant* i, CDataType* expectedType) {
 	BitSize bitSize;
 	//if we don't have an expected type then that must mean we're going to discard the result, just use the cpu bit size
 	if (expectedType == nullptr)
@@ -749,7 +874,7 @@ AssemblyStorage* Build::getIntConstantStorage(IntConstant* i, CDataType* expecte
 	return globalTrackedStorage(new AssemblyConstant(val, cpuBitSize));
 }
 //get the float constant using the bit size of the expected type
-AssemblyStorage* Build::getFloatConstantStorage(FloatConstant* f, CDataType* expectedType) {
+AssemblyConstant* Build::getFloatConstantStorage(FloatConstant* f, CDataType* expectedType) {
 //TODO: get the storage
 return globalTrackedStorage(new AssemblyConstant(0xAAAAAAAA, cpuBitSize));
 }

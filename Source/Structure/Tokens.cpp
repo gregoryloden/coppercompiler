@@ -141,6 +141,7 @@ Operator::Operator(
 : LexToken(onlyWhenTrackingIDs(pObjType COMMA) pContentPos, pEndContentPos, pOwningFile)
 , operatorType(pOperatorType)
 , precedence(OperatorTypePrecedence::Assignment)
+, modifiesVariable(false)
 , left(nullptr)
 , right(nullptr)
 , wasParenthesized(false) {
@@ -161,6 +162,7 @@ Operator::Operator(
 		case OperatorType::VariableBitwiseNot:
 		case OperatorType::VariableNegate:
 			precedence = OperatorTypePrecedence::Postfix;
+			modifiesVariable = true;
 			break;
 		case OperatorType::Cast:
 		case OperatorType::LogicalNot:
@@ -228,6 +230,7 @@ Operator::Operator(
 //		case OperatorType::AssignBooleanAnd:
 //		case OperatorType::AssignBooleanOr:
 			precedence = OperatorTypePrecedence::Assignment;
+			modifiesVariable = true;
 			break;
 		case OperatorType::None:
 		default:

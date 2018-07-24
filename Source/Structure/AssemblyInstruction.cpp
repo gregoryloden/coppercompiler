@@ -1,5 +1,21 @@
 #include "Project.h"
 
+#define basic0OperandInstructionDefinitions(Type, objType) \
+	Type::Type(): AssemblyInstruction(onlyWhenTrackingIDs(objType COMMA) nullptr, nullptr) {} \
+	Type::~Type() {}
+#define basic1OperandInstructionDefinitions(Type, objType) \
+	Type::Type(AssemblyStorage* pDestination) \
+	: AssemblyInstruction(onlyWhenTrackingIDs(objType COMMA) pDestination, nullptr) {} \
+	Type::~Type() {}
+#define basic2OperandInstructionDefinitions(Type, objType) \
+	Type::Type(AssemblyStorage* pDestination, AssemblyStorage* pSource) \
+	: AssemblyInstruction(onlyWhenTrackingIDs(objType COMMA) pDestination, pSource) {} \
+	Type::~Type() {}
+#define basicConditionalJumpDefinitions(Type, objType) \
+	Type::Type(AssemblyLabel* pJumpDestination)\
+	: JCC(onlyWhenTrackingIDs(objType COMMA) pJumpDestination) {} \
+	Type::~Type() {}
+
 AssemblyInstruction::AssemblyInstruction(
 	onlyWhenTrackingIDs(char* pObjType COMMA) AssemblyStorage* pDestination, AssemblyStorage* pSource)
 : onlyInDebug(ObjCounter(onlyWhenTrackingIDs(pObjType)) COMMA)
@@ -21,30 +37,13 @@ JCC::JCC(onlyWhenTrackingIDs(char* pObjType COMMA) AssemblyLabel* pJumpDestinati
 JCC::~JCC() {
 	//don't delete the jump destination, something else owns it
 }
-NOP::NOP()
-: AssemblyInstruction(onlyWhenTrackingIDs("NOP" COMMA) nullptr, nullptr) {
-}
-NOP::~NOP() {}
-CBW::CBW()
-: AssemblyInstruction(onlyWhenTrackingIDs("CBW" COMMA) nullptr, nullptr) {
-}
-CBW::~CBW() {}
-CWDE::CWDE()
-: AssemblyInstruction(onlyWhenTrackingIDs("CWDE" COMMA) nullptr, nullptr) {
-}
-CWDE::~CWDE() {}
-CDQ::CDQ()
-: AssemblyInstruction(onlyWhenTrackingIDs("CDQ" COMMA) nullptr, nullptr) {
-}
-CDQ::~CDQ() {}
-CLD::CLD()
-: AssemblyInstruction(onlyWhenTrackingIDs("CLD" COMMA) nullptr, nullptr) {
-}
-CLD::~CLD() {}
-REPMOVSB::REPMOVSB()
-: AssemblyInstruction(onlyWhenTrackingIDs("REPMVSB" COMMA) nullptr, nullptr) {
-}
-REPMOVSB::~REPMOVSB() {}
+basic0OperandInstructionDefinitions(NOP, "NOP")
+basic0OperandInstructionDefinitions(CBW, "CBW")
+basic0OperandInstructionDefinitions(CWDE, "CWDE")
+basic0OperandInstructionDefinitions(CWD, "CWD")
+basic0OperandInstructionDefinitions(CDQ, "CDQ")
+basic0OperandInstructionDefinitions(CLD, "CLD")
+basic0OperandInstructionDefinitions(REPMOVSB, "REPMVSB")
 RET::RET(FunctionDefinition* pOwningFunction)
 : AssemblyInstruction(onlyWhenTrackingIDs("RET" COMMA) nullptr, nullptr)
 , owningFunction(pOwningFunction) {
@@ -59,92 +58,52 @@ JMP::JMP(AssemblyLabel* pJumpDestination)
 JMP::~JMP() {
 	//don't delete the jump destination, something else owns it
 }
-CALL::CALL(AssemblyStorage* pDestination)
-: AssemblyInstruction(onlyWhenTrackingIDs("CALL" COMMA) pDestination, nullptr) {
-}
-CALL::~CALL() {}
-INC::INC(AssemblyStorage* pDestination)
-: AssemblyInstruction(onlyWhenTrackingIDs("INC" COMMA) pDestination, nullptr) {
-}
-INC::~INC() {}
-DEC::DEC(AssemblyStorage* pDestination)
-: AssemblyInstruction(onlyWhenTrackingIDs("DEC" COMMA) pDestination, nullptr) {
-}
-DEC::~DEC() {}
-NEG::NEG(AssemblyStorage* pDestination)
-: AssemblyInstruction(onlyWhenTrackingIDs("NEG" COMMA) pDestination, nullptr) {
-}
-NEG::~NEG() {}
+basic1OperandInstructionDefinitions(CALL, "CALL")
+basic1OperandInstructionDefinitions(INC, "INC")
+basic1OperandInstructionDefinitions(DEC, "DEC")
+basic1OperandInstructionDefinitions(NOT, "NOT")
+basic1OperandInstructionDefinitions(NEG, "NEG")
 IDIV::IDIV(AssemblyStorage* divisor)
 : AssemblyInstruction(onlyWhenTrackingIDs("IDIV" COMMA) nullptr, divisor) {
 }
 IDIV::~IDIV() {}
-JL::JL(AssemblyLabel* pJumpDestination)
-: JCC(onlyWhenTrackingIDs("JL" COMMA) pJumpDestination) {
+IMUL::IMUL(Register* pDestination, AssemblyStorage* pSource, AssemblyConstant* pMultiplier)
+: AssemblyInstruction(onlyWhenTrackingIDs("IMUL" COMMA) pDestination, pSource)
+, multiplier(pMultiplier) {
 }
-JL::~JL() {}
-JLE::JLE(AssemblyLabel* pJumpDestination)
-: JCC(onlyWhenTrackingIDs("JLE" COMMA) pJumpDestination) {
+IMUL::~IMUL() {
+	//don't delete the multiplier, something else owns it
 }
-JLE::~JLE() {}
-JGE::JGE(AssemblyLabel* pJumpDestination)
-: JCC(onlyWhenTrackingIDs("JGE" COMMA) pJumpDestination) {
-}
-JGE::~JGE() {}
-ADD::ADD(AssemblyStorage* pDestination, AssemblyStorage* pSource)
-: AssemblyInstruction(onlyWhenTrackingIDs("ADD" COMMA) pDestination, pSource) {
-}
-ADD::~ADD() {}
-SUB::SUB(AssemblyStorage* pDestination, AssemblyStorage* pSource)
-: AssemblyInstruction(onlyWhenTrackingIDs("SUB" COMMA) pDestination, pSource) {
-}
-SUB::~SUB() {}
-MOV::MOV(AssemblyStorage* pDestination, AssemblyStorage* pSource)
-: AssemblyInstruction(onlyWhenTrackingIDs("MOV" COMMA) pDestination, pSource) {
-}
-MOV::~MOV() {}
-AND::AND(AssemblyStorage* pDestination, AssemblyStorage* pSource)
-: AssemblyInstruction(onlyWhenTrackingIDs("AND" COMMA) pDestination, pSource) {
-}
-AND::~AND() {}
-OR::OR(AssemblyStorage* pDestination, AssemblyStorage* pSource)
-: AssemblyInstruction(onlyWhenTrackingIDs("OR" COMMA) pDestination, pSource) {
-}
-OR::~OR() {}
-XOR::XOR(AssemblyStorage* pDestination, AssemblyStorage* pSource)
-: AssemblyInstruction(onlyWhenTrackingIDs("XOR" COMMA) pDestination, pSource) {
-}
-XOR::~XOR() {}
-CMP::CMP(AssemblyStorage* pFirst, AssemblyStorage* pSecond)
-: AssemblyInstruction(onlyWhenTrackingIDs("CMP" COMMA) pFirst, pSecond) {
-}
-CMP::~CMP() {}
+basicConditionalJumpDefinitions(JE, "JE")
+basicConditionalJumpDefinitions(JNE, "JNE")
+basicConditionalJumpDefinitions(JL, "JL")
+basicConditionalJumpDefinitions(JLE, "JLE")
+basicConditionalJumpDefinitions(JG, "JG")
+basicConditionalJumpDefinitions(JGE, "JGE")
+basic1OperandInstructionDefinitions(SETE, "SETE")
+basic1OperandInstructionDefinitions(SETNE, "SETNE")
+basic1OperandInstructionDefinitions(SETLE, "SETLE")
+basic1OperandInstructionDefinitions(SETGE, "SETGE")
+basic1OperandInstructionDefinitions(SETL, "SETL")
+basic1OperandInstructionDefinitions(SETG, "SETG")
+basic2OperandInstructionDefinitions(ADD, "ADD")
+basic2OperandInstructionDefinitions(SUB, "SUB")
+basic2OperandInstructionDefinitions(MOV, "MOV")
+basic2OperandInstructionDefinitions(AND, "AND")
+basic2OperandInstructionDefinitions(OR, "OR")
+basic2OperandInstructionDefinitions(XOR, "XOR")
+basic2OperandInstructionDefinitions(CMP, "CMP")
 LEA::LEA(Register* pDestination, AssemblyStorage* pSource)
 : AssemblyInstruction(onlyWhenTrackingIDs("LEA" COMMA) pDestination, pSource) {
 }
 LEA::~LEA() {}
-SHL::SHL(AssemblyStorage* pFirst, AssemblyStorage* pSecond)
-: AssemblyInstruction(onlyWhenTrackingIDs("SHL" COMMA) pFirst, pSecond) {
-}
-SHL::~SHL() {}
-SHR::SHR(AssemblyStorage* pFirst, AssemblyStorage* pSecond)
-: AssemblyInstruction(onlyWhenTrackingIDs("SHR" COMMA) pFirst, pSecond) {
-}
-SHR::~SHR() {}
-SAR::SAR(AssemblyStorage* pFirst, AssemblyStorage* pSecond)
-: AssemblyInstruction(onlyWhenTrackingIDs("SAR" COMMA) pFirst, pSecond) {
-}
-SAR::~SAR() {}
+basic2OperandInstructionDefinitions(SHL, "SHL")
+basic2OperandInstructionDefinitions(SHR, "SHR")
+basic2OperandInstructionDefinitions(SAR, "SAR")
 MOVSX::MOVSX(Register* pDestination, AssemblyStorage* pSource)
 : AssemblyInstruction(onlyWhenTrackingIDs("MOVSX" COMMA) pDestination, pSource) {
 }
 MOVSX::~MOVSX() {}
-Thunk::Thunk(string pName, unsigned short pThunkID)
-: onlyInDebug(ObjCounter(onlyWhenTrackingIDs("THUNK")) COMMA)
-name(pName)
-, thunkID(pThunkID) {
-}
-Thunk::~Thunk() {}
 
 
 

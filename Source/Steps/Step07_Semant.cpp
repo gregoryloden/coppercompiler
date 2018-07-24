@@ -293,9 +293,6 @@ void Semant::semantOperator(
 {
 	//check which validations we need to perform
 	OperatorSemanticsType operatorSemanticsType;
-	bool comparisonOperator = false;
-	bool assignment = false;
-	bool variableModifier = false;
 	switch (o->operatorType) {
 		//single boolean non-mutating operators
 		case OperatorType::LogicalNot:
@@ -345,13 +342,11 @@ void Semant::semantOperator(
 		case OperatorType::LessThan:
 		case OperatorType::GreaterThan:
 			operatorSemanticsType = OperatorSemanticsType::NumberNumber;
-			comparisonOperator = true;
 			break;
 		//any-any non-mutating comparison operators, two types where one can be implicitly casted to the other
 		case OperatorType::Equal:
 		case OperatorType::NotEqual:
 			operatorSemanticsType = OperatorSemanticsType::AnyAny;
-			comparisonOperator = true;
 			break;
 		//non-mutating ternary operator, make sure the left side is a boolean and the right side is a colon with two types
 		//	that share a common ancestor type
@@ -361,19 +356,16 @@ void Semant::semantOperator(
 		//single boolean mutating operators
 		case OperatorType::VariableLogicalNot:
 			operatorSemanticsType = OperatorSemanticsType::SingleBoolean;
-			variableModifier = true;
 			break;
 		//single integer mutating operators
 		case OperatorType::Increment:
 		case OperatorType::Decrement:
 		case OperatorType::VariableBitwiseNot:
 			operatorSemanticsType = OperatorSemanticsType::SingleInteger;
-			variableModifier = true;
 			break;
 		//single number mutating operators
 		case OperatorType::VariableNegate:
 			operatorSemanticsType = OperatorSemanticsType::SingleNumber;
-			variableModifier = true;
 			break;
 		//boolean-boolean mutating operators
 //		case OperatorType::AssignBooleanAnd:
@@ -386,7 +378,6 @@ void Semant::semantOperator(
 		case OperatorType::AssignBitwiseXor:
 		case OperatorType::AssignBitwiseOr:
 			operatorSemanticsType = OperatorSemanticsType::IntegerInteger;
-			variableModifier = true;
 			break;
 		//integer-integer mutating bit shifts, no casting necessary
 		case OperatorType::AssignShiftLeft:
@@ -395,7 +386,6 @@ void Semant::semantOperator(
 //		case OperatorType::AssignRotateLeft:
 //		case OperatorType::AssignRotateRight:
 			operatorSemanticsType = OperatorSemanticsType::IntegerIntegerBitShift;
-			variableModifier = true;
 			break;
 		//number-number mutating operators, casts where appropriate
 		case OperatorType::AssignSubtract:
@@ -403,17 +393,14 @@ void Semant::semantOperator(
 		case OperatorType::AssignDivide:
 		case OperatorType::AssignModulus:
 			operatorSemanticsType = OperatorSemanticsType::NumberNumber;
-			variableModifier = true;
 			break;
 		//same as above but this one can be number-number or string-string
 		case OperatorType::AssignAdd:
 			operatorSemanticsType = OperatorSemanticsType::NumberNumberOrStringString;
-			variableModifier = true;
 			break;
 		//any-any mutating operators, two types where the right can be implicitly casted to the left
 		case OperatorType::Assign:
 			operatorSemanticsType = OperatorSemanticsType::AnyAny;
-			assignment = true;
 			break;
 		//this one isn't supposed to be handled on its own
 		case OperatorType::Colon:
@@ -444,7 +431,7 @@ void Semant::semantOperator(
 	}
 	//semant the inner tokens
 	//stop if either one has an unknown type
-	if (!assignment) {
+	if (o->operatorType != OperatorType::Assign) {
 		o->left = semantToken(o->left, variables, SemantExpressionLevel::Subexpression);
 		if (!tokenHasKnownType(o->left))
 			return;
@@ -565,7 +552,7 @@ void Semant::semantOperator(
 
 	//finally, assign the operator its type
 	//for assignments, also check that the assignment is valid
-	if (assignment) {
+	if (o->operatorType == OperatorType::Assign) {
 		//make sure it's something we can assign to
 		Identifier* i;
 		VariableDeclarationList* v = nullptr;
@@ -615,7 +602,7 @@ void Semant::semantOperator(
 		//TODO: Groups - figure out automatic grouping/ungrouping
 		o->dataType = o->left->dataType;
 	//check that comparisons are valid- as long as one is castable to the other we're good
-	} else if (comparisonOperator) {
+	} else if (o->precedence == OperatorTypePrecedence::Comparison) {
 		if (CDataType::bestCompatibleType(o->left->dataType, o->right->dataType) == nullptr) {
 			string errorMessage = "cannot compare values of type " + o->left->dataType->name
 				+ " and " + o->right->dataType->name;
@@ -624,7 +611,7 @@ void Semant::semantOperator(
 		}
 		o->dataType = CDataType::boolType;
 	//check that we have a variable to modify
-	} else if (variableModifier) {
+	} else if (o->modifiesVariable) {
 		if (!istype(o->left, Identifier*)) {
 			logSemantErrorWithErrorCheck(ErrorType::Expected, "a variable", o->left, o);
 			return;

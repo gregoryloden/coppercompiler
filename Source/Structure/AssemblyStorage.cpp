@@ -147,3 +147,17 @@ TempStorage::TempStorage(BitSize pBitSize)
 TempStorage::~TempStorage() {
 	delete finalStorage;
 }
+Thunk::Thunk(string pName, unsigned short pThunkID)
+: onlyInDebug(ObjCounter(onlyWhenTrackingIDs("THUNK")) COMMA)
+name(pName)
+, thunkID(pThunkID) {
+}
+Thunk::~Thunk() {}
+ConditionLabelPair::ConditionLabelPair(AssemblyLabel* pTrueJumpDest, AssemblyLabel* pFalseJumpDest)
+: onlyInDebug(ObjCounter(onlyWhenTrackingIDs("CNDLBPR")) COMMA)
+trueJumpDest(pTrueJumpDest)
+, falseJumpDest(pFalseJumpDest) {
+}
+ConditionLabelPair::~ConditionLabelPair() {
+	//don't delete either jump dest since they are owned by something else
+}

@@ -161,3 +161,11 @@ public:
 	Thunk(string pName, unsigned short pThunkID);
 	virtual ~Thunk();
 };
+class ConditionLabelPair onlyInDebug(: public ObjCounter) {
+public:
+	AssemblyLabel* trueJumpDest; //copper: readonly
+	AssemblyLabel* falseJumpDest; //copper: readonly
+
+	ConditionLabelPair(AssemblyLabel* pTrueJumpDest, AssemblyLabel* pFalseJumpDest);
+	virtual ~ConditionLabelPair();
+};

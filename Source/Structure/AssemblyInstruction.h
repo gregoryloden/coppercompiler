@@ -2,6 +2,16 @@
 
 class FunctionDefinition;
 
+#define basic0OperandInstructionDeclarations(Type) class Type: public AssemblyInstruction { public: Type(); virtual ~Type(); };
+#define basic1OperandInstructionDeclarations(Type) \
+	class Type: public AssemblyInstruction { public: Type(AssemblyStorage* pDestination); virtual ~Type(); };
+#define basic2OperandInstructionDeclarations(Type) \
+	class Type: public AssemblyInstruction { \
+		public: Type(AssemblyStorage* pDestination, AssemblyStorage* pSource); virtual ~Type(); \
+	};
+#define basicConditionalJumpDeclarations(Type) \
+	class Type: public JCC { public: Type(AssemblyLabel* pJumpDestination); virtual ~Type(); };
+
 class AssemblyInstruction onlyInDebug(: public ObjCounter) {
 protected:
 	AssemblyStorage* destination;
@@ -28,37 +38,13 @@ public:
 	virtual ~JCC();
 };
 //0 operand instructions
-class NOP: public AssemblyInstruction {
-public:
-	NOP();
-	virtual ~NOP();
-};
-class CBW: public AssemblyInstruction {
-public:
-	CBW();
-	virtual ~CBW();
-};
-class CWDE: public AssemblyInstruction {
-public:
-	CWDE();
-	virtual ~CWDE();
-};
-//class CWD: public AssemblyInstruction {
-class CDQ: public AssemblyInstruction {
-public:
-	CDQ();
-	virtual ~CDQ();
-};
-class CLD: public AssemblyInstruction {
-public:
-	CLD();
-	virtual ~CLD();
-};
-class REPMOVSB: public AssemblyInstruction {
-public:
-	REPMOVSB();
-	virtual ~REPMOVSB();
-};
+basic0OperandInstructionDeclarations(NOP)
+basic0OperandInstructionDeclarations(CBW)
+basic0OperandInstructionDeclarations(CWDE)
+basic0OperandInstructionDeclarations(CWD)
+basic0OperandInstructionDeclarations(CDQ)
+basic0OperandInstructionDeclarations(CLD)
+basic0OperandInstructionDeclarations(REPMOVSB)
 //0-1 operand instructions
 class RET: public AssemblyInstruction {
 private:
@@ -78,29 +64,13 @@ public:
 	JMP(AssemblyLabel* pJumpDestination);
 	virtual ~JMP();
 };
-class CALL: public AssemblyInstruction {
-public:
-	CALL(AssemblyStorage* pDestination);
-	virtual ~CALL();
-};
-class INC: public AssemblyInstruction {
-public:
-	INC(AssemblyStorage* pDestination);
-	virtual ~INC();
-};
-class DEC: public AssemblyInstruction {
-public:
-	DEC(AssemblyStorage* pDestination);
-	virtual ~DEC();
-};
+basic1OperandInstructionDeclarations(CALL)
+basic1OperandInstructionDeclarations(INC)
+basic1OperandInstructionDeclarations(DEC)
 //class PUSH: public AssemblyInstruction {
 //class POP: public AssemblyInstruction {
-//class NOT: public AssemblyInstruction {
-class NEG: public AssemblyInstruction {
-public:
-	NEG(AssemblyStorage* divisor);
-	virtual ~NEG();
-};
+basic1OperandInstructionDeclarations(NOT)
+basic1OperandInstructionDeclarations(NEG)
 //	class DIV: public AssemblyInstruction {
 class IDIV: public AssemblyInstruction {
 public:
@@ -108,96 +78,51 @@ public:
 	virtual ~IDIV();
 };
 //	class MUL: public AssemblyInstruction {
-//class IMUL: public AssemblyInstruction {
-//class JE: public AssemblyInstruction {
-//class JNE: public AssemblyInstruction {
+class IMUL: public AssemblyInstruction {
+private:
+	AssemblyConstant* multiplier;
+
+public:
+	IMUL(Register* pDestination, AssemblyStorage* pSource, AssemblyConstant* pMultiplier);
+	virtual ~IMUL();
+};
+basicConditionalJumpDeclarations(JE)
+basicConditionalJumpDeclarations(JNE)
 //	class JB: public AssemblyInstruction {
 //	class JBE: public AssemblyInstruction {
 //	class JA: public AssemblyInstruction {
 //	class JAE: public AssemblyInstruction {
-class JL: public JCC {
-public:
-	JL(AssemblyLabel* pJumpDestination);
-	virtual ~JL();
-};
-class JLE: public JCC {
-public:
-	JLE(AssemblyLabel* pJumpDestination);
-	virtual ~JLE();
-};
-//class JG: public AssemblyInstruction {
-class JGE: public JCC {
-public:
-	JGE(AssemblyLabel* pJumpDestination);
-	virtual ~JGE();
-};
-//class SETE: public AssemblyInstruction {
-//class SETNE: public AssemblyInstruction {
-//class SETLE: public AssemblyInstruction {
-//class SETGE: public AssemblyInstruction {
-//class SETL: public AssemblyInstruction {
-//class SETG: public AssemblyInstruction {
+basicConditionalJumpDeclarations(JL)
+basicConditionalJumpDeclarations(JLE)
+basicConditionalJumpDeclarations(JG)
+basicConditionalJumpDeclarations(JGE)
+basic1OperandInstructionDeclarations(SETE)
+basic1OperandInstructionDeclarations(SETNE)
+basic1OperandInstructionDeclarations(SETLE)
+basic1OperandInstructionDeclarations(SETGE)
+basic1OperandInstructionDeclarations(SETL)
+basic1OperandInstructionDeclarations(SETG)
 //2 operand instructions
-class ADD: public AssemblyInstruction {
-public:
-	ADD(AssemblyStorage* pDestination, AssemblyStorage* pSource);
-	virtual ~ADD();
-};
-class SUB: public AssemblyInstruction {
-public:
-	SUB(AssemblyStorage* pDestination, AssemblyStorage* pSource);
-	virtual ~SUB();
-};
-class MOV: public AssemblyInstruction {
-public:
-	MOV(AssemblyStorage* pDestination, AssemblyStorage* pSource);
-	virtual ~MOV();
-};
+basic2OperandInstructionDeclarations(ADD)
+basic2OperandInstructionDeclarations(SUB)
+basic2OperandInstructionDeclarations(MOV)
 //	class ADC: public AssemblyInstruction {
 //	class SBB: public AssemblyInstruction {
-class AND: public AssemblyInstruction {
-public:
-	AND(AssemblyStorage* pDestination, AssemblyStorage* pSource);
-	virtual ~AND();
-};
-class OR: public AssemblyInstruction {
-public:
-	OR(AssemblyStorage* pDestination, AssemblyStorage* pSource);
-	virtual ~OR();
-};
-class XOR: public AssemblyInstruction {
-public:
-	XOR(AssemblyStorage* pDestination, AssemblyStorage* pSource);
-	virtual ~XOR();
-};
-class CMP: public AssemblyInstruction {
-public:
-	CMP(AssemblyStorage* pFirst, AssemblyStorage* pSecond);
-	virtual ~CMP();
-};
+basic2OperandInstructionDeclarations(AND)
+basic2OperandInstructionDeclarations(OR)
+basic2OperandInstructionDeclarations(XOR)
+basic2OperandInstructionDeclarations(CMP)
 class LEA: public AssemblyInstruction {
 public:
 	LEA(Register* pDestination, AssemblyStorage* pSource);
 	virtual ~LEA();
 };
 //	class TEST: public AssemblyInstruction {
-class SHL: public AssemblyInstruction {
-public:
-	SHL(AssemblyStorage* pDestination, AssemblyStorage* pSource);
-	virtual ~SHL();
-};
-class SHR: public AssemblyInstruction {
-public:
-	SHR(AssemblyStorage* pDestination, AssemblyStorage* pSource);
-	virtual ~SHR();
-};
+basic2OperandInstructionDeclarations(SHL)
+basic2OperandInstructionDeclarations(SHR)
 //class ROL: public AssemblyInstruction {
 //class ROR: public AssemblyInstruction {
-class SAR: public AssemblyInstruction {
-public:
-	SAR(AssemblyStorage* pDestination, AssemblyStorage* pSource);
-	virtual ~SAR();
-};
+basic2OperandInstructionDeclarations(SAR)
 //	class RCL: public AssemblyInstruction {
 //	class RCR: public AssemblyInstruction {
 class MOVSX: public AssemblyInstruction {

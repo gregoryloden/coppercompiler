@@ -24,4 +24,5 @@ Function main = void() (
 	a = (a = 4);
 	a = true ? (a = 4) : (a = 4);
 	int g = true ? (a = 4) : (a = 4);
+	a = (a + b) + ((a + b) + ((a + b) + ((a + b) + ((a + b) + ((a + b) + ((a + b) + ((a + b) + (a + b))))))));
 );

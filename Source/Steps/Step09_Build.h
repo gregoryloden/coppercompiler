@@ -4,6 +4,8 @@ class Pliers;
 class CVariableData;
 class AssemblyInstruction;
 class AssemblyStorage;
+class AssemblyConstant;
+class ConditionLabelPair;
 class TempStorage;
 class CDataType;
 class Register;
@@ -65,15 +67,17 @@ private:
 	static void setupAssemblyObjects();
 	static void cleanupAssemblyObjects();
 	static void build32BitMainFunctions();
-	static AssemblyStorage* addTokenAssembly(Token* t, CDataType* expectedType);
-	static AssemblyStorage* getIdentifierStorage(Identifier* i, bool isBeingFunctionCalled);
+	static AssemblyStorage* addTokenAssembly(Token* t, CDataType* expectedType, ConditionLabelPair* jumpDests);
+	static TempStorage* getIdentifierStorage(Identifier* i, bool isBeingFunctionCalled);
 	static AssemblyStorage* addCastAssembly(Cast* c);
 	static AssemblyStorage* getStaticOperatorStorage(StaticOperator* s);
-	static AssemblyStorage* getOperatorAssembly(Operator* o);
+	static Register* getOperatorAssembly(Operator* o, ConditionLabelPair* jumpDests);
+	static Register* getOperatorFinalConditionAssembly(
+		Token* t, Register* resultStorage, CDataType* expectedType, ConditionLabelPair* jumpDests);
 	static AssemblyStorage* getFunctionCallAssembly(FunctionCall* f);
-	static AssemblyStorage* getFunctionDefinitionStorage(FunctionDefinition* f, bool couldBeEligibleForRegisterParameters);
-	static AssemblyStorage* getIntConstantStorage(IntConstant* i, CDataType* expectedType);
-	static AssemblyStorage* getFloatConstantStorage(FloatConstant* f, CDataType* expectedType);
+	static FunctionStaticStorage* getFunctionDefinitionStorage(FunctionDefinition* f, bool couldBeEligibleForRegisterParameters);
+	static AssemblyConstant* getIntConstantStorage(IntConstant* i, CDataType* expectedType);
+	static AssemblyConstant* getFloatConstantStorage(FloatConstant* f, CDataType* expectedType);
 	static BitSize typeBitSize(CDataType* dt);
 	template <class AssemblyStorageType> static AssemblyStorageType* globalTrackedStorage(AssemblyStorageType* a);
 	static Register* addMemoryToMemoryMove(
