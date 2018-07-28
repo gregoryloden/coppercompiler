@@ -209,7 +209,6 @@ public:
 	bool modifiesVariable; //copper: readonly
 	Token* left; //copper: readonly
 	Token* right; //copper: readonly
-	bool wasParenthesized; //copper: readonly<Semant>
 
 	#ifdef TRACK_OBJ_IDS
 		Operator(OperatorType pOperatorType, int pContentPos, int pEndContentPos, SourceFile* pOwningFile);

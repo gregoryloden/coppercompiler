@@ -19,7 +19,7 @@ enum class BitSize: unsigned char;
 template <class KeyElement, class Value> class PrefixTrie;
 template <class Type> class Array;
 
-class Build {
+class BuildInitialAssembly {
 private:
 	class FindUninitializedVariablesVisitor: public TokenVisitor {
 	public:
@@ -61,9 +61,9 @@ private:
 	static thread_local ValueStaticStorage* copperHeapSizePointer;
 
 public:
-	static void build(Pliers* pliers);
+	static void buildInitialAssembly(Pliers* pliers);
 private:
-	static void buildForBitSize(Pliers* pliers, BitSize pCPUBitSize);
+	static void buildInitialAssemblyForBitSize(Pliers* pliers, BitSize pCPUBitSize);
 	static void setupAssemblyObjects();
 	static void cleanupAssemblyObjects();
 	static void build32BitMainFunctions();
@@ -75,7 +75,8 @@ private:
 	static Register* getOperatorFinalConditionAssembly(
 		Token* t, Register* resultStorage, CDataType* expectedType, ConditionLabelPair* jumpDests);
 	static AssemblyStorage* getFunctionCallAssembly(FunctionCall* f);
-	static FunctionStaticStorage* getFunctionDefinitionStorage(FunctionDefinition* f, bool couldBeEligibleForRegisterParameters);
+	static FunctionStaticStorage* getFunctionDefinitionStorage(
+		FunctionDefinition* f, bool couldBeEligibleForRegisterParameters);
 	static AssemblyConstant* getIntConstantStorage(IntConstant* i, CDataType* expectedType);
 	static AssemblyConstant* getFloatConstantStorage(FloatConstant* f, CDataType* expectedType);
 	static BitSize typeBitSize(CDataType* dt);

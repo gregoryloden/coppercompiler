@@ -155,10 +155,10 @@ Pliers::Pliers(const char* pBaseFileName, bool pPrintProgress onlyInDebug(COMMA 
 	Semant::semant(this);
 	returnIfErrors();
 
-	Optimize::optimize(this);
+	OptimizeExpressions::optimizeExpressions(this);
 	returnIfErrors();
 
-	Build::build(this);
+	BuildInitialAssembly::buildInitialAssembly(this);
 	returnIfErrors();
 
 	totalElapsedMilliseconds = TimeUtils::getElapsedMilliseconds() - startTime;

@@ -629,7 +629,15 @@ Statement* ParseExpressions::parseKeywordStatement(Token* t, ArrayIterator<Token
 		ArrayIterator<Token*> ai (conditionBlock->tokens);
 		if (!ai.hasThis())
 			Error::makeError(ErrorType::Expected, "a for-loop initialization", conditionBlock);
-		Deleter<ExpressionStatement> initialization (parseExpressionStatement(ai.getThis(), &ai));
+		ExpressionStatement* initializationStatement = parseExpressionStatement(ai.getThis(), &ai);
+		Token* initialization;
+		if (initializationStatement != nullptr) {
+			initialization = initializationStatement->expression;
+			initializationStatement->expression = nullptr;
+			delete initializationStatement;
+		} else
+			initialization = nullptr;
+		Deleter<Token> initializationDeleter (initialization);
 		Token* initializationSemicolon = ai.getThis();
 		ai.getNext();
 		Deleter<Token> condition (parseExpression(
@@ -644,7 +652,7 @@ Statement* ParseExpressions::parseKeywordStatement(Token* t, ArrayIterator<Token
 			: nullptr;
 		Deleter<Token> incrementDeleter (increment);
 		Array<Statement*>* body = parseStatementOrStatementList(ti, conditionBlock, "a for-loop body");
-		return new LoopStatement(initialization.release(), condition.release(), incrementDeleter.release(), body, true);
+		return new LoopStatement(initializationDeleter.release(), condition.release(), incrementDeleter.release(), body, true);
 	} else if (keyword == whileKeyword) {
 		AbstractCodeBlock* conditionBlock = parseExpectedToken<AbstractCodeBlock>(ti, keywordToken, "a condition expression");
 		Deleter<Token> condition (completeParenthesizedExpression(conditionBlock, nullptr));

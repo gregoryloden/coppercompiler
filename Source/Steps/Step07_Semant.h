@@ -68,7 +68,7 @@ private:
 	static bool finalizeTypes(VariableDeclarationList* v, CDataType* valueType);
 	static void semantFileDefinitions(
 		SourceFile* sourceFile, PrefixTrie<char, CVariableDefinition*>* variables, Array<Operator*>* redoVariables);
-	static Token* semantToken(
+	static void semantToken(
 		Token* t, PrefixTrie<char, CVariableDefinition*>* variables, SemantExpressionLevel semantExpressionLevel);
 	static void semantIdentifier(Identifier* i, PrefixTrie<char, CVariableDefinition*>* variables);
 	static void semantDirectiveTitle(DirectiveTitle* d, PrefixTrie<char, CVariableDefinition*>* variables);

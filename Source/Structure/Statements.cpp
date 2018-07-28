@@ -76,7 +76,7 @@ void IfStatement::ConditionVisitor::handleExpression(Token* t) {
 	secondaryVisitor->handleExpression(t);
 }
 LoopStatement::LoopStatement(
-	ExpressionStatement* pInitialization,
+	Token* pInitialization,
 	Token* pCondition,
 	Token* pIncrement,
 	Array<Statement*>* pBody,

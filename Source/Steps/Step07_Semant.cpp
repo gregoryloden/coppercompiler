@@ -80,7 +80,7 @@ void Semant::semant(Pliers* pliers) {
 		fixedVariable = false;
 		for (int i = redoVariables.length - 1; i >= 0; i--) {
 			Operator* o = redoVariables.get(i);
-			o->right = semantToken(o->right, o->owningFile->variablesVisibleToFile, SemantExpressionLevel::TopLevel);
+			semantToken(o->right, o->owningFile->variablesVisibleToFile, SemantExpressionLevel::TopLevel);
 			//check if we can find a specific version of the variable's type
 			//if we don't have any generic versions, we don't need to check again
 			if (finalizeTypes(dynamic_cast<VariableDeclarationList*>(o->left), o->right->dataType)) {
@@ -169,7 +169,7 @@ void Semant::semantFileDefinitions(
 }
 //the heart of semantic analysis
 //verify that this token has the right type, and that anything under it is also valid
-Token* Semant::semantToken(
+void Semant::semantToken(
 	Token* t, PrefixTrie<char, CVariableDefinition*>* variables, SemantExpressionLevel semantExpressionLevel)
 {
 	Identifier* i;
@@ -187,12 +187,8 @@ Token* Semant::semantToken(
 	else if (let(DirectiveTitle*, d, t))
 		semantDirectiveTitle(d, variables);
 	else if (let(ParenthesizedExpression*, p, t)) {
-		t = semantToken(p->expression, variables, SemantExpressionLevel::TopLevelInParentheses);
-		if (let(Operator*, o, t))
-			o->wasParenthesized = true;
-		p->expression = nullptr;
-		delete p;
-		return t;
+		semantToken(p->expression, variables, SemantExpressionLevel::TopLevelInParentheses);
+		p->dataType = p->expression->dataType;
 	} else if (let(Operator*, o, t)) {
 		if (let(Cast*, c, t))
 			semantCast(c, variables);
@@ -214,7 +210,6 @@ Token* Semant::semantToken(
 		addVariablesToTrie(v->variables, variables, nullptr);
 	} else
 		Error::logError(ErrorType::CompilerIssue, "determining the token type of this token", t);
-	return t;
 }
 //give this identifier the right variable
 void Semant::semantIdentifier(Identifier* i, PrefixTrie<char, CVariableDefinition*>* variables) {
@@ -234,7 +229,7 @@ void Semant::semantDirectiveTitle(DirectiveTitle* d, PrefixTrie<char, CVariableD
 }
 //verify that the sub-expression of this cast can actually be casted to the specified type
 void Semant::semantCast(Cast* c, PrefixTrie<char, CVariableDefinition*>* variables) {
-	c->right = semantToken(c->right, variables, SemantExpressionLevel::Subexpression);
+	semantToken(c->right, variables, SemantExpressionLevel::Subexpression);
 	if (!tokenHasKnownType(c->right))
 		return;
 	bool canCast;
@@ -432,7 +427,7 @@ void Semant::semantOperator(
 	//semant the inner tokens
 	//stop if either one has an unknown type
 	if (o->operatorType != OperatorType::Assign) {
-		o->left = semantToken(o->left, variables, SemantExpressionLevel::Subexpression);
+		semantToken(o->left, variables, SemantExpressionLevel::Subexpression);
 		if (!tokenHasKnownType(o->left))
 			return;
 	}
@@ -451,9 +446,9 @@ void Semant::semantOperator(
 		//any variables that appear on the right side of booleans are unavailable outside of it
 		if (o->operatorType == OperatorType::BooleanAnd || o->operatorType == OperatorType::BooleanOr) {
 			PrefixTrieUnion<char, CVariableDefinition*> booleanOperatorVariables (variables);
-			o->right = semantToken(o->right, &booleanOperatorVariables, SemantExpressionLevel::Subexpression);
+			semantToken(o->right, &booleanOperatorVariables, SemantExpressionLevel::Subexpression);
 		} else
-			o->right = semantToken(o->right, variables, SemantExpressionLevel::Subexpression);
+			semantToken(o->right, variables, SemantExpressionLevel::Subexpression);
 		if (!tokenHasKnownType(o->right))
 			return;
 	}
@@ -531,8 +526,8 @@ void Semant::semantOperator(
 			}
 			PrefixTrieUnion<char, CVariableDefinition*> leftVariables (variables);
 			PrefixTrieUnion<char, CVariableDefinition*> rightVariables (variables);
-			ternaryResult->left = semantToken(ternaryResult->left, &leftVariables, SemantExpressionLevel::Subexpression);
-			ternaryResult->right = semantToken(ternaryResult->right, &rightVariables, SemantExpressionLevel::Subexpression);
+			semantToken(ternaryResult->left, &leftVariables, SemantExpressionLevel::Subexpression);
+			semantToken(ternaryResult->right, &rightVariables, SemantExpressionLevel::Subexpression);
 			if (!tokenHasKnownType(ternaryResult->left) || !tokenHasKnownType(ternaryResult->right))
 				return;
 			ternaryResultType = CDataType::bestCompatibleType(ternaryResult->left->dataType, ternaryResult->right->dataType);
@@ -594,7 +589,7 @@ void Semant::semantOperator(
 				return;
 			}
 		}
-		if (semantExpressionLevel == SemantExpressionLevel::Subexpression && !o->wasParenthesized) {
+		if (semantExpressionLevel == SemantExpressionLevel::Subexpression) {
 			logSemantError(
 				ErrorType::General, "assignment operators must be parenthesized or be the root operator of a statement", o);
 			return;
@@ -627,7 +622,7 @@ void Semant::semantOperator(
 //verify that this function call has the right function and argument types
 void Semant::semantFunctionCall(FunctionCall* f, PrefixTrie<char, CVariableDefinition*>* variables) {
 	//make sure we have the right function type
-	f->function = semantToken(f->function, variables, SemantExpressionLevel::Subexpression);
+	semantToken(f->function, variables, SemantExpressionLevel::Subexpression);
 	CSpecificFunction* functionType = dynamic_cast<CSpecificFunction*>(f->function->dataType);
 	if (functionType == nullptr) {
 		if (tokenHasKnownType(f->function)) {
@@ -648,7 +643,8 @@ void Semant::semantFunctionCall(FunctionCall* f, PrefixTrie<char, CVariableDefin
 	int argumentCount = Math::min(functionType->parameterTypes->length, f->arguments->length);
 	bool argumentTypesAreKnown = true;
 	for (int i = 0; i < argumentCount; i++) {
-		Token* t = semantToken(f->arguments->get(i), variables, SemantExpressionLevel::TopLevelInParentheses);
+		Token* t = f->arguments->get(i);
+		semantToken(t, variables, SemantExpressionLevel::TopLevelInParentheses);
 		if (tokenHasKnownType(t)) {
 			CDataType* expectedType = functionType->parameterTypes->get(i);
 			if (CDataType::bestCompatibleType(expectedType, t->dataType) != expectedType) {
@@ -657,7 +653,6 @@ void Semant::semantFunctionCall(FunctionCall* f, PrefixTrie<char, CVariableDefin
 			}
 		} else
 			argumentTypesAreKnown = false;
-		f->arguments->set(i, t);
 	}
 	if (argumentTypesAreKnown)
 		f->dataType = functionType->returnType;
@@ -695,10 +690,10 @@ ScopeExitType Semant::semantStatementList(
 		IfStatement* i;
 		LoopStatement* l;
 		if (let(ExpressionStatement*, e, s))
-			e->expression = semantToken(e->expression, &variables, SemantExpressionLevel::TopLevel);
+			semantToken(e->expression, &variables, SemantExpressionLevel::TopLevel);
 		else if (let(ReturnStatement*, r, s)) {
 			if (r->expression != nullptr) {
-				r->expression = semantToken(r->expression, &variables, SemantExpressionLevel::TopLevel);
+				semantToken(r->expression, &variables, SemantExpressionLevel::TopLevel);
 				if (CDataType::bestCompatibleType(r->expression->dataType, returnType) != returnType) {
 					string errorMessage = "cannot return type " + r->expression->dataType->name
 						+ " in a function that expects type " + returnType->name;
@@ -710,7 +705,7 @@ ScopeExitType Semant::semantStatementList(
 			}
 			exitType = ScopeExitType::Return;
 		} else if (let(IfStatement*, i, s)) {
-			i->condition = semantToken(i->condition, &variables, SemantExpressionLevel::TopLevelInParentheses);
+			semantToken(i->condition, &variables, SemantExpressionLevel::TopLevelInParentheses);
 			if (tokenHasKnownType(i->condition) && i->condition->dataType != CDataType::boolType)
 				Error::logError(ErrorType::Expected, "a bool value", i->condition);
 			PrefixTrieUnion<char, CVariableDefinition*> thenBodyVariables (&variables);
@@ -750,13 +745,12 @@ ScopeExitType Semant::semantStatementList(
 			PrefixTrieUnion<char, CVariableDefinition*> conditionVariables (&loopBodyVariables);
 			PrefixTrieUnion<char, CVariableDefinition*> incrementVariables (&loopBodyVariables);
 			if (l->initialization != nullptr)
-				l->initialization->expression =
-					semantToken(l->initialization->expression, &loopBodyVariables, SemantExpressionLevel::TopLevel);
-			l->condition = semantToken(l->condition, &conditionVariables, SemantExpressionLevel::TopLevel);
+				semantToken(l->initialization, &loopBodyVariables, SemantExpressionLevel::TopLevel);
+			semantToken(l->condition, &conditionVariables, SemantExpressionLevel::TopLevel);
 			if (tokenHasKnownType(l->condition) && l->condition->dataType != CDataType::boolType)
 				Error::logError(ErrorType::Expected, "a bool value", l->condition);
 			if (l->increment != nullptr)
-				l->increment = semantToken(l->increment, &incrementVariables, SemantExpressionLevel::TopLevel);
+				semantToken(l->increment, &incrementVariables, SemantExpressionLevel::TopLevel);
 			ScopeExitType loopExitType = semantStatementList(l->body, &loopBodyVariables, nullptr, returnType);
 			if (loopExitType == ScopeExitType::Return)
 				exitType = ScopeExitType::Return;

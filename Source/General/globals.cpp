@@ -587,7 +587,7 @@ void ErrorMessage::showSnippet(SourceFile* snippetFile, int snippetContentPos) {
 			if (l->initialization != nullptr || l->increment != nullptr) {
 				printf("for (");
 				if (l->initialization != nullptr)
-					printTokenTree(l->initialization->expression, tabsCount, false);
+					printTokenTree(l->initialization, tabsCount, false);
 				printf("; ");
 				printTokenTree(l->condition, tabsCount, false);
 				printf("; ");

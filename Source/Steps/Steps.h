@@ -5,5 +5,5 @@
 #include "Step05_ParseTypes.h"
 #include "Step06_ParseExpressions.h"
 #include "Step07_Semant.h"
-#include "Step08_Optimize.h"
-#include "Step09_Build.h"
+#include "Step08_OptimizeExpressions.h"
+#include "Step09_BuildInitialAssembly.h"

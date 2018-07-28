@@ -32,19 +32,18 @@ Thunk TWriteFile ("WriteFile", 0x2F7);
 Thunk TGetProcessHeap ("GetProcessHeap", 0x156);
 Thunk THeapAlloc ("HeapAlloc", 0x1BD);
 Thunk THeapReAlloc ("HeapReAlloc", 0x1C4);
-//BuildInitialAssembly
-Build::FindUninitializedVariablesVisitor::FindUninitializedVariablesVisitor(
+BuildInitialAssembly::FindUninitializedVariablesVisitor::FindUninitializedVariablesVisitor(
 	PrefixTrie<char, CVariableData*>* pVariableData, bool pErrorForUninitializedVariables)
 : TokenVisitor(onlyWhenTrackingIDs("FUVVTR"))
 , allVariablesAreInitialized(true)
 , errorForUninitializedVariables(pErrorForUninitializedVariables)
 , variableData(pVariableData) {
 }
-Build::FindUninitializedVariablesVisitor::~FindUninitializedVariablesVisitor() {
+BuildInitialAssembly::FindUninitializedVariablesVisitor::~FindUninitializedVariablesVisitor() {
 	//don't delete the variable data, something else owns it
 }
 //go through the expression and make sure all of the variables it uses are initialized
-void Build::FindUninitializedVariablesVisitor::handleExpression(Token* t) {
+void BuildInitialAssembly::FindUninitializedVariablesVisitor::handleExpression(Token* t) {
 	Operator* o;
 	Identifier* i;
 	if (let(Operator*, o, t)) {
@@ -117,35 +116,35 @@ void Build::FindUninitializedVariablesVisitor::handleExpression(Token* t) {
 	} else
 		t->visitSubtokens(this);
 }
-thread_local Array<AssemblyInstruction*>* Build::globalAssembly = nullptr;
-thread_local Array<StringStaticStorage*>* Build::stringDefinitions = nullptr;
-thread_local Array<FunctionStaticStorage*>* Build::functionDefinitions = nullptr;
-thread_local Array<AssemblyStorage*>* Build::assemblyStorageToDelete = nullptr;
-thread_local BitSize Build::cpuBitSize = BitSize::B32;
-thread_local Register* Build::cpuARegister = nullptr;
-thread_local Register* Build::cpuCRegister = nullptr;
-thread_local Register* Build::cpuDRegister = nullptr;
-thread_local Register* Build::cpuBRegister = nullptr;
-thread_local Register* Build::cpuSPRegister = nullptr;
-thread_local Register* Build::cpuSIRegister = nullptr;
-thread_local Register* Build::cpuDIRegister = nullptr;
-thread_local FunctionStaticStorage* Build::Main_exit = nullptr;
-thread_local FunctionStaticStorage* Build::Main_print = nullptr;
-thread_local FunctionStaticStorage* Build::Main_str = nullptr;
-thread_local ValueStaticStorage* Build::generalPurposeVariable1 = nullptr;
-thread_local ValueStaticStorage* Build::generalPurposeVariable2 = nullptr;
-thread_local ValueStaticStorage* Build::generalPurposeVariable3 = nullptr;
-thread_local ValueStaticStorage* Build::generalPurposeVariable4 = nullptr;
-thread_local ValueStaticStorage* Build::processHeapPointer = nullptr;
-thread_local ValueStaticStorage* Build::copperHeapPointer = nullptr;
-thread_local ValueStaticStorage* Build::copperHeapNextFreeAddressPointer = nullptr;
-thread_local ValueStaticStorage* Build::copperHeapSizePointer = nullptr;
+thread_local Array<AssemblyInstruction*>* BuildInitialAssembly::globalAssembly = nullptr;
+thread_local Array<StringStaticStorage*>* BuildInitialAssembly::stringDefinitions = nullptr;
+thread_local Array<FunctionStaticStorage*>* BuildInitialAssembly::functionDefinitions = nullptr;
+thread_local Array<AssemblyStorage*>* BuildInitialAssembly::assemblyStorageToDelete = nullptr;
+thread_local BitSize BuildInitialAssembly::cpuBitSize = BitSize::B32;
+thread_local Register* BuildInitialAssembly::cpuARegister = nullptr;
+thread_local Register* BuildInitialAssembly::cpuCRegister = nullptr;
+thread_local Register* BuildInitialAssembly::cpuDRegister = nullptr;
+thread_local Register* BuildInitialAssembly::cpuBRegister = nullptr;
+thread_local Register* BuildInitialAssembly::cpuSPRegister = nullptr;
+thread_local Register* BuildInitialAssembly::cpuSIRegister = nullptr;
+thread_local Register* BuildInitialAssembly::cpuDIRegister = nullptr;
+thread_local FunctionStaticStorage* BuildInitialAssembly::Main_exit = nullptr;
+thread_local FunctionStaticStorage* BuildInitialAssembly::Main_print = nullptr;
+thread_local FunctionStaticStorage* BuildInitialAssembly::Main_str = nullptr;
+thread_local ValueStaticStorage* BuildInitialAssembly::generalPurposeVariable1 = nullptr;
+thread_local ValueStaticStorage* BuildInitialAssembly::generalPurposeVariable2 = nullptr;
+thread_local ValueStaticStorage* BuildInitialAssembly::generalPurposeVariable3 = nullptr;
+thread_local ValueStaticStorage* BuildInitialAssembly::generalPurposeVariable4 = nullptr;
+thread_local ValueStaticStorage* BuildInitialAssembly::processHeapPointer = nullptr;
+thread_local ValueStaticStorage* BuildInitialAssembly::copperHeapPointer = nullptr;
+thread_local ValueStaticStorage* BuildInitialAssembly::copperHeapNextFreeAddressPointer = nullptr;
+thread_local ValueStaticStorage* BuildInitialAssembly::copperHeapSizePointer = nullptr;
 //build the final executable file for each bit size specified
-void Build::build(Pliers* pliers) {
-	buildForBitSize(pliers, BitSize::B32);
+void BuildInitialAssembly::buildInitialAssembly(Pliers* pliers) {
+	buildInitialAssemblyForBitSize(pliers, BitSize::B32);
 }
 //build the final executable file for the specified bit size specified
-void Build::buildForBitSize(Pliers* pliers, BitSize pCPUBitSize) {
+void BuildInitialAssembly::buildInitialAssemblyForBitSize(Pliers* pliers, BitSize pCPUBitSize) {
 	cpuBitSize = pCPUBitSize;
 	if (cpuBitSize != BitSize::B32) {
 		EmptyToken errorToken (0, pliers->allFiles->get(0));
@@ -213,7 +212,7 @@ void Build::buildForBitSize(Pliers* pliers, BitSize pCPUBitSize) {
 	cleanupAssemblyObjects();
 }
 //initialize everything used for building
-void Build::setupAssemblyObjects() {
+void BuildInitialAssembly::setupAssemblyObjects() {
 	globalAssembly = new Array<AssemblyInstruction*>();
 	stringDefinitions = new Array<StringStaticStorage*>();
 	functionDefinitions = new Array<FunctionStaticStorage*>();
@@ -236,7 +235,7 @@ void Build::setupAssemblyObjects() {
 	copperHeapSizePointer = new ValueStaticStorage(cpuBitSize);
 }
 //delete everything used for building
-void Build::cleanupAssemblyObjects() {
+void BuildInitialAssembly::cleanupAssemblyObjects() {
 	globalAssembly->deleteContents();
 	delete globalAssembly;
 	stringDefinitions->deleteContents();
@@ -258,7 +257,7 @@ void Build::cleanupAssemblyObjects() {
 	delete copperHeapSizePointer;
 }
 //build the Main.* functions
-void Build::build32BitMainFunctions() {
+void BuildInitialAssembly::build32BitMainFunctions() {
 	Identifier functionDefinitionSource ("", 0, 0, nullptr);
 	AssemblyStorage* argumentStorage1 =
 		globalTrackedStorage(new MemoryPointer(cpuSPRegister, 0, nullptr, 0, true, BitSize::B32));
@@ -406,7 +405,7 @@ void Build::build32BitMainFunctions() {
 }
 //add the assembly that this token produces to the global assembly array
 //returns the storage of the result of the token's assembly
-AssemblyStorage* Build::addTokenAssembly(Token* t, CDataType* expectedType, ConditionLabelPair* jumpDests) {
+AssemblyStorage* BuildInitialAssembly::addTokenAssembly(Token* t, CDataType* expectedType, ConditionLabelPair* jumpDests) {
 	Identifier* i;
 	DirectiveTitle* d;
 	Cast* c;
@@ -454,14 +453,14 @@ AssemblyStorage* Build::addTokenAssembly(Token* t, CDataType* expectedType, Cond
 	return cpuARegister;
 }
 //get the storage of the identifier
-TempStorage* Build::getIdentifierStorage(Identifier* i, bool isBeingFunctionCalled) {
+TempStorage* BuildInitialAssembly::getIdentifierStorage(Identifier* i, bool isBeingFunctionCalled) {
 	FunctionDefinition* f;
 	if (!isBeingFunctionCalled && let(FunctionDefinition*, f, i->variable->initialValue))
 		f->eligibleForRegisterParameters = false;
 	return i->variable->storage;
 }
 //get the assembly for the inner token and add any assembly needed to cast it to the expected type
-AssemblyStorage* Build::addCastAssembly(Cast* c) {
+AssemblyStorage* BuildInitialAssembly::addCastAssembly(Cast* c) {
 	AssemblyStorage* result = addTokenAssembly(c->right, c->dataType, nullptr);
 	BitSize targetBitSize = typeBitSize(c->dataType);
 	BitSize valueBitSize = result->bitSize;
@@ -474,7 +473,7 @@ AssemblyStorage* Build::addCastAssembly(Cast* c) {
 	return result;
 }
 //get the storage pointed to by the static operator
-AssemblyStorage* Build::getStaticOperatorStorage(StaticOperator* s) {
+AssemblyStorage* BuildInitialAssembly::getStaticOperatorStorage(StaticOperator* s) {
 	Identifier* i;
 	if (!let(Identifier*, i, s->right)) {
 		Error::makeError(ErrorType::CompilerIssue, "getting assembly for this variable", s);
@@ -493,7 +492,7 @@ AssemblyStorage* Build::getStaticOperatorStorage(StaticOperator* s) {
 }
 //get the assembly for the inner tokens and the assembly to perform this operator on them
 //returns nullptr if jump destinations were passed and they were used instead
-Register* Build::getOperatorAssembly(Operator* o, ConditionLabelPair* jumpDests) {
+Register* BuildInitialAssembly::getOperatorAssembly(Operator* o, ConditionLabelPair* jumpDests) {
 	VariableDeclarationList* v = nullptr;
 	CDataType* expectedType = o->precedence == OperatorTypePrecedence::Comparison
 		? CDataType::bestCompatibleType(o->left->dataType, o->right->dataType)
@@ -763,7 +762,7 @@ Register* Build::getOperatorAssembly(Operator* o, ConditionLabelPair* jumpDests)
 	return resultStorage;
 }
 //get the storage and the assembly for the final value of a condition operator (and, or, ternary)
-Register* Build::getOperatorFinalConditionAssembly(
+Register* BuildInitialAssembly::getOperatorFinalConditionAssembly(
 	Token* t, Register* resultStorage, CDataType* expectedType, ConditionLabelPair* jumpDests)
 {
 	AssemblyStorage* valueStorage = addTokenAssembly(t, expectedType, jumpDests);
@@ -783,7 +782,7 @@ Register* Build::getOperatorFinalConditionAssembly(
 	}
 }
 //get the assembly for the arguments and the function and call it, returning the value
-AssemblyStorage* Build::getFunctionCallAssembly(FunctionCall* f) {
+AssemblyStorage* BuildInitialAssembly::getFunctionCallAssembly(FunctionCall* f) {
 	//get the function
 	//if it's a variable, get it here in case the function definition is eligible for register parameters
 	Identifier* i;
@@ -846,13 +845,15 @@ AssemblyStorage* Build::getFunctionCallAssembly(FunctionCall* f) {
 	return resultStorage;
 }
 //get the storage of the function definition
-FunctionStaticStorage* Build::getFunctionDefinitionStorage(FunctionDefinition* f, bool couldBeEligibleForRegisterParameters) {
+FunctionStaticStorage* BuildInitialAssembly::getFunctionDefinitionStorage(
+	FunctionDefinition* f, bool couldBeEligibleForRegisterParameters)
+{
 	if (!couldBeEligibleForRegisterParameters)
 		f->eligibleForRegisterParameters = false;
 	return globalTrackedStorage(new FunctionStaticStorage(f, cpuBitSize));
 }
 //get the int constant using the bit size of the expected type
-AssemblyConstant* Build::getIntConstantStorage(IntConstant* i, CDataType* expectedType) {
+AssemblyConstant* BuildInitialAssembly::getIntConstantStorage(IntConstant* i, CDataType* expectedType) {
 	BitSize bitSize;
 	//if we don't have an expected type then that must mean we're going to discard the result, just use the cpu bit size
 	if (expectedType == nullptr)
@@ -874,23 +875,23 @@ AssemblyConstant* Build::getIntConstantStorage(IntConstant* i, CDataType* expect
 	return globalTrackedStorage(new AssemblyConstant(val, cpuBitSize));
 }
 //get the float constant using the bit size of the expected type
-AssemblyConstant* Build::getFloatConstantStorage(FloatConstant* f, CDataType* expectedType) {
+AssemblyConstant* BuildInitialAssembly::getFloatConstantStorage(FloatConstant* f, CDataType* expectedType) {
 //TODO: get the storage
 return globalTrackedStorage(new AssemblyConstant(0xAAAAAAAA, cpuBitSize));
 }
 //get the bit size to use for the provided type
-BitSize Build::typeBitSize(CDataType* dt) {
+BitSize BuildInitialAssembly::typeBitSize(CDataType* dt) {
 	CPrimitive* p;
 	return let(CPrimitive*, p, dt) ? p->bitSize : cpuBitSize;
 }
 //add the storage to the list and return it (to save callers from needing an extra local variable)
-template <class AssemblyStorageType> AssemblyStorageType* Build::globalTrackedStorage(AssemblyStorageType* a) {
+template <class AssemblyStorageType> AssemblyStorageType* BuildInitialAssembly::globalTrackedStorage(AssemblyStorageType* a) {
 	assemblyStorageToDelete->add(a);
 	return a;
 }
 //add two MOVs to transfer from (possible) memory pointer to (possible) memory pointer via a transfer register
 //returns the register used in the transfer
-Register* Build::addMemoryToMemoryMove(
+Register* BuildInitialAssembly::addMemoryToMemoryMove(
 	Array<AssemblyInstruction*>* assembly, AssemblyStorage* destination, AssemblyStorage* source)
 {
 	Register* transferRegister = globalTrackedStorage(Register::newUndecidedRegisterForBitSize(destination->bitSize));
@@ -899,7 +900,7 @@ Register* Build::addMemoryToMemoryMove(
 	return transferRegister;
 }
 //since smaller-bit-size parameters will be grouped together, get the indices that each parameter will appear in
-Array<int>* Build::getParameterStackOrder(Array<Token*>* parameters) {
+Array<int>* BuildInitialAssembly::getParameterStackOrder(Array<Token*>* parameters) {
 	Array<int>* parameterStackOrder = new Array<int>();
 	if (parameters->length == 0)
 		return parameterStackOrder;

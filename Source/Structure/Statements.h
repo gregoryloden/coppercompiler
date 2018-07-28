@@ -55,14 +55,14 @@ public:
 };
 class LoopStatement: public Statement {
 public:
-	ExpressionStatement* initialization;
+	Token* initialization;
 	Token* condition;
 	Token* increment;
 	Array<Statement*>* body;
 	bool initialConditionCheck;
 
 	LoopStatement(
-		ExpressionStatement* pInitialization,
+		Token* pInitialization,
 		Token* pCondition,
 		Token* pIncrement,
 		Array<Statement*>* pBody,

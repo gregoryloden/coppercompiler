@@ -143,8 +143,7 @@ Operator::Operator(
 , precedence(OperatorTypePrecedence::Assignment)
 , modifiesVariable(false)
 , left(nullptr)
-, right(nullptr)
-, wasParenthesized(false) {
+, right(nullptr) {
 	switch (pOperatorType) {
 		case OperatorType::StaticDot:
 		case OperatorType::StaticMemberAccess:
@@ -243,8 +242,7 @@ Operator::Operator(Operator* cloneSource, Identifier* pReplacementSource)
 , operatorType(cloneSource->operatorType)
 , precedence(cloneSource->precedence)
 , left(nullptr)
-, right(nullptr)
-, wasParenthesized(cloneSource->wasParenthesized) {
+, right(nullptr) {
 }
 Operator::~Operator() {
 	delete left;
