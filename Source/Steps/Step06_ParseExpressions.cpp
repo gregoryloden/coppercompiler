@@ -537,7 +537,7 @@ Array<Statement*>* ParseExpressions::parseStatementOrStatementList(
 		Statement* firstStatement = nullptr;
 		if (a->tokens->length == 0
 			|| hasSemicolon(a)
-			|| (firstStatement = parseDirectiveStatementList(ai.getThis(), &ai)) != nullptr
+			|| (firstStatement = parseDirectiveStatement(ai.getThis(), &ai)) != nullptr
 			|| (firstStatement = parseKeywordStatement(ai.getThis(), &ai)) != nullptr)
 		{
 			if (firstStatement != nullptr) {
@@ -566,7 +566,7 @@ Array<Statement*>* ParseExpressions::parseStatementOrStatementList(
 //may throw
 Statement* ParseExpressions::parseStatement(Token* t, ArrayIterator<Token*>* ti, bool permitDirectiveStatementList) {
 	Statement* result;
-	if (permitDirectiveStatementList && (result = parseDirectiveStatementList(t, ti)) != nullptr)
+	if (permitDirectiveStatementList && (result = parseDirectiveStatement(t, ti)) != nullptr)
 		return result;
 	if ((result = parseKeywordStatement(t, ti)) != nullptr)
 		return result;
@@ -577,7 +577,7 @@ Statement* ParseExpressions::parseStatement(Token* t, ArrayIterator<Token*>* ti,
 //parse location: no change | the last token of the directive
 //may return null (if we're not at a directive statement)
 //may throw
-Statement* ParseExpressions::parseDirectiveStatementList(Token* t, ArrayIterator<Token*>* ti) {
+Statement* ParseExpressions::parseDirectiveStatement(Token* t, ArrayIterator<Token*>* ti) {
 	DirectiveTitle* dt;
 	if (!let(DirectiveTitle*, dt, t))
 		return nullptr;

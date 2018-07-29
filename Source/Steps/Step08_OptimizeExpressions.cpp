@@ -10,9 +10,6 @@ void OptimizeExpressions::optimizeExpressions(Pliers* pliers) {
 		forEach(Token*, t, s->globalVariables, ti) {
 			optimizeExpression(t);
 		}
-		//TODO: optimize
-		//	-remove parenthesized expressions (and wasParenthesized)
-		//	-combine constants
 		//TODO: classes
 	}
 };
@@ -49,10 +46,18 @@ Token* OptimizeExpressions::optimizeExpression(Token* t) {
 //optimize this operator
 Token* OptimizeExpressions::optimizeOperator(Operator* o) {
 	o->left = optimizeExpression(o->left);
-	if (o->right != nullptr)
+	if (o->right != nullptr) {
 		o->right = optimizeExpression(o->right);
-	//TODO: optimize
-	//	-combine constants
+		//now that parenthesized expressions are gone, set the initial value
+		VariableDeclarationList* v;
+		if (o->operatorType == OperatorType::Assign && let(VariableDeclarationList*, v, o->left)) {
+			//TODO: Groups - each variable gets a different initial value, also auto grouping and ungrouping
+			forEach(CVariableDefinition*, vd, v->variables, vdi) {
+				vd->initialValue = o->right;
+			}
+		}
+		//TODO: combine constants
+	}
 	return o;
 }
 //optimize this function call

@@ -11,6 +11,7 @@ class Statement;
 class LexToken;
 class TokenVisitor;
 class TempStorage;
+class AssemblyInstruction;
 template <class Type> class Array;
 
 enum class SeparatorType: unsigned char {
@@ -300,6 +301,7 @@ public:
 	Array<Statement*>* body;
 	bool eligibleForRegisterParameters;
 	TempStorage* resultStorage;
+	Array<AssemblyInstruction*>* instructions;
 
 	FunctionDefinition(
 		CDataType* pReturnType, Array<CVariableDefinition*>* pParameters, Array<Statement*>* pBody, Identifier* typeToken);

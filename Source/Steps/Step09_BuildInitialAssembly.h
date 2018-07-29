@@ -15,6 +15,7 @@ class FunctionDefinition;
 class CVariableDefinition;
 class ValueStaticStorage;
 class MemoryPointer;
+class Statement;
 enum class BitSize: unsigned char;
 template <class KeyElement, class Value> class PrefixTrie;
 template <class Type> class Array;
@@ -36,7 +37,8 @@ private:
 		void handleExpression(Token* t);
 	};
 
-	static thread_local Array<AssemblyInstruction*>* globalAssembly;
+	static thread_local Array<AssemblyInstruction*>* currentAssembly;
+	static thread_local Array<AssemblyInstruction*>* globalInitAssembly;
 	static thread_local Array<StringStaticStorage*>* stringDefinitions;
 	static thread_local Array<FunctionStaticStorage*>* functionDefinitions;
 	static thread_local Array<AssemblyStorage*>* assemblyStorageToDelete;
@@ -72,13 +74,13 @@ private:
 	static AssemblyStorage* addCastAssembly(Cast* c);
 	static AssemblyStorage* getStaticOperatorStorage(StaticOperator* s);
 	static Register* getOperatorAssembly(Operator* o, ConditionLabelPair* jumpDests);
-	static Register* getOperatorFinalConditionAssembly(
-		Token* t, Register* resultStorage, CDataType* expectedType, ConditionLabelPair* jumpDests);
+	static void getConditionAssembly(Token* t, Register* resultStorage, CDataType* expectedType, ConditionLabelPair* jumpDests);
 	static AssemblyStorage* getFunctionCallAssembly(FunctionCall* f);
 	static FunctionStaticStorage* getFunctionDefinitionStorage(
 		FunctionDefinition* f, bool couldBeEligibleForRegisterParameters);
 	static AssemblyConstant* getIntConstantStorage(IntConstant* i, CDataType* expectedType);
 	static AssemblyConstant* getFloatConstantStorage(FloatConstant* f, CDataType* expectedType);
+	static void addStatementListAssembly(Array<Statement*>* statements, FunctionDefinition* sourceFunction);
 	static BitSize typeBitSize(CDataType* dt);
 	template <class AssemblyStorageType> static AssemblyStorageType* globalTrackedStorage(AssemblyStorageType* a);
 	static Register* addMemoryToMemoryMove(

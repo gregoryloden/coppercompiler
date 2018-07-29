@@ -58,7 +58,7 @@ private:
 	static Array<Statement*>* parseStatementOrStatementList(
 		ArrayIterator<Token*>* ti, Token* noValueErrorToken, const char* statementDescription);
 	static Statement* parseStatement(Token* t, ArrayIterator<Token*>* ti, bool permitDirectiveStatementList);
-	static Statement* parseDirectiveStatementList(Token* t, ArrayIterator<Token*>* ti);
+	static Statement* parseDirectiveStatement(Token* t, ArrayIterator<Token*>* ti);
 	static Statement* parseKeywordStatement(Token* t, ArrayIterator<Token*>* ti);
 	static ExpressionStatement* parseExpressionStatement(Token* t, ArrayIterator<Token*>* ti);
 	//helpers

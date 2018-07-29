@@ -366,7 +366,8 @@ FunctionDefinition::FunctionDefinition(
 , parameters(pParameters)
 , body(pBody)
 , eligibleForRegisterParameters(true)
-, resultStorage(new TempStorage(BitSize::BInfinite)) {
+, resultStorage(new TempStorage(BitSize::BInfinite))
+, instructions(nullptr) {
 	replacementSource = typeToken->replacementSource;
 	Array<CDataType*>* parameterTypes = new Array<CDataType*>();
 	forEach(CVariableDefinition*, c, pParameters, ci) {
@@ -381,6 +382,10 @@ FunctionDefinition::~FunctionDefinition() {
 	body->deleteContents();
 	delete body;
 	delete resultStorage;
+	if (instructions != nullptr) {
+		instructions->deleteContents();
+		delete instructions;
+	}
 }
 Group::Group(Array<Token*>* pValues, Identifier* source)
 : Token(onlyWhenTrackingIDs("GROUP" COMMA) source->contentPos, source->endContentPos, source->owningFile)

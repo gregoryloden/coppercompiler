@@ -559,10 +559,6 @@ void Semant::semantOperator(
 			addVariablesToTrie(v->variables, variables, nullptr);
 			if (!finalizeTypes(v, o->right->dataType))
 				return;
-			//TODO: Groups - each variable gets a different initial value, also auto grouping and ungrouping
-			forEach(CVariableDefinition*, vd, v->variables, vdi) {
-				vd->initialValue = o->right;
-			}
 		} else {
 			logSemantErrorWithErrorCheck(ErrorType::Expected, "a variable or variable list", o->left, o);
 			return;
