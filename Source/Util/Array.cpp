@@ -34,6 +34,7 @@ instantiateArrayTypes(AVLNode<int COMMA int>*);
 instantiateArrayTypes(AVLNode<SourceFile* COMMA bool>*);
 instantiateNonPointerArrayTypes(char);
 instantiateNonPointerArrayTypes(int);
+instantiateNonPointerArrayTypes(SpecificRegister);
 instantiateNonPointerArrayTypes(string);
 instantiatePrefixTrieAVLNodeArrayTypes(char, char);
 instantiatePrefixTrieAVLNodeArrayTypes(char, CDataType*);

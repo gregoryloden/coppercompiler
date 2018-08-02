@@ -117,6 +117,7 @@ void BuildInitialAssembly::FindUninitializedVariablesVisitor::handleExpression(T
 		t->visitSubtokens(this);
 }
 thread_local Array<AssemblyInstruction*>* BuildInitialAssembly::currentAssembly = nullptr;
+thread_local Array<FunctionDefinition*>* BuildInitialAssembly::currentTempAssignmentDependencies = nullptr;
 thread_local Array<AssemblyInstruction*>* BuildInitialAssembly::globalInitAssembly = nullptr;
 thread_local Array<StringStaticStorage*>* BuildInitialAssembly::stringDefinitions = nullptr;
 thread_local Array<FunctionStaticStorage*>* BuildInitialAssembly::functionDefinitions = nullptr;
@@ -194,8 +195,6 @@ void BuildInitialAssembly::buildInitialAssemblyForBitSize(Pliers* pliers, BitSiz
 	}
 	globalVariableData.deleteValues();
 
-//Array<CVariableDefinition*>* allGlobalVariables = pliers->allFiles->get(0)->variablesVisibleToFile->getValues();
-//delete allGlobalVariables;
 	setupAssemblyObjects();
 
 	//now we have a list of global initializations in the order in which they occur
@@ -204,6 +203,30 @@ void BuildInitialAssembly::buildInitialAssemblyForBitSize(Pliers* pliers, BitSiz
 	forEach(Operator*, o, &initializationOrder, oi2) {
 		addTokenAssembly(o, nullptr, nullptr);
 	}
+
+	//now assign temps
+	//start with the functions that have no other function dependencies, then slowly go up, that way we can
+	//	possibly preserve register values across function calls
+	//if we get to a point where dependencies are cyclic, just pick one and assume all registers are used
+	Array<FunctionDefinition*>* functionDefinitionsToAssignTempsTo = new Array<FunctionDefinition*>();
+	forEach(FunctionStaticStorage*, fss, functionDefinitions, fssi) {
+		functionDefinitionsToAssignTempsTo->add(fss->val);
+	}
+	while (functionDefinitionsToAssignTempsTo->length > 0) {
+		bool foundFunctionWithoutDependencies = false;
+		for (int i = functionDefinitionsToAssignTempsTo->length - 1; i >= 0; i--) {
+			if (assignTemps(functionDefinitionsToAssignTempsTo->get(i), true)) {
+				functionDefinitionsToAssignTempsTo->remove(i);
+				foundFunctionWithoutDependencies = true;
+			}
+		}
+		//if we didn't find a function without dependencies, do the last one
+		if (!foundFunctionWithoutDependencies)
+			assignTemps(functionDefinitionsToAssignTempsTo->pop(), false);
+	}
+	delete functionDefinitionsToAssignTempsTo;
+
+	//????????????????????????????
 
 	//TODO: get the actual assembly bytes
 	//TODO: optimize the assembly
@@ -226,7 +249,8 @@ void BuildInitialAssembly::setupAssemblyObjects() {
 	cpuSPRegister = Register::spRegisterForBitSize(cpuBitSize);
 	cpuSIRegister = Register::siRegisterForBitSize(cpuBitSize);
 	cpuDIRegister = Register::diRegisterForBitSize(cpuBitSize);
-	build32BitMainFunctions();
+	if (cpuBitSize == BitSize::B32)
+		build32BitMainFunctions();
 	generalPurposeVariable1 = new ValueStaticStorage(cpuBitSize);
 	generalPurposeVariable2 = new ValueStaticStorage(cpuBitSize);
 	generalPurposeVariable3 = new ValueStaticStorage(cpuBitSize);
@@ -424,7 +448,7 @@ AssemblyStorage* BuildInitialAssembly::addTokenAssembly(Token* t, CDataType* exp
 	BoolConstant* b;
 	StringLiteral* sl;
 	if (let(Identifier*, i, t))
-		return getIdentifierStorage(i, false);
+		return getIdentifierStorage(i);
 	else if (let(DirectiveTitle*, d, t))
 		//TODO: handle directive titles
 		;
@@ -438,7 +462,7 @@ AssemblyStorage* BuildInitialAssembly::addTokenAssembly(Token* t, CDataType* exp
 	} else if (let(FunctionCall*, fc, t))
 		return getFunctionCallAssembly(fc);
 	else if (let(FunctionDefinition*, fd, t))
-		return getFunctionDefinitionStorage(fd, false);
+		return getFunctionDefinitionStorage(fd);
 	else if (let(Group*, g, t))
 		//TODO: handle groups
 		;
@@ -448,8 +472,11 @@ AssemblyStorage* BuildInitialAssembly::addTokenAssembly(Token* t, CDataType* exp
 		return getFloatConstantStorage(fcn, expectedType);
 	else if (let(BoolConstant*, b, t))
 		return globalTrackedStorage(new AssemblyConstant((int)(b->val), BitSize::B1));
-	else if (let(StringLiteral*, sl, t))
-		return globalTrackedStorage(new StringStaticStorage(sl, cpuBitSize));
+	else if (let(StringLiteral*, sl, t)) {
+		StringStaticStorage* sss = new StringStaticStorage(sl, cpuBitSize);
+		stringDefinitions->add(sss);
+		return sss;
+	}
 	//compiler error
 	if (istype(t, ParenthesizedExpression*))
 		Error::logError(ErrorType::CompilerIssue, "resulting in an unflattened parenthesized expression", t);
@@ -458,10 +485,23 @@ AssemblyStorage* BuildInitialAssembly::addTokenAssembly(Token* t, CDataType* exp
 	return cpuARegister;
 }
 //get the storage of the identifier
-TempStorage* BuildInitialAssembly::getIdentifierStorage(Identifier* i, bool isBeingFunctionCalled) {
+AssemblyStorage* BuildInitialAssembly::getIdentifierStorage(Identifier* i) {
 	FunctionDefinition* f;
-	if (!isBeingFunctionCalled && let(FunctionDefinition*, f, i->variable->initialValue))
-		f->eligibleForRegisterParameters = false;
+	if (let(FunctionDefinition*, f, i->variable->initialValue)) {
+		if (currentTempAssignmentDependencies != nullptr) {
+			//add this function as a temp assignment dependency if we haven't already
+			for (int i = 0; true; i++) {
+				if (i >= currentTempAssignmentDependencies->length) {
+					currentTempAssignmentDependencies->add(f);
+					break;
+				} else if (currentTempAssignmentDependencies->get(i) == f)
+					break;
+			}
+		}
+		//if we know that this varible is never reassigned, we can return a static storage to the function
+		if (f->staticallyAccessible)
+			return globalTrackedStorage(new FunctionStaticStorage(f, cpuBitSize));
+	}
 	return i->variable->storage;
 }
 //get the assembly for the inner token and add any assembly needed to cast it to the expected type
@@ -825,21 +865,18 @@ void BuildInitialAssembly::getConditionAssembly(
 //get the assembly for the arguments and the function and call it, returning the value
 AssemblyStorage* BuildInitialAssembly::getFunctionCallAssembly(FunctionCall* f) {
 	//get the function
-	//if it's a variable, get it here in case the function definition is eligible for register parameters
+	AssemblyStorage* functionStorage = addTokenAssembly(f->function, nullptr, nullptr);
 	Identifier* i;
-	FunctionDefinition* fd;
-	AssemblyStorage* functionSourceStorage;
-	if (let(Identifier*, i, f->function)) {
-		functionSourceStorage = getIdentifierStorage(i, true);
+	FunctionDefinition* fd = dynamic_cast<FunctionDefinition*>(f->function);
+	if (fd == nullptr && let(Identifier*, i, f->function))
 		fd = dynamic_cast<FunctionDefinition*>(i->variable->initialValue);
-	} else if (let(FunctionDefinition*, fd, f->function)) {
-		functionSourceStorage = getFunctionDefinitionStorage(fd, true);
-	} else {
-		functionSourceStorage = addTokenAssembly(f->function, nullptr, nullptr);
+	//if we don't have static function storage, store it in a temp somewhere while we compute our arguments
+	if (!istype(functionStorage, FunctionStaticStorage*)) {
+		//if both storages are memory addresses, we'll make them the same and remove the MOV
+		TempStorage* functionTempStorage = globalTrackedStorage(new TempStorage(cpuBitSize));
+		currentAssembly->add(new MOV(functionTempStorage, functionStorage));
+		functionStorage = functionTempStorage;
 	}
-	//if both storages are memory addresses, we'll make them the same and remove the MOV
-	TempStorage* functionStorage = globalTrackedStorage(new TempStorage(cpuBitSize));
-	currentAssembly->add(new MOV(functionStorage, functionSourceStorage));
 	//find out how much we need to shift the stack and shift it
 	int shiftTotalBits = 0;
 	forEach(Token*, t, f->arguments, ti) {
@@ -879,25 +916,32 @@ AssemblyStorage* BuildInitialAssembly::getFunctionCallAssembly(FunctionCall* f) 
 		delete parameterStackOrder;
 		resultStorage = cpuARegister;
 	}
-	Register* functionStorageRegister = globalTrackedStorage(Register::newUndecidedRegisterForBitSize(cpuBitSize));
-	currentAssembly->add(new MOV(functionStorageRegister, functionStorage));
-	currentAssembly->add(
-		new CALL(globalTrackedStorage(new MemoryPointer(functionStorageRegister, (unsigned char)cpuBitSize / 8, cpuBitSize))));
+	//if it's a static storage, we can just call it
+	if (istype(functionStorage, FunctionStaticStorage*))
+		currentAssembly->add(new CALL(functionStorage));
+	else {
+		Register* functionStorageRegister = globalTrackedStorage(Register::newUndecidedRegisterForBitSize(cpuBitSize));
+		currentAssembly->add(new MOV(functionStorageRegister, functionStorage));
+		currentAssembly->add(
+			new CALL(globalTrackedStorage(new MemoryPointer(functionStorageRegister, (unsigned char)cpuBitSize / 8, cpuBitSize))));
+	}
 	return resultStorage;
 }
 //get the storage of the function definition
-FunctionStaticStorage* BuildInitialAssembly::getFunctionDefinitionStorage(
-	FunctionDefinition* f, bool couldBeEligibleForRegisterParameters)
-{
-	if (!couldBeEligibleForRegisterParameters)
-		f->eligibleForRegisterParameters = false;
+FunctionStaticStorage* BuildInitialAssembly::getFunctionDefinitionStorage(FunctionDefinition* f) {
+	FunctionStaticStorage* fss = new FunctionStaticStorage(f, cpuBitSize);
 	if (f->instructions == nullptr) {
 		Array<AssemblyInstruction*>* oldCurrentAssembly = currentAssembly;
+		Array<FunctionDefinition*>* oldCurrentTempAssignmentDependencies = currentTempAssignmentDependencies;
 		currentAssembly = (f->instructions = new Array<AssemblyInstruction*>());
+		currentTempAssignmentDependencies = f->tempAssignmentDependencies;
 		addStatementListAssembly(f->body, f);
 		currentAssembly = oldCurrentAssembly;
-	}
-	return globalTrackedStorage(new FunctionStaticStorage(f, cpuBitSize));
+		currentTempAssignmentDependencies = oldCurrentTempAssignmentDependencies;
+		functionDefinitions->add(fss);
+		return fss;
+	} else
+		return globalTrackedStorage(fss);
 }
 //get the int constant using the bit size of the expected type
 AssemblyConstant* BuildInitialAssembly::getIntConstantStorage(IntConstant* i, CDataType* expectedType) {
@@ -976,6 +1020,21 @@ void BuildInitialAssembly::addStatementListAssembly(Array<Statement*>* statement
 		}
 		//TODO: breaks and continues
 	}
+}
+//assign registers or memory pointers to all temps of this function
+//if we're checking dependencies and one of them hasn't assigned temps, don't assign temps for this function
+//returns whether we assigned temps for this function
+bool BuildInitialAssembly::assignTemps(FunctionDefinition* f, bool checkDependencies) {
+	if (checkDependencies) {
+		Array<FunctionDefinition*>* dependencies = f->tempAssignmentDependencies;
+		while (dependencies->length > 0) {
+			if (dependencies->last()->registersUsed == nullptr)
+				return false;
+			dependencies->pop();
+		}
+	}
+	//TODO: assign temps
+	return true;
 }
 //get the bit size to use for the provided type
 BitSize BuildInitialAssembly::typeBitSize(CDataType* dt) {

@@ -38,6 +38,7 @@ private:
 	};
 
 	static thread_local Array<AssemblyInstruction*>* currentAssembly;
+	static thread_local Array<FunctionDefinition*>* currentTempAssignmentDependencies;
 	static thread_local Array<AssemblyInstruction*>* globalInitAssembly;
 	static thread_local Array<StringStaticStorage*>* stringDefinitions;
 	static thread_local Array<FunctionStaticStorage*>* functionDefinitions;
@@ -70,17 +71,17 @@ private:
 	static void cleanupAssemblyObjects();
 	static void build32BitMainFunctions();
 	static AssemblyStorage* addTokenAssembly(Token* t, CDataType* expectedType, ConditionLabelPair* jumpDests);
-	static TempStorage* getIdentifierStorage(Identifier* i, bool isBeingFunctionCalled);
+	static AssemblyStorage* getIdentifierStorage(Identifier* i);
 	static AssemblyStorage* addCastAssembly(Cast* c);
 	static AssemblyStorage* getStaticOperatorStorage(StaticOperator* s);
 	static Register* getOperatorAssembly(Operator* o, ConditionLabelPair* jumpDests);
 	static void getConditionAssembly(Token* t, Register* resultStorage, CDataType* expectedType, ConditionLabelPair* jumpDests);
 	static AssemblyStorage* getFunctionCallAssembly(FunctionCall* f);
-	static FunctionStaticStorage* getFunctionDefinitionStorage(
-		FunctionDefinition* f, bool couldBeEligibleForRegisterParameters);
+	static FunctionStaticStorage* getFunctionDefinitionStorage(FunctionDefinition* f);
 	static AssemblyConstant* getIntConstantStorage(IntConstant* i, CDataType* expectedType);
 	static AssemblyConstant* getFloatConstantStorage(FloatConstant* f, CDataType* expectedType);
 	static void addStatementListAssembly(Array<Statement*>* statements, FunctionDefinition* sourceFunction);
+	static bool assignTemps(FunctionDefinition* f, bool ignoreDependencies);
 	static BitSize typeBitSize(CDataType* dt);
 	template <class AssemblyStorageType> static AssemblyStorageType* globalTrackedStorage(AssemblyStorageType* a);
 	static Register* addMemoryToMemoryMove(

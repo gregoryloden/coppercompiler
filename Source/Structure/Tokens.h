@@ -13,6 +13,7 @@ class TokenVisitor;
 class TempStorage;
 class AssemblyInstruction;
 template <class Type> class Array;
+enum class SpecificRegister: unsigned char;
 
 enum class SeparatorType: unsigned char {
 	LeftParenthesis = 0x1,
@@ -300,8 +301,11 @@ public:
 	Array<CVariableDefinition*>* parameters;
 	Array<Statement*>* body;
 	bool eligibleForRegisterParameters;
+	bool staticallyAccessible;
 	TempStorage* resultStorage;
 	Array<AssemblyInstruction*>* instructions;
+	Array<FunctionDefinition*>* tempAssignmentDependencies;
+	Array<SpecificRegister>* registersUsed;
 
 	FunctionDefinition(
 		CDataType* pReturnType, Array<CVariableDefinition*>* pParameters, Array<Statement*>* pBody, Identifier* typeToken);

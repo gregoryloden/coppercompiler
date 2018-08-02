@@ -1,6 +1,7 @@
 #include "Project.h"
 
 //perform any pre-build expression optimizations
+//cache any information that may be useful later when we're building
 
 //perform expression optimizations in all files
 void OptimizeExpressions::optimizeExpressions(Pliers* pliers) {
@@ -15,16 +16,17 @@ void OptimizeExpressions::optimizeExpressions(Pliers* pliers) {
 };
 //optimize this token
 Token* OptimizeExpressions::optimizeExpression(Token* t) {
-	DirectiveTitle* d;
+	Identifier* i;
 	ParenthesizedExpression* p;
 	Cast* c;
 	Operator* o;
 	FunctionCall* fc;
 	FunctionDefinition* fd;
 	Group* g;
-	if (let(DirectiveTitle*, d, t))
-		;// return optimizeDirectiveTitle(d);
-	else if (let(ParenthesizedExpression*, p, t)) {
+	if (let(Identifier*, i, t)) {
+		if (let(FunctionDefinition*, fd, i->variable->initialValue))
+			fd->eligibleForRegisterParameters = false;
+	} else if (let(ParenthesizedExpression*, p, t)) {
 		t = optimizeExpression(p->expression);
 		p->expression = nullptr;
 		delete p;
@@ -48,13 +50,21 @@ Token* OptimizeExpressions::optimizeOperator(Operator* o) {
 	o->left = optimizeExpression(o->left);
 	if (o->right != nullptr) {
 		o->right = optimizeExpression(o->right);
-		//now that parenthesized expressions are gone, set the initial value
-		VariableDeclarationList* v;
-		if (o->operatorType == OperatorType::Assign && let(VariableDeclarationList*, v, o->left)) {
-			//TODO: Groups - each variable gets a different initial value, also auto grouping and ungrouping
-			forEach(CVariableDefinition*, vd, v->variables, vdi) {
-				vd->initialValue = o->right;
-			}
+		if (o->operatorType == OperatorType::Assign) {
+			VariableDeclarationList* v;
+			Identifier* i;
+			FunctionDefinition* f;
+			//now that parenthesized expressions are gone, set the initial value
+			if (let(VariableDeclarationList*, v, o->left)) {
+				//TODO: Groups - each variable gets a different initial value, also auto grouping and ungrouping
+				forEach(CVariableDefinition*, vd, v->variables, vdi) {
+					vd->initialValue = o->right;
+				}
+				if (let(FunctionDefinition*, f, o->right))
+					f->eligibleForRegisterParameters = true;
+			//if we're mutating a function variable, it's not statically accessible
+			} else if (let(Identifier*, i, o->left) && let(FunctionDefinition*, f, i->variable->initialValue))
+				f->staticallyAccessible = false;
 		}
 		//TODO: combine constants
 	}
@@ -63,6 +73,9 @@ Token* OptimizeExpressions::optimizeOperator(Operator* o) {
 //optimize this function call
 void OptimizeExpressions::optimizeFunctionCall(FunctionCall* f) {
 	f->function = optimizeExpression(f->function);
+	FunctionDefinition* fd;
+	if (let(FunctionDefinition*, fd, f->function))
+		fd->eligibleForRegisterParameters = true;
 	for (int i = 0; i < f->arguments->length; i++) {
 		f->arguments->set(i, optimizeExpression(f->arguments->get(i)));
 	}
@@ -89,6 +102,7 @@ void OptimizeExpressions::optimizeStatementList(Array<Statement*>* statements) {
 			l->condition = optimizeExpression(l->condition);
 			if (l->increment != nullptr)
 				l->increment = optimizeExpression(l->increment);
+			optimizeStatementList(l->body);
 		}
 	}
 }

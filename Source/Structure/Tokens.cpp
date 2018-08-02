@@ -365,9 +365,12 @@ FunctionDefinition::FunctionDefinition(
 , returnType(pReturnType)
 , parameters(pParameters)
 , body(pBody)
-, eligibleForRegisterParameters(true)
+, eligibleForRegisterParameters(false)
+, staticallyAccessible(true)
 , resultStorage(new TempStorage(BitSize::BInfinite))
-, instructions(nullptr) {
+, instructions(nullptr)
+, tempAssignmentDependencies(new Array<FunctionDefinition*>())
+, registersUsed(nullptr) {
 	replacementSource = typeToken->replacementSource;
 	Array<CDataType*>* parameterTypes = new Array<CDataType*>();
 	forEach(CVariableDefinition*, c, pParameters, ci) {
@@ -386,6 +389,8 @@ FunctionDefinition::~FunctionDefinition() {
 		instructions->deleteContents();
 		delete instructions;
 	}
+	delete tempAssignmentDependencies;
+	delete registersUsed;
 }
 Group::Group(Array<Token*>* pValues, Identifier* source)
 : Token(onlyWhenTrackingIDs("GROUP" COMMA) source->contentPos, source->endContentPos, source->owningFile)
