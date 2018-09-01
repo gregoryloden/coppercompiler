@@ -103,7 +103,7 @@ void Replace::replaceTokens(Array<Token*>* tokens, PrefixTrie<char, CDirectiveRe
 		tokensToInsert->clear();
 	}
 }
-//get a list of arguments from the code block, splitting it around the commas
+//get a list of replace-input arguments from the code block, splitting it around the commas
 //may throw
 Array<AbstractCodeBlock*>* Replace::collectArguments(
 	AbstractCodeBlock* argumentsCodeBlock, int expectedArgumentCount, Identifier* errorToken)

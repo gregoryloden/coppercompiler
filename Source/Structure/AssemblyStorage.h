@@ -41,8 +41,23 @@ enum class SpecificRegister: unsigned char {
 	Register32BitEnd = Undecided32BitRegister,
 	SpecificRegisterCount
 };
+enum class ConflictRegister: unsigned char {
+	AL,
+	AH,
+	CL,
+	CH,
+	DL,
+	DH,
+	BL,
+	BH,
+	SP,
+	BP,
+	SI,
+	DI,
+	ConflictRegisterCount
+};
 
-//assembly storage
+//assembly storage base classes
 class AssemblyStorage onlyInDebug(: public ObjCounter) {
 public:
 	BitSize bitSize; //copper: readonly
@@ -58,6 +73,7 @@ protected:
 public:
 	virtual ~StaticStorage();
 };
+//assembly storage concrete classes
 class AssemblyConstant: public AssemblyStorage {
 public:
 	int val; //copper: readonly
@@ -85,16 +101,19 @@ public:
 	static Register* siRegisterForBitSize(BitSize pBitSize);
 	static Register* diRegisterForBitSize(BitSize pBitSize);
 	static Register* newUndecidedRegisterForBitSize(BitSize pBitSize);
+	ConflictRegister getConflictRegister();
+	bool markConflicts(bool* conflicts);
+	bool isConflictOrUnknown(bool* conflicts);
+	static SpecificRegister specificRegisterFor(ConflictRegister conflictRegister, BitSize pBitSize);
 };
 class MemoryPointer: public AssemblyStorage {
-private:
-	Register* primaryRegister;
-	unsigned char primaryRegisterMultiplierPower;
-	Register* secondaryRegister;
-	int constant;
-	bool expectsShiftedStack;
-
 public:
+	Register* primaryRegister; //copper: readonly
+	unsigned char primaryRegisterMultiplierPower; //copper: readonly
+	Register* secondaryRegister; //copper: readonly
+	int constant; //copper: readonly
+	bool expectsShiftedStack; //copper: readonly
+
 	MemoryPointer(
 		Register* pPrimaryRegister,
 		unsigned char pPrimaryRegisterMultiplierPower,
@@ -143,10 +162,9 @@ public:
 	virtual ~StaticAddress();
 };
 class TempStorage: public AssemblyStorage {
-private:
-	AssemblyStorage* finalStorage;
-
 public:
+	AssemblyStorage* finalStorage; //copper: private<Build>
+
 	TempStorage(BitSize pBitSize);
 	virtual ~TempStorage();
 };
@@ -160,12 +178,4 @@ private:
 public:
 	Thunk(string pName, unsigned short pThunkID);
 	virtual ~Thunk();
-};
-class ConditionLabelPair onlyInDebug(: public ObjCounter) {
-public:
-	AssemblyLabel* trueJumpDest; //copper: readonly
-	AssemblyLabel* falseJumpDest; //copper: readonly
-
-	ConditionLabelPair(AssemblyLabel* pTrueJumpDest, AssemblyLabel* pFalseJumpDest);
-	virtual ~ConditionLabelPair();
 };

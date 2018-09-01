@@ -1,8 +1,9 @@
 #include "../General/globals.h"
 
 class BigInt onlyInDebug(: public ObjCounter) {
-private:
+public:
 	unsigned char base;
+private:
 	unsigned char* inner;
 	int innerLength;
 	int highByte;

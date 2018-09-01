@@ -10,7 +10,7 @@ class CVariableDefinition;
 class Statement;
 class LexToken;
 class TokenVisitor;
-class TempStorage;
+class Register;
 class AssemblyInstruction;
 template <class Type> class Array;
 enum class SpecificRegister: unsigned char;
@@ -151,6 +151,7 @@ public:
 class IntConstant: public LexToken {
 public:
 	BigInt* val; //copper: readonly
+	bool negative;
 
 	IntConstant(BigInt* pVal, int pContentPos, int pEndContentPos, SourceFile* pOwningFile);
 	IntConstant(IntConstant* cloneSource, Identifier* pReplacementSource);
@@ -165,6 +166,7 @@ public:
 	BigInt* significand; //copper: readonly
 	int fractionDigits; //copper: readonly
 	int exponent; //copper: readonly
+	bool negative;
 
 	FloatConstant(
 		BigInt* pSignificand, int pFractionDigits, int pExponent, int pContentPos, int pEndContentPos, SourceFile* pOwningFile);
@@ -301,22 +303,22 @@ public:
 	Array<CVariableDefinition*>* parameters;
 	Array<Statement*>* body;
 	bool eligibleForRegisterParameters;
-	bool staticallyAccessible;
-	TempStorage* resultStorage;
+	Register* resultStorage;
 	Array<AssemblyInstruction*>* instructions;
 	Array<FunctionDefinition*>* tempAssignmentDependencies;
 	Array<SpecificRegister>* registersUsed;
+	int stackBytesUsed;
 
 	FunctionDefinition(
 		CDataType* pReturnType, Array<CVariableDefinition*>* pParameters, Array<Statement*>* pBody, Identifier* typeToken);
 	virtual ~FunctionDefinition();
 };
-class Group: public Token {
+class GroupToken: public Token {
 public:
 	Array<Token*>* values;
 
-	Group(Array<Token*>* pValues, Identifier* source);
-	virtual ~Group();
+	GroupToken(Array<Token*>* pValues, Identifier* source);
+	virtual ~GroupToken();
 
 	virtual void visitSubtokens(TokenVisitor* visitor);
 };

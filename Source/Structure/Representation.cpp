@@ -1557,7 +1557,8 @@ CVariableDefinition::CVariableDefinition(CDataType* pType, Identifier* pName)
 type(pType)
 , name(pName)
 , initialValue(nullptr)
-, storage(new TempStorage(BitSize::BInfinite)) {
+, storage(new TempStorage(BitSize::BInfinite))
+, writtenTo(false) {
 }
 CVariableDefinition::~CVariableDefinition() {
 	//don't delete the type since it's owned by something else

@@ -78,7 +78,7 @@ private:
 		Operator* o, PrefixTrie<char, CVariableDefinition*>* variables, SemantExpressionLevel semantExpressionLevel);
 	static void semantFunctionCall(FunctionCall* f, PrefixTrie<char, CVariableDefinition*>* variables);
 	static void semantFunctionDefinition(FunctionDefinition* f, PrefixTrie<char, CVariableDefinition*>* variables);
-	static void semantGroup(Group* g, PrefixTrie<char, CVariableDefinition*>* variables);
+	static void semantGroup(GroupToken* g, PrefixTrie<char, CVariableDefinition*>* variables);
 	static ScopeExitType semantStatementList(
 		Array<Statement*>* statements,
 		PrefixTrie<char, CVariableDefinition*>* previousVariables,

@@ -3,12 +3,14 @@
 #define instantiateAVLTree(type1, type2, defaultValue) \
 	template class AVLNode<type1, type2>;\
 	template class AVLTree<type1, type2>;\
+	template class InsertionOrderedAVLTree<type1, type2>;\
 	type2 const AVLTree<type1, type2>::emptyValue = defaultValue;\
 	thread_local type2 AVLTree<type1, type2>::oldValue = defaultValue;
 #define instantiatePrefixTrieAVLTree(type1, type2) \
 	instantiateAVLTree(type1, PrefixTrie<type1 COMMA type2>*, nullptr);\
 	template <> AVLNode<type1, PrefixTrie<type1, type2>*>::~AVLNode() { delete value; }
 
+instantiateAVLTree(AssemblyStorage*, Array<AssemblyStorage*>*, nullptr);
 instantiateAVLTree(char, char, 0);
 instantiateAVLTree(int, int, 0);
 instantiateAVLTree(SourceFile*, bool, false);
@@ -71,6 +73,7 @@ template <class Key, class Value> AVLNode<Key, Value>* AVLTree<Key, Value>::setA
 	AVLNodeAccessor leftAccessor (key < node->key);
 	AVLNodeAccessor rightAccessor (!leftAccessor.isLeft);
 
+	//all diagrams assume the value was inserted into the left tree
 	AVLNode<Key, Value>* leftNodeRightChild;
 	AVLNode<Key, Value>* leftNode = setAndRebalance(leftAccessor.get(node), key, value);
 	char rightNodeHeight = AVLNode<Key, Value>::nodeHeight(rightAccessor.get(node));
@@ -159,9 +162,25 @@ key(pKey)
 , right(nullptr) {
 }
 template <class Key, class Value> AVLNode<Key, Value>::~AVLNode() {
+	//don't delete key or value, something else owns them (if they're pointers)
 	//don't delete left or right, so that we can delete nodes without deleting their whole trees
 	//deleting whole trees will happen via AVLTree::deleteTree when the AVLTree is deleted
 }
+//returns the deepest height of a node- 0 for a null node, 1 for a node with no children, etc.
 template <class Key, class Value> char AVLNode<Key, Value>::nodeHeight(AVLNode<Key, Value>* node) {
 	return node != nullptr ? node->height : 0;
+}
+template <class Key, class Value> InsertionOrderedAVLTree<Key, Value>::InsertionOrderedAVLTree()
+: AVLTree()
+, insertionOrder(new Array<Key>()) {
+}
+template <class Key, class Value> InsertionOrderedAVLTree<Key, Value>::~InsertionOrderedAVLTree() {
+	delete insertionOrder;
+}
+//set a value in the tree and track it
+template <class Key, class Value> Value InsertionOrderedAVLTree<Key, Value>::set(Key key, Value value) {
+	oldValue = AVLTree::set(key, value);
+	if (oldValue != emptyValue)
+		insertionOrder->add(key);
+	return oldValue;
 }

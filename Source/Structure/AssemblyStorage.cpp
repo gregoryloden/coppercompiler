@@ -93,6 +93,77 @@ Register* Register::newUndecidedRegisterForBitSize(BitSize pBitSize) {
 		pBitSize == BitSize::B16 ? SpecificRegister::Undecided16BitRegister :
 		SpecificRegister::Undecided8BitRegister);
 }
+//get the conflict register that corresponds to this register's specific register
+//if it's more than 8 bits, use the lower one and the call site will handle looking at the other conflict
+ConflictRegister Register::getConflictRegister() {
+	if (bitSize == BitSize::B32) {
+		if (specificRegister == SpecificRegister::Undecided32BitRegister)
+			return ConflictRegister::ConflictRegisterCount;
+		if ((unsigned char)specificRegister >= (unsigned char)SpecificRegister::ESP)
+			return (ConflictRegister)(
+				((unsigned char)specificRegister) - (unsigned char)SpecificRegister::ESP + (unsigned char)ConflictRegister::SP);
+		else
+			return (ConflictRegister)(
+				((unsigned char)specificRegister - (unsigned char)SpecificRegister::Register32BitStart) * 2);
+	} else if (bitSize == BitSize::B16) {
+		if (specificRegister == SpecificRegister::Undecided16BitRegister)
+			return ConflictRegister::ConflictRegisterCount;
+		if ((unsigned char)specificRegister >= (unsigned char)SpecificRegister::SP)
+			return (ConflictRegister)(
+				((unsigned char)specificRegister) - (unsigned char)SpecificRegister::SP + (unsigned char)ConflictRegister::SP);
+		else
+			return (ConflictRegister)(
+				((unsigned char)specificRegister - (unsigned char)SpecificRegister::Register32BitStart) * 2);
+	} else {
+		if (specificRegister == SpecificRegister::Undecided8BitRegister)
+			return ConflictRegister::ConflictRegisterCount;
+		if ((unsigned char)specificRegister >= (unsigned char)SpecificRegister::AH)
+			return (ConflictRegister)(
+				(((unsigned char)specificRegister) - (unsigned char)SpecificRegister::AH) * 2
+					+ (unsigned char)ConflictRegister::AH);
+		else
+			return (ConflictRegister)((unsigned char)specificRegister * 2);
+	}
+	return ConflictRegister::ConflictRegisterCount;
+}
+//mark any conflicts in the array
+//returns whether there were conflicts to mark (ie the register was not undecided)
+bool Register::markConflicts(bool* conflicts) {
+	unsigned char conflictRegister = (unsigned char)getConflictRegister();
+	if (conflictRegister == (unsigned char)ConflictRegister::ConflictRegisterCount)
+		return false;
+	conflicts[conflictRegister] = true;
+	if (conflictRegister < (unsigned char)ConflictRegister::AH && (unsigned char)bitSize > (unsigned char)BitSize::B8)
+		conflicts[conflictRegister + 1] = true;
+	return true;
+}
+//returns whether this register conflicts with any other registersf, or if it hasn't been decided yet
+bool Register::isConflictOrUnknown(bool* conflicts) {
+	unsigned char conflictRegister = (unsigned char)getConflictRegister();
+	return conflictRegister == (unsigned char)ConflictRegister::ConflictRegisterCount
+		|| conflicts[conflictRegister]
+		|| ((unsigned char)bitSize > (unsigned char)BitSize::B8 && conflicts[conflictRegister + 1]);
+}
+//returns the specific register that corresponds to the conflict register using the given bit size
+SpecificRegister Register::specificRegisterFor(ConflictRegister conflictRegister, BitSize pBitSize) {
+	if (pBitSize == BitSize::B32) {
+		if ((unsigned char)conflictRegister >= (unsigned char)ConflictRegister::SP)
+			return (SpecificRegister)(
+				(unsigned char)conflictRegister - (unsigned char)ConflictRegister::SP + (unsigned char)SpecificRegister::ESP);
+		else
+			return (SpecificRegister)((unsigned char)conflictRegister / 2 + (unsigned char)SpecificRegister::EAX);
+	} else if (pBitSize == BitSize::B16) {
+		if ((unsigned char)conflictRegister >= (unsigned char)ConflictRegister::SP)
+			return (SpecificRegister)(
+				(unsigned char)conflictRegister - (unsigned char)ConflictRegister::SP + (unsigned char)SpecificRegister::SP);
+		else
+			return (SpecificRegister)((unsigned char)conflictRegister / 2 + (unsigned char)SpecificRegister::AX);
+	} else
+		return (SpecificRegister)(
+			(unsigned char)conflictRegister / 2
+				+ ((unsigned char)conflictRegister & 1) * 4
+				+ (unsigned char)SpecificRegister::AL);
+}
 MemoryPointer::MemoryPointer(
 	Register* pPrimaryRegister,
 	unsigned char pPrimaryRegisterMultiplierPower,
@@ -145,7 +216,9 @@ TempStorage::TempStorage(BitSize pBitSize)
 , finalStorage(nullptr) {
 }
 TempStorage::~TempStorage() {
-	delete finalStorage;
+	//registers will be the cached versions, memory pointers are owned here
+	if (istype(finalStorage, MemoryPointer*))
+		delete finalStorage;
 }
 Thunk::Thunk(string pName, unsigned short pThunkID)
 : onlyInDebug(ObjCounter(onlyWhenTrackingIDs("THUNK")) COMMA)
@@ -153,11 +226,3 @@ name(pName)
 , thunkID(pThunkID) {
 }
 Thunk::~Thunk() {}
-ConditionLabelPair::ConditionLabelPair(AssemblyLabel* pTrueJumpDest, AssemblyLabel* pFalseJumpDest)
-: onlyInDebug(ObjCounter(onlyWhenTrackingIDs("CNDLBPR")) COMMA)
-trueJumpDest(pTrueJumpDest)
-, falseJumpDest(pFalseJumpDest) {
-}
-ConditionLabelPair::~ConditionLabelPair() {
-	//don't delete either jump dest since they are owned by something else
-}

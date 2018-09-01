@@ -180,7 +180,7 @@ void Semant::semantToken(
 	Operator* o;
 	FunctionCall* fc;
 	FunctionDefinition* fd;
-	Group* g;
+	GroupToken* g;
 	VariableDeclarationList* v;
 	if (let(Identifier*, i, t))
 		semantIdentifier(i, variables);
@@ -200,7 +200,7 @@ void Semant::semantToken(
 		semantFunctionCall(fc, variables);
 	else if (let(FunctionDefinition*, fd, t))
 		semantFunctionDefinition(fd, variables);
-	else if (let(Group*, g, t))
+	else if (let(GroupToken*, g, t))
 		semantGroup(g, variables);
 	else if (istype(t, IntConstant*) || istype(t, FloatConstant*) || istype(t, BoolConstant*) || istype(t, StringLiteral*))
 		;
@@ -555,6 +555,7 @@ void Semant::semantOperator(
 			semantIdentifier(i, variables);
 			if (!tokenHasKnownType(i))
 				return;
+			i->variable->writtenTo = true;
 		} else if (let(VariableDeclarationList*, v, o->left)) {
 			addVariablesToTrie(v->variables, variables, nullptr);
 			if (!finalizeTypes(v, o->right->dataType))
@@ -662,7 +663,7 @@ void Semant::semantFunctionDefinition(FunctionDefinition* f, PrefixTrie<char, CV
 		Error::logError(ErrorType::General, "not all paths return a value", f);
 }
 //verify that this group ????????????????
-void Semant::semantGroup(Group* g, PrefixTrie<char, CVariableDefinition*>* variables) {
+void Semant::semantGroup(GroupToken* g, PrefixTrie<char, CVariableDefinition*>* variables) {
 	Error::logError(ErrorType::CompilerIssue, "resulting in a Group appearing an expression", g);
 	assert(false); //TODO: Groups
 	//TODO: ???????????

@@ -10,6 +10,7 @@
 instantiateArrayTypes(AbstractCodeBlock*);
 instantiateArrayTypes(AssemblyInstruction*);
 instantiateArrayTypes(AssemblyStorage*);
+instantiateArrayTypes(CALL*);
 instantiateArrayTypes(CDataType*);
 instantiateArrayTypes(CDirective*);
 instantiateArrayTypes(CDirectiveReplace*);
@@ -26,12 +27,15 @@ instantiateArrayTypes(SourceFile*);
 instantiateArrayTypes(Statement*);
 instantiateArrayTypes(StringStaticStorage*);
 instantiateArrayTypes(StringLiteral*);
+instantiateArrayTypes(TempStorage*);
 instantiateArrayTypes(Token*);
 instantiateArrayTypes(VariableDeclarationList*);
-instantiateArrayTypes(Array<Token*>*);
+instantiateArrayTypes(Array<AssemblyStorage*>*);
+instantiateArrayTypes(AVLNode<AssemblyStorage* COMMA Array<AssemblyStorage*>*>*);
 instantiateArrayTypes(AVLNode<char COMMA char>*);
 instantiateArrayTypes(AVLNode<int COMMA int>*);
 instantiateArrayTypes(AVLNode<SourceFile* COMMA bool>*);
+instantiateNonPointerArrayTypes(BitSize);
 instantiateNonPointerArrayTypes(char);
 instantiateNonPointerArrayTypes(int);
 instantiateNonPointerArrayTypes(SpecificRegister);
@@ -103,6 +107,14 @@ template <class Type> void Array<Type>::add(Type t) {
 	inner[length] = t;
 	length++;
 }
+//add an item to the array if it's not already in the array
+template <class Type> void Array<Type>::addNonDuplicate(Type t) {
+	for (int i = length - 1; i >= 0; i--) {
+		if (inner[i] == t)
+			return;
+	}
+	add(t);
+}
 //add another array's items to this array at the given spot
 template <class Type> void Array<Type>::insert(Array<Type>* a, int pos) {
 	int shift = a->length;
@@ -115,6 +127,13 @@ template <class Type> void Array<Type>::insert(Array<Type>* a, int pos) {
 template <class Type> void Array<Type>::add(Array<Type>* a) {
 	insert(a, length);
 }
+//add another array's items (that are not already in this array) to the end of this array
+template <class Type> void Array<Type>::addNonDuplicates(Array<Type>* a) {
+	Type* otherInner = a->inner;
+	int otherLength = a->length;
+	for (int i = 0; i < otherLength; i++)
+		addNonDuplicate(otherInner[i]);
+}
 //remove the given number of items at the given spot
 template <class Type> void Array<Type>::remove(int pos, int num) {
 	for (int i = pos + num; i < length; i++)
@@ -124,6 +143,15 @@ template <class Type> void Array<Type>::remove(int pos, int num) {
 //remove the item at the given spot
 template <class Type> void Array<Type>::remove(int pos) {
 	remove(pos, 1);
+}
+//remove the first item equal to the given item
+template <class Type> void Array<Type>::removeItem(Type t) {
+	for (int i = 0; i < length; i++) {
+		if (inner[i] == t) {
+			remove(i);
+			return;
+		}
+	}
 }
 //replace the elements in the given range with the contents of the other array
 template <class Type> void Array<Type>::replace(int pos, int count, Array<Type>* a) {

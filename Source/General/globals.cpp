@@ -51,6 +51,7 @@ Thunk THeapAlloc ("HeapAlloc", 0x1BD);
 Thunk THeapReAlloc ("HeapReAlloc", 0x1C4);
 */
 
+template class Group2<ConflictRegister, int>;
 template class Deleter<AbstractCodeBlock>;
 template class Deleter<BigInt>;
 template class Deleter<DirectiveTitle>;
@@ -209,6 +210,14 @@ bool StringUtils::stringMatchesWildcard(string s, Array<string>* wildcardMatchSu
 		printf("Total objects used: %d + %d untracked\n", (nextObjID - untrackedObjCount), untrackedObjCount);
 	}
 #endif
+template <class Type1, class Type2> Group2<Type1, Type2>::Group2(Type1 pVal1, Type2 pVal2)
+: onlyInDebug(ObjCounter(onlyWhenTrackingIDs("GROUP2")) COMMA)
+val1(pVal1)
+, val2(pVal2) {
+}
+template <class Type1, class Type2> Group2<Type1, Type2>::~Group2() {
+	//even if val1 or val2 are pointers, don't delete them since something else owns them
+}
 template <class Type> Deleter<Type>::Deleter(Type* pToDelete)
 : onlyInDebug(ObjCounter(onlyWhenTrackingIDs("DELETER")) COMMA)
 toDelete(pToDelete) {

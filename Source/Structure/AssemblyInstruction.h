@@ -1,41 +1,65 @@
 #include "../General/globals.h"
 
 class FunctionDefinition;
+class FunctionCall;
+class AssemblyStorage;
+class MemoryPointer;
+class StaticStorage;
+class Register;
+enum class BitSize: unsigned char;
+template <class Type> class Array;
 
-#define basic0OperandInstructionDeclarations(Type) class Type: public AssemblyInstruction { public: Type(); virtual ~Type(); };
-#define basic1OperandInstructionDeclarations(Type) \
-	class Type: public AssemblyInstruction { public: Type(AssemblyStorage* pDestination); virtual ~Type(); };
-#define basic2OperandInstructionDeclarations(Type) \
-	class Type: public AssemblyInstruction { \
-		public: Type(AssemblyStorage* pDestination, AssemblyStorage* pSource); virtual ~Type(); \
+#define basicInstructionDeclarationsWithBaseClassAndConstructorParameters(Type, BaseClass, parameters) \
+	class Type: public BaseClass {\
+	public:\
+		Type(parameters);\
+		virtual ~Type();\
+		void removeDestinations(Array<AssemblyStorage*>* storages);\
+		void addSources(Array<AssemblyStorage*>* storages);\
 	};
-#define basicConditionalJumpDeclarations(Type) \
-	class Type: public JCC { public: Type(AssemblyLabel* pJumpDestination); virtual ~Type(); };
+#define basic0OperandInstructionDeclarations(Type) \
+	basicInstructionDeclarationsWithBaseClassAndConstructorParameters(Type, AssemblyInstruction, )
+#define basic1OperandInstructionDeclarations(Type) \
+	basicInstructionDeclarationsWithBaseClassAndConstructorParameters(Type, AssemblyInstruction, AssemblyStorage* pDestination)
+#define basic2OperandInstructionDeclarations(Type) \
+	basicInstructionDeclarationsWithBaseClassAndConstructorParameters(\
+		Type, AssemblyInstruction, AssemblyStorage* pDestination COMMA AssemblyStorage* pSource)
+#define basicJumpDeclarations(Type) \
+	basicInstructionDeclarationsWithBaseClassAndConstructorParameters(Type, JumpInstruction, AssemblyLabel* pJumpDestination)
 
 class AssemblyInstruction onlyInDebug(: public ObjCounter) {
-protected:
-	AssemblyStorage* destination;
-	AssemblyStorage* source;
 public:
-	int globalVariableIndex; //copper: private<Build>
+	AssemblyStorage* destination; //copper: readonly
+	AssemblyStorage* source; //copper: readonly
+	int instructionArrayIndex; //copper: private<Build>
 
 protected:
 	AssemblyInstruction(onlyWhenTrackingIDs(char* pObjType COMMA) AssemblyStorage* pDestination, AssemblyStorage* pSource);
 public:
 	virtual ~AssemblyInstruction();
-};
-class AssemblyLabel: public AssemblyInstruction {
-public:
-	AssemblyLabel();
-	virtual ~AssemblyLabel();
-};
-class JCC: public AssemblyInstruction {
-protected:
-	AssemblyLabel* jumpDestination;
 
-	JCC(onlyWhenTrackingIDs(char* pObjType COMMA) AssemblyLabel* pJumpDestination);
+	virtual void removeDestinations(Array<AssemblyStorage*>* storages) = 0;
+	virtual void addSources(Array<AssemblyStorage*>* storages) = 0;
+	void removeDestination(AssemblyStorage* pDestination, Array<AssemblyStorage*>* storages);
+	void addSource(AssemblyStorage* pSource, Array<AssemblyStorage*>* storages);
+};
+basic0OperandInstructionDeclarations(AssemblyLabel)
+class ConditionLabelPair onlyInDebug(: public ObjCounter) {
 public:
-	virtual ~JCC();
+	AssemblyLabel* trueJumpDest; //copper: readonly
+	AssemblyLabel* falseJumpDest; //copper: readonly
+
+	ConditionLabelPair(AssemblyLabel* pTrueJumpDest, AssemblyLabel* pFalseJumpDest);
+	virtual ~ConditionLabelPair();
+};
+class JumpInstruction: public AssemblyInstruction {
+public:
+	AssemblyLabel* jumpDestination; //copper: private<readonly Build>
+
+protected:
+	JumpInstruction(onlyWhenTrackingIDs(char* pObjType COMMA) AssemblyLabel* pJumpDestination);
+public:
+	virtual ~JumpInstruction();
 };
 //0 operand instructions
 basic0OperandInstructionDeclarations(NOP)
@@ -44,7 +68,17 @@ basic0OperandInstructionDeclarations(CWDE)
 basic0OperandInstructionDeclarations(CWD)
 basic0OperandInstructionDeclarations(CDQ)
 basic0OperandInstructionDeclarations(CLD)
-basic0OperandInstructionDeclarations(REPMOVSB)
+class REPMOVSB: public AssemblyInstruction {
+private:
+	BitSize cpuBitSize;
+
+public:
+	REPMOVSB(BitSize pCPUBitSize);
+	virtual ~REPMOVSB();
+
+	void removeDestinations(Array<AssemblyStorage*>* storages);
+	void addSources(Array<AssemblyStorage*>* storages);
+};
 //0-1 operand instructions
 class RET: public AssemblyInstruction {
 private:
@@ -53,18 +87,32 @@ private:
 public:
 	RET(FunctionDefinition* pOwningFunction);
 	virtual ~RET();
+
+	void removeDestinations(Array<AssemblyStorage*>* storages);
+	void addSources(Array<AssemblyStorage*>* storages);
 };
 //class LOOP: public AssemblyInstruction {
 //1 operand instructions
-class JMP: public AssemblyInstruction {
-private:
-	AssemblyLabel* jumpDestination;
-
+basicJumpDeclarations(JMP)
+basicJumpDeclarations(JE)
+basicJumpDeclarations(JNE)
+//	class JB: public AssemblyInstruction {
+//	class JBE: public AssemblyInstruction {
+//	class JA: public AssemblyInstruction {
+//	class JAE: public AssemblyInstruction {
+basicJumpDeclarations(JL)
+basicJumpDeclarations(JLE)
+basicJumpDeclarations(JG)
+basicJumpDeclarations(JGE)
+class CALL: public AssemblyInstruction {
 public:
-	JMP(AssemblyLabel* pJumpDestination);
-	virtual ~JMP();
+	CALL(MemoryPointer* target, Register* functionResult);
+	CALL(StaticStorage* target, Register* functionResult);
+	virtual ~CALL();
+
+	void removeDestinations(Array<AssemblyStorage*>* storages);
+	void addSources(Array<AssemblyStorage*>* storages);
 };
-basic1OperandInstructionDeclarations(CALL)
 basic1OperandInstructionDeclarations(INC)
 basic1OperandInstructionDeclarations(DEC)
 //class PUSH: public AssemblyInstruction {
@@ -76,6 +124,9 @@ class IDIV: public AssemblyInstruction {
 public:
 	IDIV(AssemblyStorage* divisor);
 	virtual ~IDIV();
+
+	void removeDestinations(Array<AssemblyStorage*>* storages);
+	void addSources(Array<AssemblyStorage*>* storages);
 };
 //	class MUL: public AssemblyInstruction {
 class IMUL: public AssemblyInstruction {
@@ -85,17 +136,10 @@ private:
 public:
 	IMUL(Register* pDestination, AssemblyStorage* pSource, AssemblyConstant* pMultiplier);
 	virtual ~IMUL();
+
+	void removeDestinations(Array<AssemblyStorage*>* storages);
+	void addSources(Array<AssemblyStorage*>* storages);
 };
-basicConditionalJumpDeclarations(JE)
-basicConditionalJumpDeclarations(JNE)
-//	class JB: public AssemblyInstruction {
-//	class JBE: public AssemblyInstruction {
-//	class JA: public AssemblyInstruction {
-//	class JAE: public AssemblyInstruction {
-basicConditionalJumpDeclarations(JL)
-basicConditionalJumpDeclarations(JLE)
-basicConditionalJumpDeclarations(JG)
-basicConditionalJumpDeclarations(JGE)
 basic1OperandInstructionDeclarations(SETE)
 basic1OperandInstructionDeclarations(SETNE)
 basic1OperandInstructionDeclarations(SETLE)
@@ -111,11 +155,21 @@ basic2OperandInstructionDeclarations(MOV)
 basic2OperandInstructionDeclarations(AND)
 basic2OperandInstructionDeclarations(OR)
 basic2OperandInstructionDeclarations(XOR)
-basic2OperandInstructionDeclarations(CMP)
+class CMP: public AssemblyInstruction {
+public:
+	CMP(AssemblyStorage* leftSource, AssemblyStorage* rightSource);
+	virtual ~CMP();
+
+	void removeDestinations(Array<AssemblyStorage*>* storages);
+	void addSources(Array<AssemblyStorage*>* storages);
+};
 class LEA: public AssemblyInstruction {
 public:
-	LEA(Register* pDestination, AssemblyStorage* pSource);
+	LEA(Register* pDestination, MemoryPointer* pSource);
 	virtual ~LEA();
+
+	void removeDestinations(Array<AssemblyStorage*>* storages);
+	void addSources(Array<AssemblyStorage*>* storages);
 };
 //	class TEST: public AssemblyInstruction {
 basic2OperandInstructionDeclarations(SHL)
@@ -129,6 +183,28 @@ class MOVSX: public AssemblyInstruction {
 public:
 	MOVSX(Register* pDestination, AssemblyStorage* pSource);
 	virtual ~MOVSX();
+
+	void removeDestinations(Array<AssemblyStorage*>* storages);
+	void addSources(Array<AssemblyStorage*>* storages);
+};
+//this will become a SUB but we need to track it separately
+class StackShift: public AssemblyInstruction {
+private:
+	FunctionDefinition* owningFunction;
+	FunctionDefinition* calledFunction;
+	int functionCallArgumentBytes;
+	bool calling;
+
+public:
+	StackShift(
+		FunctionDefinition* pOwningFunction,
+		FunctionDefinition* pCalledFunction,
+		int pFunctionCallArgumentBytes,
+		bool pCalling);
+	~StackShift();
+
+	void removeDestinations(Array<AssemblyStorage*>* storages);
+	void addSources(Array<AssemblyStorage*>* storages);
 };
 
 

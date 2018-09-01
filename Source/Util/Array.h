@@ -21,10 +21,13 @@ public:
 	void set(int pos, Type t);
 	void insert(Type t, int pos);
 	void add(Type t);
+	void addNonDuplicate(Type t);
 	void insert(Array<Type>* a, int pos);
 	void add(Array<Type>* a);
+	void addNonDuplicates(Array<Type>* a);
 	void remove(int pos, int num);
 	void remove(int pos);
+	void removeItem(Type t);
 	void replace(int pos, int count, Array<Type>* a);
 	Type first();
 	Type last();

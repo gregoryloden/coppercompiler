@@ -77,6 +77,7 @@ public:
 	LoopControlFlowStatement(bool pContinueLoop, IntConstant* pLevels);
 	virtual ~LoopControlFlowStatement();
 };
+/*
 class AssemblyStatement: public Statement {
 public:
 	Array<AssemblyInstruction*>* assembly;
@@ -84,3 +85,4 @@ public:
 	AssemblyStatement(Array<AssemblyInstruction*>* pAssembly);
 	virtual ~AssemblyStatement();
 };
+*/

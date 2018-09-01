@@ -1,49 +1,128 @@
 #include "Project.h"
 
+//any-operand macros
+#define emptyDestinationAndSourceArrayEditDefinitions(Type) \
+	void Type::removeDestinations(Array<AssemblyStorage*>* storages) {}\
+	void Type::addSources(Array<AssemblyStorage*>* storages) {}
+#define simpleDestinationAndSourceArrayEditDefinitions(Type, destination, source) \
+	void Type::removeDestinations(Array<AssemblyStorage*>* storages) { removeDestination(destination, storages); }\
+	void Type::addSources(Array<AssemblyStorage*>* storages) { addSource(source, storages); }
+
+//0-operand macros
+#define basic0OperandInstructionLifespanDefinitions(Type, objType) \
+	Type::Type(): AssemblyInstruction(onlyWhenTrackingIDs(objType COMMA) nullptr, nullptr) {}\
+	Type::~Type() {}
 #define basic0OperandInstructionDefinitions(Type, objType) \
-	Type::Type(): AssemblyInstruction(onlyWhenTrackingIDs(objType COMMA) nullptr, nullptr) {} \
-	Type::~Type() {}
+	basic0OperandInstructionLifespanDefinitions(Type, objType)\
+	emptyDestinationAndSourceArrayEditDefinitions(Type)
+#define basic0OperandInstructionDefinitionsWithDestinationAndSource(Type, objType, destination, source) \
+	basic0OperandInstructionLifespanDefinitions(Type, objType)\
+	simpleDestinationAndSourceArrayEditDefinitions(Type, destination, source)
+
+//1-operand macros
+#define basic1OperandInstructionLifespanDefinitionsWithoutSource(Type, objType) \
+	Type::Type(AssemblyStorage* pDestination)\
+	: AssemblyInstruction(onlyWhenTrackingIDs(objType COMMA) pDestination, nullptr) {}\
+	Type::~Type() {}\
+	void Type::addSources(Array<AssemblyStorage*>* storages) {}
 #define basic1OperandInstructionDefinitions(Type, objType) \
-	Type::Type(AssemblyStorage* pDestination) \
-	: AssemblyInstruction(onlyWhenTrackingIDs(objType COMMA) pDestination, nullptr) {} \
-	Type::~Type() {}
+	basic1OperandInstructionLifespanDefinitionsWithoutSource(Type, objType)\
+	void Type::removeDestinations(Array<AssemblyStorage*>* storages) {}
+#define basic1OperandInstructionDefinitionsWithoutSource(Type, objType) \
+	basic1OperandInstructionLifespanDefinitionsWithoutSource(Type, objType)\
+	void Type::removeDestinations(Array<AssemblyStorage*>* storages) { removeDestination(destination, storages); }
+
+//2-operand macros
+#define basic2OperandInstructionLifespanDefinitionsAndAddSources(Type, objType) \
+	Type::Type(AssemblyStorage* pDestination, AssemblyStorage* pSource)\
+	: AssemblyInstruction(onlyWhenTrackingIDs(objType COMMA) pDestination, pSource) {}\
+	Type::~Type() {}\
+	void Type::addSources(Array<AssemblyStorage*>* storages) { addSource(source, storages); }
 #define basic2OperandInstructionDefinitions(Type, objType) \
-	Type::Type(AssemblyStorage* pDestination, AssemblyStorage* pSource) \
-	: AssemblyInstruction(onlyWhenTrackingIDs(objType COMMA) pDestination, pSource) {} \
-	Type::~Type() {}
-#define basicConditionalJumpDefinitions(Type, objType) \
+	basic2OperandInstructionLifespanDefinitionsAndAddSources(Type, objType)\
+	void Type::removeDestinations(Array<AssemblyStorage*>* storages) {\
+		if (istype(destination, MemoryPointer*))\
+			addSource(destination, storages);\
+	}
+#define basic2OperandInstructionDefinitionsWithDestination(Type, objType) \
+	basic2OperandInstructionLifespanDefinitionsAndAddSources(Type, objType)\
+	void Type::removeDestinations(Array<AssemblyStorage*>* storages) { removeDestination(destination, storages); }
+
+//jump macro
+#define basicJumpDefinitions(Type, objType) \
 	Type::Type(AssemblyLabel* pJumpDestination)\
-	: JCC(onlyWhenTrackingIDs(objType COMMA) pJumpDestination) {} \
-	Type::~Type() {}
+	: JumpInstruction(onlyWhenTrackingIDs(objType COMMA) pJumpDestination) {}\
+	Type::~Type() {}\
+	emptyDestinationAndSourceArrayEditDefinitions(Type)
 
 AssemblyInstruction::AssemblyInstruction(
 	onlyWhenTrackingIDs(char* pObjType COMMA) AssemblyStorage* pDestination, AssemblyStorage* pSource)
 : onlyInDebug(ObjCounter(onlyWhenTrackingIDs(pObjType)) COMMA)
 destination(pDestination)
 , source(pSource)
-, globalVariableIndex(-1) {
+, instructionArrayIndex(-1) {
 }
 AssemblyInstruction::~AssemblyInstruction() {
 	//don't delete source or destination, something else will track the storages to delete them
 }
-AssemblyLabel::AssemblyLabel()
-: AssemblyInstruction(onlyWhenTrackingIDs("ASMLBL" COMMA) nullptr, nullptr) {
+//remove the destination from the destinations list unless it's a memory pointer, which is actually a source
+void AssemblyInstruction::removeDestination(AssemblyStorage* pDestination, Array<AssemblyStorage*>* storages) {
+	//if we're writing to a memory pointer, we need to have the source registers available
+	if (istype(pDestination, MemoryPointer*))
+		addSource(pDestination, storages);
+	else
+		storages->removeItem(pDestination);
 }
-AssemblyLabel::~AssemblyLabel() {}
-JCC::JCC(onlyWhenTrackingIDs(char* pObjType COMMA) AssemblyLabel* pJumpDestination)
+//add the source to the sources list if it's a register or temp, and add registers of memory pointers
+void AssemblyInstruction::addSource(AssemblyStorage* pSource, Array<AssemblyStorage*>* storages) {
+	MemoryPointer* m;
+	if (istype(pSource, TempStorage*) || istype(pSource, Register*))
+		storages->addNonDuplicate(pSource);
+	else if (let(MemoryPointer*, m, pSource)) {
+		storages->addNonDuplicate(m->primaryRegister);
+		if (m->secondaryRegister != nullptr)
+			storages->addNonDuplicate(m->secondaryRegister);
+	}
+}
+basic0OperandInstructionDefinitions(AssemblyLabel, "ASMLBL")
+ConditionLabelPair::ConditionLabelPair(AssemblyLabel* pTrueJumpDest, AssemblyLabel* pFalseJumpDest)
+: onlyInDebug(ObjCounter(onlyWhenTrackingIDs("CNDLBPR")) COMMA)
+trueJumpDest(pTrueJumpDest)
+, falseJumpDest(pFalseJumpDest) {
+}
+ConditionLabelPair::~ConditionLabelPair() {
+	//don't delete either jump dest since they are owned by something else
+}
+JumpInstruction::JumpInstruction(onlyWhenTrackingIDs(char* pObjType COMMA) AssemblyLabel* pJumpDestination)
 : AssemblyInstruction(onlyWhenTrackingIDs(pObjType COMMA) nullptr, nullptr)
 , jumpDestination(pJumpDestination) {
 }
-JCC::~JCC() {
+JumpInstruction::~JumpInstruction() {
 	//don't delete the jump destination, something else owns it
 }
 basic0OperandInstructionDefinitions(NOP, "NOP")
-basic0OperandInstructionDefinitions(CBW, "CBW")
-basic0OperandInstructionDefinitions(CWDE, "CWDE")
-basic0OperandInstructionDefinitions(CWD, "CWD")
-basic0OperandInstructionDefinitions(CDQ, "CDQ")
+basic0OperandInstructionDefinitionsWithDestinationAndSource(
+	CBW, "CBW", Register::aRegisterForBitSize(BitSize::B16), Register::aRegisterForBitSize(BitSize::B8))
+basic0OperandInstructionDefinitionsWithDestinationAndSource(
+	CWDE, "CWDE", Register::aRegisterForBitSize(BitSize::B32), Register::aRegisterForBitSize(BitSize::B16))
+basic0OperandInstructionDefinitionsWithDestinationAndSource(
+	CWD, "CWD", Register::dRegisterForBitSize(BitSize::B16), Register::aRegisterForBitSize(BitSize::B16))
+basic0OperandInstructionDefinitionsWithDestinationAndSource(
+	CDQ, "CDQ", Register::dRegisterForBitSize(BitSize::B32), Register::aRegisterForBitSize(BitSize::B32))
 basic0OperandInstructionDefinitions(CLD, "CLD")
-basic0OperandInstructionDefinitions(REPMOVSB, "REPMVSB")
+REPMOVSB::REPMOVSB(BitSize pCPUBitSize)
+: AssemblyInstruction(onlyWhenTrackingIDs("REPMVSB" COMMA) nullptr, nullptr)
+, cpuBitSize(pCPUBitSize) {
+}
+REPMOVSB::~REPMOVSB() {}
+//due to the fact that this reads and writes to the same registers, don't bother removing them here
+void REPMOVSB::removeDestinations(Array<AssemblyStorage*>* storages) {}
+//add the registers that we need to do this instruction
+void REPMOVSB::addSources(Array<AssemblyStorage*>* storages) {
+	storages->addNonDuplicate(Register::cRegisterForBitSize(cpuBitSize));
+	storages->addNonDuplicate(Register::siRegisterForBitSize(cpuBitSize));
+	storages->addNonDuplicate(Register::diRegisterForBitSize(cpuBitSize));
+}
 RET::RET(FunctionDefinition* pOwningFunction)
 : AssemblyInstruction(onlyWhenTrackingIDs("RET" COMMA) nullptr, nullptr)
 , owningFunction(pOwningFunction) {
@@ -51,14 +130,30 @@ RET::RET(FunctionDefinition* pOwningFunction)
 RET::~RET() {
 	//don't delete the owning function, something else owns it
 }
-JMP::JMP(AssemblyLabel* pJumpDestination)
-: AssemblyInstruction(onlyWhenTrackingIDs("JMP" COMMA) nullptr, nullptr)
-, jumpDestination(pJumpDestination) {
+emptyDestinationAndSourceArrayEditDefinitions(RET)
+basicJumpDefinitions(JMP, "JMP")
+basicJumpDefinitions(JE, "JE")
+basicJumpDefinitions(JNE, "JNE")
+basicJumpDefinitions(JL, "JL")
+basicJumpDefinitions(JLE, "JLE")
+basicJumpDefinitions(JG, "JG")
+basicJumpDefinitions(JGE, "JGE")
+CALL::CALL(MemoryPointer* target, Register* functionResult)
+: AssemblyInstruction(onlyWhenTrackingIDs("CALL" COMMA) functionResult, target) {
 }
-JMP::~JMP() {
-	//don't delete the jump destination, something else owns it
+CALL::CALL(StaticStorage* target, Register* functionResult)
+: AssemblyInstruction(onlyWhenTrackingIDs("CALL" COMMA) functionResult, target) {
 }
-basic1OperandInstructionDefinitions(CALL, "CALL")
+CALL::~CALL() {}
+//remove the function result register, if the function doesn't return void
+void CALL::removeDestinations(Array<AssemblyStorage*>* storages) {
+	if (destination != nullptr)
+		storages->removeItem(destination);
+}
+//if our jump destination is a memory pointer, those registers are sources that we need to add
+void CALL::addSources(Array<AssemblyStorage*>* storages) {
+	addSource(source, storages);
+}
 basic1OperandInstructionDefinitions(INC, "INC")
 basic1OperandInstructionDefinitions(DEC, "DEC")
 basic1OperandInstructionDefinitions(NOT, "NOT")
@@ -67,6 +162,20 @@ IDIV::IDIV(AssemblyStorage* divisor)
 : AssemblyInstruction(onlyWhenTrackingIDs("IDIV" COMMA) nullptr, divisor) {
 }
 IDIV::~IDIV() {}
+//remove the registers that will be modified after division is complete
+void IDIV::removeDestinations(Array<AssemblyStorage*>* storages) {
+	if (source->bitSize == BitSize::B8) {
+		storages->removeItem(Register::registerFor(SpecificRegister::AL));
+		storages->removeItem(Register::registerFor(SpecificRegister::AH));
+	} else {
+		storages->removeItem(Register::aRegisterForBitSize(source->bitSize));
+		storages->removeItem(Register::dRegisterForBitSize(source->bitSize));
+	}
+}
+//add our source
+void IDIV::addSources(Array<AssemblyStorage*>* storages) {
+	addSource(source, storages);
+}
 IMUL::IMUL(Register* pDestination, AssemblyStorage* pSource, AssemblyConstant* pMultiplier)
 : AssemblyInstruction(onlyWhenTrackingIDs("IMUL" COMMA) pDestination, pSource)
 , multiplier(pMultiplier) {
@@ -74,29 +183,45 @@ IMUL::IMUL(Register* pDestination, AssemblyStorage* pSource, AssemblyConstant* p
 IMUL::~IMUL() {
 	//don't delete the multiplier, something else owns it
 }
-basicConditionalJumpDefinitions(JE, "JE")
-basicConditionalJumpDefinitions(JNE, "JNE")
-basicConditionalJumpDefinitions(JL, "JL")
-basicConditionalJumpDefinitions(JLE, "JLE")
-basicConditionalJumpDefinitions(JG, "JG")
-basicConditionalJumpDefinitions(JGE, "JGE")
-basic1OperandInstructionDefinitions(SETE, "SETE")
-basic1OperandInstructionDefinitions(SETNE, "SETNE")
-basic1OperandInstructionDefinitions(SETLE, "SETLE")
-basic1OperandInstructionDefinitions(SETGE, "SETGE")
-basic1OperandInstructionDefinitions(SETL, "SETL")
-basic1OperandInstructionDefinitions(SETG, "SETG")
+//remove our destination normally
+void IMUL::removeDestinations(Array<AssemblyStorage*>* storages) {
+	removeDestination(destination, storages);
+}
+//add the sources that we need to do this instruction
+void IMUL::addSources(Array<AssemblyStorage*>* storages) {
+	addSource(source, storages);
+	//if we don't have a multiplier then destination is also a source
+	if (multiplier == nullptr)
+		storages->addNonDuplicate(destination);
+}
+basic1OperandInstructionDefinitionsWithoutSource(SETE, "SETE")
+basic1OperandInstructionDefinitionsWithoutSource(SETNE, "SETNE")
+basic1OperandInstructionDefinitionsWithoutSource(SETLE, "SETLE")
+basic1OperandInstructionDefinitionsWithoutSource(SETGE, "SETGE")
+basic1OperandInstructionDefinitionsWithoutSource(SETL, "SETL")
+basic1OperandInstructionDefinitionsWithoutSource(SETG, "SETG")
 basic2OperandInstructionDefinitions(ADD, "ADD")
 basic2OperandInstructionDefinitions(SUB, "SUB")
-basic2OperandInstructionDefinitions(MOV, "MOV")
+basic2OperandInstructionDefinitionsWithDestination(MOV, "MOV")
 basic2OperandInstructionDefinitions(AND, "AND")
 basic2OperandInstructionDefinitions(OR, "OR")
 basic2OperandInstructionDefinitions(XOR, "XOR")
-basic2OperandInstructionDefinitions(CMP, "CMP")
-LEA::LEA(Register* pDestination, AssemblyStorage* pSource)
+CMP::CMP(AssemblyStorage* leftSource, AssemblyStorage* rightSource)
+: AssemblyInstruction(onlyWhenTrackingIDs("CMP" COMMA) leftSource, rightSource) {
+}
+CMP::~CMP() {}
+//a CMP doesn't have any destinations
+void CMP::removeDestinations(Array<AssemblyStorage*>* storages) {}
+//our destination variable is actually a source
+void CMP::addSources(Array<AssemblyStorage*>* storages) {
+	addSource(destination, storages);
+	addSource(source, storages);
+}
+LEA::LEA(Register* pDestination, MemoryPointer* pSource)
 : AssemblyInstruction(onlyWhenTrackingIDs("LEA" COMMA) pDestination, pSource) {
 }
 LEA::~LEA() {}
+simpleDestinationAndSourceArrayEditDefinitions(LEA, destination, source)
 basic2OperandInstructionDefinitions(SHL, "SHL")
 basic2OperandInstructionDefinitions(SHR, "SHR")
 basic2OperandInstructionDefinitions(SAR, "SAR")
@@ -104,6 +229,20 @@ MOVSX::MOVSX(Register* pDestination, AssemblyStorage* pSource)
 : AssemblyInstruction(onlyWhenTrackingIDs("MOVSX" COMMA) pDestination, pSource) {
 }
 MOVSX::~MOVSX() {}
+simpleDestinationAndSourceArrayEditDefinitions(MOVSX, destination, source)
+//only one of (calledFunction, functionCallArgumentBytes) will be present
+StackShift::StackShift(
+	FunctionDefinition* pOwningFunction, FunctionDefinition* pCalledFunction, int pFunctionCallArgumentBytes, bool pCalling)
+: AssemblyInstruction(onlyWhenTrackingIDs("STKSHFT" COMMA) nullptr, nullptr)
+, owningFunction(pOwningFunction)
+, calledFunction(pCalledFunction)
+, functionCallArgumentBytes(pFunctionCallArgumentBytes)
+, calling(pCalling) {
+}
+StackShift::~StackShift() {
+	//don't delete the owning function or the function call, something else owns them
+}
+emptyDestinationAndSourceArrayEditDefinitions(StackShift)
 
 
 

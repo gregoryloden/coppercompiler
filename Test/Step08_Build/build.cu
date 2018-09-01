@@ -25,4 +25,7 @@ Function main = void() (
 	a = true ? (a = 4) : (a = 4);
 	int g = true ? (a = 4) : (a = 4);
 	a = (a + b) + ((a + b) + ((a + b) + ((a + b) + ((a + b) + ((a + b) + ((a + b) + ((a + b) + (a + b))))))));
+	//a = array[0] + (array[0] + (array[0] + (array[0] + (array[0] + (array[0] + (array[0] + (array[0] + array[0])))))));
+	//(new int[1])[0] = 4;
+	//(new Thingy()).thing1.thing2.thing3 = 4;
 );

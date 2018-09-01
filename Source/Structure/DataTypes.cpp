@@ -81,11 +81,11 @@ CDataType* CDataType::bestCompatibleType(CDataType* type1, CDataType* type2) {
 		bool firstIsFloat;
 		if ((firstIsFloat = (istype(npType1, CFloatingPointPrimitive*))) != (istype(npType2, CFloatingPointPrimitive*)))
 			return firstIsFloat ? npType1 : npType2;
-		else if (npType1 == infiniteByteSizeIntType || npType1 == infinitePrecisionFloatType)
+		else if (npType1->bitSize == BitSize::BInfinite)
 			return npType2;
-		else if (npType2 == infiniteByteSizeIntType || npType2 == infinitePrecisionFloatType)
+		else if (npType2->bitSize == BitSize::BInfinite)
 			return npType1;
-		return npType1->bitSize > npType2->bitSize ? npType1 : npType2;
+		return (unsigned char)npType1->bitSize > (unsigned char)npType2->bitSize ? npType1 : npType2;
 	} else if ((type1 == CDataType::functionType && istype(type2, CSpecificFunction*))
 			|| (type2 == CDataType::functionType && istype(type1, CSpecificFunction*)))
 		return CDataType::functionType;

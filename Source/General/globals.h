@@ -117,6 +117,14 @@ public:
 		static void end();
 	};
 #endif
+template <class Type1, class Type2> class Group2 onlyInDebug(: public ObjCounter) {
+public:
+	Type1 val1;
+	Type2 val2;
+
+	Group2(Type1 pVal1, Type2 pVal2);
+	virtual ~Group2();
+};
 //used to delete objects during a throw
 //should always be stack allocated
 template <class Type> class Deleter onlyInDebug(: public ObjCounter) {

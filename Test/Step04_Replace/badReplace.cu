@@ -9,3 +9,4 @@ echo(a,b);
 #replace-input concat(a, b) (ab)    concat(3, 4);
 concat(a3, 4);
 concat(3, b4);
+Function main = void() ( #replace echo2(x) (x) ); echo2(c);

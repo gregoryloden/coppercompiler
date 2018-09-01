@@ -9,7 +9,7 @@
 	if (errorMessages->length > 0) {\
 		totalElapsedMilliseconds = TimeUtils::getElapsedMilliseconds() - startTime;\
 		return;\
-	}\
+	}
 
 /*
 //check if tpos is within the tokens
@@ -109,6 +109,7 @@ Pliers::Pliers(const char* pBaseFileName, bool pPrintProgress onlyInDebug(COMMA 
 : baseFileName(pBaseFileName)
 , printProgress(pPrintProgress)
 , allFiles(new Array<SourceFile*>())
+, mainFunction(nullptr)
 , errorMessages(new Array<ErrorMessage*>())
 , warningMessages(new Array<ErrorMessage*>())
 , totalElapsedMilliseconds(-1) {
@@ -177,6 +178,7 @@ puts("Suspended until the rewrite is complete");
 Pliers::~Pliers() {
 	allFiles->deleteContents();
 	delete allFiles;
+	//do not delete the main function, something else owns it
 	errorMessages->deleteContents();
 	delete errorMessages;
 	warningMessages->deleteContents();

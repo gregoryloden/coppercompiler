@@ -6,7 +6,7 @@ template <class Key, class Value> class AVLNode;
 template <class Key, class Value> class AVLTree onlyInDebug(: public ObjCounter) {
 public:
 	static const Value emptyValue;
-private:
+protected:
 	static thread_local Value oldValue;
 
 public:
@@ -18,7 +18,7 @@ public:
 private:
 	static void deleteTree(AVLNode<Key, Value>* node);
 public:
-	Value set(Key key, Value value);
+	virtual Value set(Key key, Value value);
 private:
 	static AVLNode<Key, Value>* setAndRebalance(AVLNode<Key, Value>* node, Key key, Value value);
 public:
@@ -43,4 +43,13 @@ public:
 	virtual ~AVLNode();
 
 	static char nodeHeight(AVLNode<Key, Value>* node);
+};
+template <class Key, class Value> class InsertionOrderedAVLTree: public AVLTree<Key, Value> {
+public:
+	Array<Key>* insertionOrder; //copper: readonly
+
+	InsertionOrderedAVLTree();
+	virtual ~InsertionOrderedAVLTree();
+
+	Value set(Key key, Value value);
 };

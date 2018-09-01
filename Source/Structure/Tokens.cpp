@@ -56,12 +56,14 @@ Identifier::~Identifier() {
 cloneWithReplacementSourceForType(Identifier)
 IntConstant::IntConstant(BigInt* pVal, int pContentPos, int pEndContentPos, SourceFile* pOwningFile)
 : LexToken(onlyWhenTrackingIDs("INTCNST" COMMA) pContentPos, pEndContentPos, pOwningFile)
-, val(pVal) {
+, val(pVal)
+, negative(false) {
 	dataType = CDataType::infiniteByteSizeIntType;
 }
 IntConstant::IntConstant(IntConstant* cloneSource, Identifier* pReplacementSource)
 : LexToken(cloneSource, pReplacementSource)
-, val(new BigInt(cloneSource->val, false)) {
+, val(new BigInt(cloneSource->val, false))
+, negative(cloneSource->negative) {
 }
 IntConstant::~IntConstant() {
 	delete val;
@@ -72,7 +74,8 @@ FloatConstant::FloatConstant(
 : LexToken(onlyWhenTrackingIDs("FLTCNST" COMMA) pContentPos, pEndContentPos, pOwningFile)
 , significand(pSignificand)
 , fractionDigits(pFractionDigits)
-, exponent(pExponent) {
+, exponent(pExponent)
+, negative(false) {
 	dataType = CDataType::infinitePrecisionFloatType;
 //TODO:
 //	int expbias = 1 == 1 ? 1023/* double */ : 127/* float */;
@@ -81,7 +84,8 @@ FloatConstant::FloatConstant(FloatConstant* cloneSource, Identifier* pReplacemen
 : LexToken(cloneSource, pReplacementSource)
 , significand(new BigInt(cloneSource->significand, false))
 , fractionDigits(cloneSource->fractionDigits)
-, exponent(cloneSource->exponent) {
+, exponent(cloneSource->exponent)
+, negative(cloneSource->negative) {
 }
 FloatConstant::~FloatConstant() {
 	delete significand;
@@ -365,12 +369,12 @@ FunctionDefinition::FunctionDefinition(
 , returnType(pReturnType)
 , parameters(pParameters)
 , body(pBody)
-, eligibleForRegisterParameters(false)
-, staticallyAccessible(true)
-, resultStorage(new TempStorage(BitSize::BInfinite))
+, eligibleForRegisterParameters(true)
+, resultStorage(nullptr)
 , instructions(nullptr)
 , tempAssignmentDependencies(new Array<FunctionDefinition*>())
-, registersUsed(nullptr) {
+, registersUsed(nullptr)
+, stackBytesUsed(0) {
 	replacementSource = typeToken->replacementSource;
 	Array<CDataType*>* parameterTypes = new Array<CDataType*>();
 	forEach(CVariableDefinition*, c, pParameters, ci) {
@@ -392,17 +396,17 @@ FunctionDefinition::~FunctionDefinition() {
 	delete tempAssignmentDependencies;
 	delete registersUsed;
 }
-Group::Group(Array<Token*>* pValues, Identifier* source)
+GroupToken::GroupToken(Array<Token*>* pValues, Identifier* source)
 : Token(onlyWhenTrackingIDs("GROUP" COMMA) source->contentPos, source->endContentPos, source->owningFile)
 , values(pValues) {
 	replacementSource = source->replacementSource;
 }
-Group::~Group() {
+GroupToken::~GroupToken() {
 	values->deleteContents();
 	delete values;
 }
 //iterate the grouped values
-void Group::visitSubtokens(TokenVisitor* visitor) {
+void GroupToken::visitSubtokens(TokenVisitor* visitor) {
 	forEach(Token*, v, values, vi) {
 		visitor->handleExpression(v);
 	}

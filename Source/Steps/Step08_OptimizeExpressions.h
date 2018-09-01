@@ -2,7 +2,7 @@ class Pliers;
 class Operator;
 class Token;
 class Statement;
-class Group;
+class GroupToken;
 template <class Type> class Array;
 
 class OptimizeExpressions {
@@ -13,5 +13,5 @@ private:
 	static Token* optimizeOperator(Operator* o);
 	static void optimizeFunctionCall(FunctionCall* f);
 	static void optimizeStatementList(Array<Statement*>* statements);
-	static void optimizeGroup(Group* g);
+	static void optimizeGroup(GroupToken* g);
 };
