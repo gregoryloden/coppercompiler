@@ -27,9 +27,9 @@ enum class OperatorType: unsigned char {
 	StaticMemberAccess,
 	Dot,
 	ObjectMemberAccess,
+	VariableLogicalNot,
 	Increment,
 	Decrement,
-	VariableLogicalNot,
 	VariableBitwiseNot,
 	VariableNegate,
 	Cast,
@@ -93,6 +93,18 @@ enum class OperatorTypePrecedence: unsigned char {
 	BooleanOr = 3,
 	Ternary = 2,
 	Assignment = 1
+};
+enum class OperatorSemanticsType: unsigned char {
+	SingleBoolean,
+	SingleInteger,
+	SingleNumber,
+	BooleanBoolean,
+	IntegerInteger,
+	IntegerIntegerBitShift,
+	NumberNumber,
+	NumberNumberOrStringString,
+	AnyAny,
+	Ternary
 };
 
 class Token onlyInDebug(: public ObjCounter) {
@@ -210,6 +222,7 @@ class Operator: public LexToken {
 public:
 	OperatorType operatorType; //copper: readonly
 	OperatorTypePrecedence precedence; //copper: readonly
+	OperatorSemanticsType semanticsType; //copper: readonly
 	bool modifiesVariable; //copper: readonly
 	Token* left; //copper: readonly
 	Token* right; //copper: readonly
@@ -277,7 +290,7 @@ public:
 	bool isRaw;
 	CDataType* castType;
 
-	Cast(CDataType* pType, bool pIsRaw, AbstractCodeBlock* source);
+	Cast(CDataType* pType, bool pIsRaw, Token* source);
 	virtual ~Cast();
 };
 class StaticOperator: public Operator {
@@ -302,12 +315,7 @@ public:
 	CDataType* returnType;
 	Array<CVariableDefinition*>* parameters;
 	Array<Statement*>* body;
-	bool eligibleForRegisterParameters;
-	Register* resultStorage;
-	Array<AssemblyInstruction*>* instructions;
-	Array<FunctionDefinition*>* tempAssignmentDependencies;
-	Array<SpecificRegister>* registersUsed;
-	int stackBytesUsed;
+	//TODO: list of referenced variables
 
 	FunctionDefinition(
 		CDataType* pReturnType, Array<CVariableDefinition*>* pParameters, Array<Statement*>* pBody, Identifier* typeToken);

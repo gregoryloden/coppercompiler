@@ -9,11 +9,11 @@ class Pliers {
 public:
 	const char* baseFileName; //copper: readonly
 	bool printProgress; //copper: readonly
-	Array<SourceFile*>* allFiles; //copper: readonly<Include>
-	FunctionDefinition* mainFunction; //copper: readonly<OptimizeExpressions>
 	Array<ErrorMessage*>* errorMessages; //copper: readonly
 	Array<ErrorMessage*>* warningMessages; //copper: readonly
 	int totalElapsedMilliseconds; //copper: readonly
+	Array<SourceFile*>* allFiles; //copper: readonly<Include>
+	FunctionDefinition* mainFunction; //copper: readonly<OptimizeExpressions>
 
 	Pliers(const char* pBaseFileName, bool pPrintProgress onlyInDebug(COMMA bool printContents));
 	virtual ~Pliers();

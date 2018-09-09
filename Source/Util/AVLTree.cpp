@@ -11,7 +11,10 @@
 	template <> AVLNode<type1, PrefixTrie<type1, type2>*>::~AVLNode() { delete value; }
 
 instantiateAVLTree(AssemblyStorage*, Array<AssemblyStorage*>*, nullptr);
+instantiateAVLTree(BitSize, int, 0);
 instantiateAVLTree(char, char, 0);
+instantiateAVLTree(CVariableDefinition*, AssemblyStorage*, nullptr);
+instantiateAVLTree(FunctionDefinition*, FunctionStaticStorage*, nullptr);
 instantiateAVLTree(int, int, 0);
 instantiateAVLTree(SourceFile*, bool, false);
 instantiatePrefixTrieAVLTree(char, char);
@@ -70,6 +73,7 @@ template <class Key, class Value> AVLNode<Key, Value>* AVLTree<Key, Value>::setA
 		};
 	};
 	//whether the key is on the left or the right, the accessors work properly
+	//the "left" node is the node where the key was inserted into
 	AVLNodeAccessor leftAccessor (key < node->key);
 	AVLNodeAccessor rightAccessor (!leftAccessor.isLeft);
 
@@ -77,18 +81,18 @@ template <class Key, class Value> AVLNode<Key, Value>* AVLTree<Key, Value>::setA
 	AVLNode<Key, Value>* leftNodeRightChild;
 	AVLNode<Key, Value>* leftNode = setAndRebalance(leftAccessor.get(node), key, value);
 	char rightNodeHeight = AVLNode<Key, Value>::nodeHeight(rightAccessor.get(node));
-	//no rebalancing needed:    A<=X+2
+	//no rebalancing needed:    B<=X+2
 	//                         / \
-	//                   X+1>=B   C: X
+	//                   X+1>=A   C: X
 	if (leftNode->height < rightNodeHeight + 2) {
 		leftAccessor.set(node, leftNode);
 		node->height = Math::max(node->height, leftNode->height + 1);
 		return node;
-	//rebalancing needed:    A: X+3                B: X+2
+	//rebalancing needed:    D: X+3                B: X+2
 	//                      / \                   / \
-	//                X+2: B   C: X    >    X+1: D   A: X+1
+	//                X+2: B   E: X    >    X+1: A   D: X+1
 	//                    / \                       / \
-	//              X+1: D   E: X               X: E   C: X
+	//              X+1: A   C: X               X: C   E: X
 	} else if (AVLNode<Key, Value>::nodeHeight(leftAccessor.get(leftNode))
 		> AVLNode<Key, Value>::nodeHeight(leftNodeRightChild = rightAccessor.get(leftNode)))
 	{
@@ -97,13 +101,13 @@ template <class Key, class Value> AVLNode<Key, Value>* AVLTree<Key, Value>::setA
 		rightAccessor.set(leftNode, node);
 		leftNode->height = node->height + 1;
 		return leftNode;
-	//rebalancing needed:    A: X+3
-	//                      / \                         E: X+2
-	//                X+2: B   C: X               .--**' '**--.
-	//                    / \          >    X+1: B             A: X+1    (F=X || G=X) && F>=X-1 && G>=X-1
-	//                X: D   E: X+1             / \           / \
-	//                      / \             X: D   F<=X   X>=G   C: X
-	//                  X>=F   G<=X
+	//rebalancing needed:    F: X+3
+	//                      / \                         D: X+2
+	//                X+2: B   G: X               .--**' '**--.
+	//                    / \          >    X+1: B             F: X+1    (C=X || E=X) && C>=X-1 && E>=X-1
+	//                X: A   D: X+1             / \           / \
+	//                      / \             X: A   C<=X   X>=E   G: X
+	//                  X>=C   E<=X
 	} else {
 		leftAccessor.set(node, rightAccessor.get(leftNodeRightChild));
 		node->height = rightNodeHeight + 1;
@@ -136,7 +140,7 @@ template <class Key, class Value> Value AVLTree<Key, Value>::get(Key key) {
 	}
 	return emptyValue;
 }
-//get the in-order list of all keys in the tree
+//get list of all key-value pairs in the tree, ordered by key
 template <class Key, class Value> Array<AVLNode<Key, Value>*>* AVLTree<Key, Value>::entrySet() {
 	Array<AVLNode<Key, Value>*>* pEntrySet = new Array<AVLNode<Key, Value>*>();
 	addEntries(pEntrySet, root);

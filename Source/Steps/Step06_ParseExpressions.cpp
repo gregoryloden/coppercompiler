@@ -286,6 +286,7 @@ Token* ParseExpressions::addToOperator(Operator* o, Token* activeExpression, Arr
 	if (activeExpression == nullptr && o->operatorType == OperatorType::Subtract) {
 		o->operatorType = OperatorType::Negate;
 		o->precedence = OperatorTypePrecedence::Prefix;
+		o->semanticsType = OperatorSemanticsType::SingleNumber;
 	}
 
 	//whatever the operator is, if it's not postfix then we expect a value to follow

@@ -80,6 +80,7 @@ public:
 
 	static int min(int a, int b);
 	static int max(int a, int b);
+	static int roundUpToMultipleOf(int value, int divisor);
 };
 class StringUtils {
 public:

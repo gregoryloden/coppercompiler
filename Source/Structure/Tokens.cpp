@@ -145,6 +145,7 @@ Operator::Operator(
 : LexToken(onlyWhenTrackingIDs(pObjType COMMA) pContentPos, pEndContentPos, pOwningFile)
 , operatorType(pOperatorType)
 , precedence(OperatorTypePrecedence::Assignment)
+, semanticsType(OperatorSemanticsType::AnyAny)
 , modifiesVariable(false)
 , left(nullptr)
 , right(nullptr) {
@@ -152,35 +153,62 @@ Operator::Operator(
 		case OperatorType::StaticDot:
 		case OperatorType::StaticMemberAccess:
 			precedence = OperatorTypePrecedence::StaticMember;
+			//StaticOperators don't use semantics type
 			break;
 		case OperatorType::Dot:
 			precedence = OperatorTypePrecedence::ObjectMember;
+			//TODO: classes, semantics type for Dot operators
 			break;
 		case OperatorType::ObjectMemberAccess:
 			precedence = OperatorTypePrecedence::ObjectMemberAccess;
+			//TODO: classes, semantics type for Dot operators
+			break;
+		case OperatorType::VariableLogicalNot:
+			precedence = OperatorTypePrecedence::Postfix;
+			semanticsType = OperatorSemanticsType::SingleBoolean;
+			modifiesVariable = true;
 			break;
 		case OperatorType::Increment:
 		case OperatorType::Decrement:
-		case OperatorType::VariableLogicalNot:
 		case OperatorType::VariableBitwiseNot:
+			precedence = OperatorTypePrecedence::Postfix;
+			semanticsType = OperatorSemanticsType::SingleInteger;
+			modifiesVariable = true;
+			break;
 		case OperatorType::VariableNegate:
 			precedence = OperatorTypePrecedence::Postfix;
+			semanticsType = OperatorSemanticsType::SingleNumber;
 			modifiesVariable = true;
 			break;
 		case OperatorType::Cast:
+			precedence = OperatorTypePrecedence::Prefix;
+			//Casts don't use semantics type
+			break;
 		case OperatorType::LogicalNot:
+			precedence = OperatorTypePrecedence::Prefix;
+			semanticsType = OperatorSemanticsType::SingleBoolean;
+			break;
 		case OperatorType::BitwiseNot:
+			precedence = OperatorTypePrecedence::Prefix;
+			semanticsType = OperatorSemanticsType::SingleInteger;
+			break;
 		case OperatorType::Negate:
 			precedence = OperatorTypePrecedence::Prefix;
+			semanticsType = OperatorSemanticsType::SingleNumber;
 			break;
 		case OperatorType::Multiply:
 		case OperatorType::Divide:
 		case OperatorType::Modulus:
 			precedence = OperatorTypePrecedence::Multiplication;
+			semanticsType = OperatorSemanticsType::NumberNumber;
 			break;
 		case OperatorType::Add:
+			precedence = OperatorTypePrecedence::Addition;
+			semanticsType = OperatorSemanticsType::NumberNumberOrStringString;
+			break;
 		case OperatorType::Subtract:
 			precedence = OperatorTypePrecedence::Addition;
+			semanticsType = OperatorSemanticsType::NumberNumber;
 			break;
 		case OperatorType::ShiftLeft:
 		case OperatorType::ShiftRight:
@@ -188,53 +216,85 @@ Operator::Operator(
 //		case OperatorType::RotateLeft:
 //		case OperatorType::RotateRight:
 			precedence = OperatorTypePrecedence::BitShift;
+			semanticsType = OperatorSemanticsType::IntegerIntegerBitShift;
 			break;
 		case OperatorType::BitwiseAnd:
 			precedence = OperatorTypePrecedence::BitwiseAnd;
+			semanticsType = OperatorSemanticsType::IntegerInteger;
 			break;
 		case OperatorType::BitwiseXor:
 			precedence = OperatorTypePrecedence::BitwiseXor;
+			semanticsType = OperatorSemanticsType::IntegerInteger;
 			break;
 		case OperatorType::BitwiseOr:
 			precedence = OperatorTypePrecedence::BitwiseOr;
+			semanticsType = OperatorSemanticsType::IntegerInteger;
 			break;
 		case OperatorType::Equal:
 		case OperatorType::NotEqual:
+			precedence = OperatorTypePrecedence::Comparison;
+			//semanticsType is AnyAny by default
+			break;
 		case OperatorType::LessOrEqual:
 		case OperatorType::GreaterOrEqual:
 		case OperatorType::LessThan:
 		case OperatorType::GreaterThan:
 			precedence = OperatorTypePrecedence::Comparison;
+			semanticsType = OperatorSemanticsType::NumberNumber;
 			break;
 		case OperatorType::BooleanAnd:
 			precedence = OperatorTypePrecedence::BooleanAnd;
+			semanticsType = OperatorSemanticsType::BooleanBoolean;
 			break;
 		case OperatorType::BooleanOr:
 			precedence = OperatorTypePrecedence::BooleanOr;
+			semanticsType = OperatorSemanticsType::BooleanBoolean;
 			break;
 		case OperatorType::Colon:
 		case OperatorType::QuestionMark:
 			precedence = OperatorTypePrecedence::Ternary;
+			semanticsType = OperatorSemanticsType::Ternary;
 			break;
 		case OperatorType::Assign:
+			//precedence is Assignment by default
+			//semanticsType is AnyAny by default
+			modifiesVariable = true;
+			break;
 		case OperatorType::AssignAdd:
+			//precedence is Assignment by default
+			semanticsType = OperatorSemanticsType::NumberNumberOrStringString;
+			modifiesVariable = true;
+			break;
 		case OperatorType::AssignSubtract:
 		case OperatorType::AssignMultiply:
 		case OperatorType::AssignDivide:
 		case OperatorType::AssignModulus:
+			//precedence is Assignment by default
+			semanticsType = OperatorSemanticsType::NumberNumber;
+			modifiesVariable = true;
+			break;
 		case OperatorType::AssignShiftLeft:
 		case OperatorType::AssignShiftRight:
 		case OperatorType::AssignShiftArithmeticRight:
 //		case OperatorType::AssignRotateLeft:
 //		case OperatorType::AssignRotateRight:
+			//precedence is Assignment by default
+			semanticsType = OperatorSemanticsType::IntegerIntegerBitShift;
+			modifiesVariable = true;
+			break;
 		case OperatorType::AssignBitwiseAnd:
 		case OperatorType::AssignBitwiseXor:
 		case OperatorType::AssignBitwiseOr:
-//		case OperatorType::AssignBooleanAnd:
-//		case OperatorType::AssignBooleanOr:
-			precedence = OperatorTypePrecedence::Assignment;
+			//precedence is Assignment by default
+			semanticsType = OperatorSemanticsType::IntegerInteger;
 			modifiesVariable = true;
 			break;
+//		case OperatorType::AssignBooleanAnd:
+//		case OperatorType::AssignBooleanOr:
+//			//precedence is Assignment by default
+//			semanticsType = OperatorSemanticsType::BooleanBoolean;
+//			modifiesVariable = true;
+//			break;
 		case OperatorType::None:
 		default:
 			Error::makeError(ErrorType::CompilerIssue, "determining the operator precedence of this operator", this);
@@ -245,6 +305,8 @@ Operator::Operator(Operator* cloneSource, Identifier* pReplacementSource)
 : LexToken(cloneSource, pReplacementSource)
 , operatorType(cloneSource->operatorType)
 , precedence(cloneSource->precedence)
+, semanticsType(cloneSource->semanticsType)
+, modifiesVariable(cloneSource->modifiesVariable)
 , left(nullptr)
 , right(nullptr) {
 }
@@ -285,7 +347,7 @@ AbstractCodeBlock::AbstractCodeBlock(
 AbstractCodeBlock::AbstractCodeBlock(Array<Token*>* pTokens, AbstractCodeBlock* cloneSource, Identifier* pReplacementSource)
 : Token(cloneSource, pReplacementSource)
 , tokens(pTokens)
-, directives(nullptr) {
+, directives(cloneSource->directives) {
 }
 AbstractCodeBlock::~AbstractCodeBlock() {
 	tokens->deleteContents();
@@ -329,7 +391,7 @@ ParenthesizedExpression::~ParenthesizedExpression() {
 void ParenthesizedExpression::visitSubtokens(TokenVisitor* visitor) {
 	visitor->handleExpression(expression);
 }
-Cast::Cast(CDataType* pType, bool pIsRaw, AbstractCodeBlock* source)
+Cast::Cast(CDataType* pType, bool pIsRaw, Token* source)
 : Operator(onlyWhenTrackingIDs("CAST" COMMA) OperatorType::Cast, source->contentPos, source->endContentPos, source->owningFile)
 , isRaw(pIsRaw)
 , castType(pType) {
@@ -368,13 +430,7 @@ FunctionDefinition::FunctionDefinition(
 : Token(onlyWhenTrackingIDs("FNDEF" COMMA) typeToken->contentPos, typeToken->endContentPos, typeToken->owningFile)
 , returnType(pReturnType)
 , parameters(pParameters)
-, body(pBody)
-, eligibleForRegisterParameters(true)
-, resultStorage(nullptr)
-, instructions(nullptr)
-, tempAssignmentDependencies(new Array<FunctionDefinition*>())
-, registersUsed(nullptr)
-, stackBytesUsed(0) {
+, body(pBody) {
 	replacementSource = typeToken->replacementSource;
 	Array<CDataType*>* parameterTypes = new Array<CDataType*>();
 	forEach(CVariableDefinition*, c, pParameters, ci) {
@@ -388,13 +444,6 @@ FunctionDefinition::~FunctionDefinition() {
 	delete parameters;
 	body->deleteContents();
 	delete body;
-	delete resultStorage;
-	if (instructions != nullptr) {
-		instructions->deleteContents();
-		delete instructions;
-	}
-	delete tempAssignmentDependencies;
-	delete registersUsed;
 }
 GroupToken::GroupToken(Array<Token*>* pValues, Identifier* source)
 : Token(onlyWhenTrackingIDs("GROUP" COMMA) source->contentPos, source->endContentPos, source->owningFile)

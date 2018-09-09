@@ -1,5 +1,7 @@
 #include "Project.h"
 
+//TODO: make sure instructions can handle operands with sources that are too big (ex MOV AL, ECX)
+
 //any-operand macros
 #define emptyDestinationAndSourceArrayEditDefinitions(Type) \
 	void Type::removeDestinations(Array<AssemblyStorage*>* storages) {}\
@@ -123,7 +125,7 @@ void REPMOVSB::addSources(Array<AssemblyStorage*>* storages) {
 	storages->addNonDuplicate(Register::siRegisterForBitSize(cpuBitSize));
 	storages->addNonDuplicate(Register::diRegisterForBitSize(cpuBitSize));
 }
-RET::RET(FunctionDefinition* pOwningFunction)
+RET::RET(FunctionStaticStorage* pOwningFunction)
 : AssemblyInstruction(onlyWhenTrackingIDs("RET" COMMA) nullptr, nullptr)
 , owningFunction(pOwningFunction) {
 }
@@ -230,19 +232,23 @@ MOVSX::MOVSX(Register* pDestination, AssemblyStorage* pSource)
 }
 MOVSX::~MOVSX() {}
 simpleDestinationAndSourceArrayEditDefinitions(MOVSX, destination, source)
-//only one of (calledFunction, functionCallArgumentBytes) will be present
+//only one of [calledFunction, functionCallArgumentBytes] will be present
 StackShift::StackShift(
-	FunctionDefinition* pOwningFunction, FunctionDefinition* pCalledFunction, int pFunctionCallArgumentBytes, bool pCalling)
+	FunctionStaticStorage* pOwningFunction,
+	FunctionStaticStorage* pCalledFunction,
+	int pFunctionCallArgumentBytes,
+	bool pBeforeFunctionCall)
 : AssemblyInstruction(onlyWhenTrackingIDs("STKSHFT" COMMA) nullptr, nullptr)
 , owningFunction(pOwningFunction)
 , calledFunction(pCalledFunction)
 , functionCallArgumentBytes(pFunctionCallArgumentBytes)
-, calling(pCalling) {
+, beforeFunctionCall(pBeforeFunctionCall) {
 }
 StackShift::~StackShift() {
 	//don't delete the owning function or the function call, something else owns them
 }
 emptyDestinationAndSourceArrayEditDefinitions(StackShift)
+//TODO: error if we try to get opcodes from a StackShift
 
 
 

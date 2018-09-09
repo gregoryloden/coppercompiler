@@ -1531,12 +1531,15 @@ SourceFile::~SourceFile() {
 	delete abstractContents;
 	//don't delete the source files, they will get deleted through the main source file list
 	delete includedFiles;
+	//don't delete the inclusion listener contents, those are owned by the pliers files list
 	delete inclusionListeners;
 	replacedTokens->deleteContents();
 	delete replacedTokens;
 	globalVariables->deleteContents();
 	delete globalVariables;
+	//don't delete the variable contents, they are contained within the tokens of the global variables list
 	delete variablesVisibleToFile;
+	//don't delete the variable contents, they are contained within the tokens of the global variables list
 	delete variablesDeclaredInFile;
 }
 int SourceFile::getRow(int contentPos) {
@@ -1557,14 +1560,12 @@ CVariableDefinition::CVariableDefinition(CDataType* pType, Identifier* pName)
 type(pType)
 , name(pName)
 , initialValue(nullptr)
-, storage(new TempStorage(BitSize::BInfinite))
 , writtenTo(false) {
 }
 CVariableDefinition::~CVariableDefinition() {
 	//don't delete the type since it's owned by something else
 	delete name;
 	//don't delete the initial value since it's owned by something else
-	delete storage;
 }
 CVariableData::CVariableData(CVariableDefinition* pVariable)
 : onlyInDebug(ObjCounter(onlyWhenTrackingIDs("VARDATA")) COMMA)

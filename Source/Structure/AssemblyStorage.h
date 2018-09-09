@@ -3,6 +3,7 @@
 class StringLiteral;
 class FunctionDefinition;
 class Thunk;
+class ParameterStorage;
 enum class BitSize: unsigned char;
 
 enum class SpecificRegister: unsigned char {
@@ -86,7 +87,7 @@ private:
 	static Register** allRegisters;
 
 public:
-	SpecificRegister specificRegister; //copper: readonly
+	SpecificRegister specificRegister; //copper: readonly<BuildInitialAssembly>
 
 	Register(SpecificRegister pSpecificRegister);
 	virtual ~Register();
@@ -140,9 +141,17 @@ public:
 };
 class FunctionStaticStorage: public StaticStorage {
 public:
-	FunctionDefinition* val; //copper: readonly
+	FunctionDefinition* sourceFunction;
+	Array<ParameterStorage*>* parameterStorages;
+	bool eligibleForRegisterParameters;
+	Register* resultStorage;
+	Array<AssemblyInstruction*>* instructions;
+	Array<FunctionStaticStorage*>* tempAssignmentDependencies;
+	Array<SpecificRegister>* registersUsed;
+	int stackBytesUsed;
+	int parameterBytesUsed;
 
-	FunctionStaticStorage(FunctionDefinition* pVal, BitSize pointerBitSize);
+	FunctionStaticStorage(FunctionDefinition* pSourceFunction, BitSize pointerBitSize);
 	virtual ~FunctionStaticStorage();
 };
 class ThunkStaticStorage: public StaticStorage {
@@ -165,8 +174,18 @@ class TempStorage: public AssemblyStorage {
 public:
 	AssemblyStorage* finalStorage; //copper: private<Build>
 
-	TempStorage(BitSize pBitSize);
+	#ifdef TRACK_OBJ_IDS
+		TempStorage(BitSize pBitSize);
+	#endif
+	TempStorage(onlyWhenTrackingIDs(char* pObjType COMMA) BitSize pBitSize);
 	virtual ~TempStorage();
+};
+class ParameterStorage: public TempStorage {
+public:
+	FunctionStaticStorage* owningFunction; //copper: readonly
+
+	ParameterStorage(FunctionStaticStorage* pOwningFunction, BitSize pBitSize);
+	virtual ~ParameterStorage();
 };
 
 //miscellaneous assembly utility classes
@@ -178,4 +197,18 @@ private:
 public:
 	Thunk(string pName, unsigned short pThunkID);
 	virtual ~Thunk();
+};
+class BuildResult onlyInDebug(: public ObjCounter) {
+public:
+	Array<StringStaticStorage*>* stringDefinitions; //copper: readonly<BuildInitialAssembly>
+	Array<FunctionStaticStorage*>* functionDefinitions; //copper: readonly<BuildInitialAssembly>
+	Array<ValueStaticStorage*>* globalValues; //copper: readonly<BuildInitialAssembly>
+	Array<AssemblyStorage*>* assemblyStorageToDelete; //copper: readonly<BuildInitialAssembly>
+	FunctionStaticStorage* globalInit; //copper: readonly<BuildInitialAssembly>
+	FunctionStaticStorage* function_Main_exit; //copper: readonly<BuildInitialAssembly>
+	FunctionStaticStorage* function_Main_print; //copper: readonly<BuildInitialAssembly>
+	FunctionStaticStorage* function_Main_str; //copper: readonly<BuildInitialAssembly>
+
+	BuildResult();
+	virtual ~BuildResult();
 };

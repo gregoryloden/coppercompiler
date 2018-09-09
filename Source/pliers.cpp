@@ -108,11 +108,11 @@ while(true) {}
 Pliers::Pliers(const char* pBaseFileName, bool pPrintProgress onlyInDebug(COMMA bool printContents))
 : baseFileName(pBaseFileName)
 , printProgress(pPrintProgress)
-, allFiles(new Array<SourceFile*>())
-, mainFunction(nullptr)
 , errorMessages(new Array<ErrorMessage*>())
 , warningMessages(new Array<ErrorMessage*>())
-, totalElapsedMilliseconds(-1) {
+, totalElapsedMilliseconds(-1)
+, allFiles(new Array<SourceFile*>())
+, mainFunction(nullptr) {
 	int startTime = TimeUtils::getElapsedMilliseconds();
 	Include::loadFiles(this);
 	#ifdef DEBUG
@@ -159,7 +159,7 @@ Pliers::Pliers(const char* pBaseFileName, bool pPrintProgress onlyInDebug(COMMA 
 	OptimizeExpressions::optimizeExpressions(this);
 	returnIfErrors();
 
-	BuildInitialAssembly::buildInitialAssembly(this);
+	delete BuildInitialAssembly::buildInitialAssembly(this, BitSize::B32);
 	returnIfErrors();
 
 	totalElapsedMilliseconds = TimeUtils::getElapsedMilliseconds() - startTime;
@@ -176,13 +176,13 @@ if (printProgress)
 puts("Suspended until the rewrite is complete");
 }
 Pliers::~Pliers() {
-	allFiles->deleteContents();
-	delete allFiles;
-	//do not delete the main function, something else owns it
 	errorMessages->deleteContents();
 	delete errorMessages;
 	warningMessages->deleteContents();
 	delete warningMessages;
+	allFiles->deleteContents();
+	delete allFiles;
+	//don't delete the main function, something else owns it
 }
 /*
 //get the contents of a file as a char*

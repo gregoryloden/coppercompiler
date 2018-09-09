@@ -12,7 +12,7 @@ class Register;
 class StringStaticStorage;
 class FunctionStaticStorage;
 class FunctionDefinition;
-class CVariableDefinition;
+class BuildResult;
 class ValueStaticStorage;
 class MemoryPointer;
 class Statement;
@@ -42,14 +42,12 @@ private:
 		void handleExpression(Token* t);
 	};
 
-	static thread_local Array<AssemblyInstruction*>* currentAssembly;
-	static thread_local FunctionDefinition* currentOwningFunction;
-	static thread_local Array<FunctionDefinition*>* currentTempAssignmentDependencies;
-	static thread_local FunctionDefinition* globalInit;
-	static thread_local Array<StringStaticStorage*>* stringDefinitions;
-	static thread_local Array<FunctionStaticStorage*>* functionDefinitions;
-	static thread_local Array<AssemblyStorage*>* assemblyStorageToDelete;
+	static thread_local FunctionStaticStorage* currentFunction;
+	static thread_local BuildResult* buildResult;
+	static thread_local AVLTree<FunctionDefinition*, FunctionStaticStorage*>* functionDefinitionToStorageMap;
+	static thread_local AVLTree<CVariableDefinition*, AssemblyStorage*>* variableToStorageMap;
 	static thread_local BitSize cpuBitSize;
+	static thread_local int cpuByteSize;
 	static thread_local Register* cpuARegister;
 	static thread_local Register* cpuCRegister;
 	static thread_local Register* cpuDRegister;
@@ -65,31 +63,29 @@ private:
 	static thread_local ValueStaticStorage* copperHeapPointer;
 	static thread_local ValueStaticStorage* copperHeapNextFreeAddressPointer;
 	static thread_local ValueStaticStorage* copperHeapSizePointer;
-	static thread_local FunctionStaticStorage* Main_exit;
-	static thread_local FunctionStaticStorage* Main_print;
-	static thread_local FunctionStaticStorage* Main_str;
 
 public:
-	static void buildInitialAssembly(Pliers* pliers);
+	static BuildResult* buildInitialAssembly(Pliers* pliers, BitSize pCPUBitSize);
 private:
-	static void buildInitialAssemblyForBitSize(Pliers* pliers, BitSize pCPUBitSize);
 	static void setupAssemblyObjects();
 	static void cleanupAssemblyObjects();
 	static void build32BitMainFunctions();
+	static void addGlobalVariableInitializations(Pliers* pliers);
 	static AssemblyStorage* addTokenAssembly(Token* t, CDataType* expectedType, ConditionLabelPair* jumpDests);
 	static AssemblyStorage* getIdentifierStorage(Identifier* i, bool isBeingFunctionCalled);
 	static AssemblyStorage* addCastAssembly(Cast* c);
 	static AssemblyStorage* getStaticOperatorStorage(StaticOperator* s);
-	static Register* addOperatorAssembly(Operator* o, ConditionLabelPair* jumpDests);
+	static Register* addOperatorAssembly(Operator* o, CDataType* expectedType, ConditionLabelPair* jumpDests);
 	static AssemblyStorage* addFunctionCallAssembly(FunctionCall* f);
-	static FunctionStaticStorage* getFunctionDefinitionStorage(FunctionDefinition* f, bool isBeingFunctionCalled);
+	static FunctionStaticStorage* getFunctionDefinitionStorage(
+		FunctionDefinition* f, bool couldBeEligibleForRegisterParameters);
 	static AssemblyConstant* getIntConstantStorage(IntConstant* i, CDataType* expectedType);
 	static AssemblyConstant* getFloatConstantStorage(FloatConstant* f, CDataType* expectedType);
 	static void addStatementListAssembly(Array<Statement*>* statements);
 	static void addConditionAssembly(Token* t, Register* resultStorage, CDataType* expectedType, ConditionLabelPair* jumpDests);
 	static Register* addMemoryToMemoryMove(AssemblyStorage* destination, AssemblyStorage* source);
 	static void addBooleanJump(AssemblyStorage* source, ConditionLabelPair* jumpDests);
-	static void assignTemps(FunctionDefinition* source);
+	static void assignTemps(FunctionStaticStorage* source);
 	static void trackStoragesUsed(
 		Array<AssemblyInstruction*>* instructions,
 		Array<Array<AssemblyStorage*>*>* storagesUsed,
@@ -99,14 +95,18 @@ private:
 		Array<Array<AssemblyStorage*>*>* storagesUsed,
 		AVLTree<AssemblyStorage*, Array<AssemblyStorage*>*>* conflictsByStorage,
 		Array<CALL*>* calls,
-		FunctionDefinition* source);
+		Array<SpecificRegister>* registersUsedForSource,
+		FunctionStaticStorage* source);
 	static int setConflictRegisters(bool* conflictRegisters, Array<AssemblyStorage*>* conflictStorages);
 	static Group2<ConflictRegister, int> getFirstAvailableRegister(BitSize bitSize, bool* conflictRegisters);
 	static void setStorageToRegister(
-		AssemblyStorage* storageToAssign, SpecificRegister specificRegister, FunctionDefinition* errorToken);
+		AssemblyStorage* storageToAssign, SpecificRegister specificRegister, FunctionStaticStorage* errorTokenHolder);
+	static void shiftStackPointers(FunctionStaticStorage* source);
 	static BitSize typeBitSize(CDataType* dt);
 	template <class AssemblyStorageType> static AssemblyStorageType* globalTrackedStorage(AssemblyStorageType* a);
-	static Array<int>* getParameterStackOffsets(Array<BitSize>* parameters);
+	static AssemblyStorage* getVariableStorage(CVariableDefinition* variable);
+	static FunctionStaticStorage* createAndStoreFunctionStaticStorage(FunctionDefinition* f);
+	static Array<int>* getBitSizeOrderedStackOffsets(Array<BitSize>* valueBitSizes);
 	static Array<AssemblyStorage*>* storagesListFor(
 		AVLTree<AssemblyStorage*, Array<AssemblyStorage*>*>* storages, AssemblyStorage* key);
 };

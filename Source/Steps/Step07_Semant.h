@@ -15,23 +15,12 @@ enum class SemantExpressionLevel: unsigned char {
 	TopLevel = 1,
 	TopLevelInParentheses = 3
 };
-enum class OperatorSemanticsType: unsigned char {
-	SingleBoolean,
-	SingleInteger,
-	SingleNumber,
-	BooleanBoolean,
-	IntegerInteger,
-	IntegerIntegerBitShift,
-	NumberNumber,
-	NumberNumberOrStringString,
-	AnyAny,
-	Ternary
-};
 enum class ScopeExitType: unsigned char {
 	None = 0,
 	LoopJump = 1,
 	Return = 2
 };
+
 class Semant {
 private:
 	class FindVisibleVariableDefinitionsVisitor: public TokenVisitor {
@@ -85,6 +74,7 @@ private:
 		Array<CVariableDefinition*>* functionParameters,
 		CDataType* returnType);
 	static bool tokenHasKnownType(Token* t);
+	static Token* implicitCast(Token* t, CDataType* castType);
 	static void logSemantError(ErrorType type, const char* message, Token* token);
 	static void logSemantErrorWithErrorSourceAndOriginFile(
 		ErrorType type, const char* message, Token* token, Token* errorSource, SourceFile* errorOriginFile);

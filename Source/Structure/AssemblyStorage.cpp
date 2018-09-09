@@ -190,12 +190,28 @@ StringStaticStorage::StringStaticStorage(StringLiteral* pVal, BitSize pointerBit
 StringStaticStorage::~StringStaticStorage() {
 	//don't delete the string, something else owns it
 }
-FunctionStaticStorage::FunctionStaticStorage(FunctionDefinition* pVal, BitSize pointerBitSize)
+FunctionStaticStorage::FunctionStaticStorage(FunctionDefinition* pSourceFunction, BitSize pointerBitSize)
 : StaticStorage(onlyWhenTrackingIDs("FNCSSTG" COMMA) pointerBitSize)
-, val(pVal) {
+, sourceFunction(pSourceFunction)
+, parameterStorages(new Array<ParameterStorage*>())
+, eligibleForRegisterParameters(true)
+, resultStorage(nullptr)
+, instructions(new Array<AssemblyInstruction*>())
+, tempAssignmentDependencies(new Array<FunctionStaticStorage*>())
+, registersUsed(nullptr)
+, stackBytesUsed(0)
+, parameterBytesUsed(0) {
 }
 FunctionStaticStorage::~FunctionStaticStorage() {
 	//don't delete the function, something else owns it
+	parameterStorages->deleteContents();
+	delete parameterStorages;
+	delete resultStorage;
+	instructions->deleteContents();
+	delete instructions;
+	//don't delete the dependency contents, something else owns them
+	delete tempAssignmentDependencies;
+	delete registersUsed;
 }
 ThunkStaticStorage::ThunkStaticStorage(Thunk* pVal, BitSize pointerBitSize)
 : StaticStorage(onlyWhenTrackingIDs("TNKSSTG" COMMA) pointerBitSize)
@@ -211,8 +227,13 @@ StaticAddress::StaticAddress(StaticStorage* pStorage, BitSize pointerBitSize)
 StaticAddress::~StaticAddress() {
 	//don't delete the storage, something else owns it
 }
-TempStorage::TempStorage(BitSize pBitSize)
-: AssemblyStorage(onlyWhenTrackingIDs("TMPSTRG" COMMA) pBitSize)
+#ifdef TRACK_OBJ_IDS
+	TempStorage::TempStorage(BitSize pBitSize)
+	: TempStorage::TempStorage("TMPSTRG", pBitSize) {
+	}
+#endif
+TempStorage::TempStorage(onlyWhenTrackingIDs(char* pObjType COMMA) BitSize pBitSize)
+: AssemblyStorage(onlyWhenTrackingIDs(pObjType COMMA) pBitSize)
 , finalStorage(nullptr) {
 }
 TempStorage::~TempStorage() {
@@ -220,9 +241,41 @@ TempStorage::~TempStorage() {
 	if (istype(finalStorage, MemoryPointer*))
 		delete finalStorage;
 }
+ParameterStorage::ParameterStorage(FunctionStaticStorage* pOwningFunction, BitSize pBitSize)
+: TempStorage(onlyWhenTrackingIDs("ARGSTRG" COMMA) pBitSize)
+, owningFunction(pOwningFunction) {
+}
+ParameterStorage::~ParameterStorage() {
+	//don't delete owningFunction, something else owns it
+}
 Thunk::Thunk(string pName, unsigned short pThunkID)
 : onlyInDebug(ObjCounter(onlyWhenTrackingIDs("THUNK")) COMMA)
 name(pName)
 , thunkID(pThunkID) {
 }
 Thunk::~Thunk() {}
+BuildResult::BuildResult()
+: onlyInDebug(ObjCounter(onlyWhenTrackingIDs("BLDRSLT")) COMMA)
+stringDefinitions(new Array<StringStaticStorage*>())
+, functionDefinitions(new Array<FunctionStaticStorage*>())
+, globalValues(new Array<ValueStaticStorage*>())
+, assemblyStorageToDelete(new Array<AssemblyStorage*>())
+, globalInit(nullptr)
+, function_Main_exit(nullptr)
+, function_Main_print(nullptr)
+, function_Main_str(nullptr) {
+}
+BuildResult::~BuildResult() {
+	stringDefinitions->deleteContents();
+	delete stringDefinitions;
+	delete globalInit->sourceFunction;
+	delete function_Main_exit->sourceFunction;
+	delete function_Main_print->sourceFunction;
+	delete function_Main_str->sourceFunction;
+	functionDefinitions->deleteContents();
+	delete functionDefinitions;
+	globalValues->deleteContents();
+	delete globalValues;
+	assemblyStorageToDelete->deleteContents();
+	delete assemblyStorageToDelete;
+}

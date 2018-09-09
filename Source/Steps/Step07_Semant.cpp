@@ -10,7 +10,7 @@ Semant::FindVisibleVariableDefinitionsVisitor::FindVisibleVariableDefinitionsVis
 , originFile(pOriginFile) {
 }
 Semant::FindVisibleVariableDefinitionsVisitor::~FindVisibleVariableDefinitionsVisitor() {
-	//don't delete the variables, they're owned by something else
+	//don't delete the variables or the trie, they're owned by something else
 }
 //search the token for variable initializations that will definitely happen and be visible to other expressions
 void Semant::FindVisibleVariableDefinitionsVisitor::handleExpression(Token* t) {
@@ -29,7 +29,7 @@ Semant::SemantFileStatementsVisitor::SemantFileStatementsVisitor(PrefixTrie<char
 , variables(pVariables) {
 }
 Semant::SemantFileStatementsVisitor::~SemantFileStatementsVisitor() {
-	//don't delete the variables, they're owned by something else
+	//don't delete the variables or the trie, they're owned by something else
 }
 //search the token for function definitions and semant their statements
 void Semant::SemantFileStatementsVisitor::handleExpression(Token* t) {
@@ -286,117 +286,8 @@ void Semant::semantStaticOperator(StaticOperator* s, PrefixTrie<char, CVariableD
 void Semant::semantOperator(
 	Operator* o, PrefixTrie<char, CVariableDefinition*>* variables, SemantExpressionLevel semantExpressionLevel)
 {
-	//check which validations we need to perform
-	OperatorSemanticsType operatorSemanticsType;
+	//first make sure this operator is valid
 	switch (o->operatorType) {
-		//single boolean non-mutating operators
-		case OperatorType::LogicalNot:
-			operatorSemanticsType = OperatorSemanticsType::SingleBoolean;
-			break;
-		//single integer non-mutating operators
-		case OperatorType::BitwiseNot:
-			operatorSemanticsType = OperatorSemanticsType::SingleInteger;
-			break;
-		//single number non-mutating operators
-		case OperatorType::Negate:
-			operatorSemanticsType = OperatorSemanticsType::SingleNumber;
-			break;
-		//boolean-boolean non-mutating operators
-		case OperatorType::BooleanAnd:
-		case OperatorType::BooleanOr:
-			operatorSemanticsType = OperatorSemanticsType::BooleanBoolean;
-			break;
-		//integer-integer non-mutating operators, casts where appropriate
-		case OperatorType::BitwiseAnd:
-		case OperatorType::BitwiseXor:
-		case OperatorType::BitwiseOr:
-			operatorSemanticsType = OperatorSemanticsType::IntegerInteger;
-			break;
-		//integer-integer non-mutating bit shifts, no casting necessary
-		case OperatorType::ShiftLeft:
-		case OperatorType::ShiftRight:
-		case OperatorType::ShiftArithmeticRight:
-//		case OperatorType::RotateLeft:
-//		case OperatorType::RotateRight:
-			operatorSemanticsType = OperatorSemanticsType::IntegerIntegerBitShift;
-			break;
-		//number-number non-mutating operators, casts where appropriate
-		case OperatorType::Multiply:
-		case OperatorType::Divide:
-		case OperatorType::Modulus:
-		case OperatorType::Subtract:
-			operatorSemanticsType = OperatorSemanticsType::NumberNumber;
-			break;
-		//same as above but this one can be number-number or string-string
-		case OperatorType::Add:
-			operatorSemanticsType = OperatorSemanticsType::NumberNumberOrStringString;
-			break;
-		//number-number non-mutating comparison operators, casts where appropriate
-		case OperatorType::LessOrEqual:
-		case OperatorType::GreaterOrEqual:
-		case OperatorType::LessThan:
-		case OperatorType::GreaterThan:
-			operatorSemanticsType = OperatorSemanticsType::NumberNumber;
-			break;
-		//any-any non-mutating comparison operators, two types where one can be implicitly casted to the other
-		case OperatorType::Equal:
-		case OperatorType::NotEqual:
-			operatorSemanticsType = OperatorSemanticsType::AnyAny;
-			break;
-		//non-mutating ternary operator, make sure the left side is a boolean and the right side is a colon with two types
-		//	that share a common ancestor type
-		case OperatorType::QuestionMark:
-			operatorSemanticsType = OperatorSemanticsType::Ternary;
-			break;
-		//single boolean mutating operators
-		case OperatorType::VariableLogicalNot:
-			operatorSemanticsType = OperatorSemanticsType::SingleBoolean;
-			break;
-		//single integer mutating operators
-		case OperatorType::Increment:
-		case OperatorType::Decrement:
-		case OperatorType::VariableBitwiseNot:
-			operatorSemanticsType = OperatorSemanticsType::SingleInteger;
-			break;
-		//single number mutating operators
-		case OperatorType::VariableNegate:
-			operatorSemanticsType = OperatorSemanticsType::SingleNumber;
-			break;
-		//boolean-boolean mutating operators
-//		case OperatorType::AssignBooleanAnd:
-//		case OperatorType::AssignBooleanOr:
-//			operatorSemanticsType = OperatorSemanticsType::BooleanBoolean;
-//			assignment = true;
-//			break;
-		//integer-integer mutating operators, casts where appropriate
-		case OperatorType::AssignBitwiseAnd:
-		case OperatorType::AssignBitwiseXor:
-		case OperatorType::AssignBitwiseOr:
-			operatorSemanticsType = OperatorSemanticsType::IntegerInteger;
-			break;
-		//integer-integer mutating bit shifts, no casting necessary
-		case OperatorType::AssignShiftLeft:
-		case OperatorType::AssignShiftRight:
-		case OperatorType::AssignShiftArithmeticRight:
-//		case OperatorType::AssignRotateLeft:
-//		case OperatorType::AssignRotateRight:
-			operatorSemanticsType = OperatorSemanticsType::IntegerIntegerBitShift;
-			break;
-		//number-number mutating operators, casts where appropriate
-		case OperatorType::AssignSubtract:
-		case OperatorType::AssignMultiply:
-		case OperatorType::AssignDivide:
-		case OperatorType::AssignModulus:
-			operatorSemanticsType = OperatorSemanticsType::NumberNumber;
-			break;
-		//same as above but this one can be number-number or string-string
-		case OperatorType::AssignAdd:
-			operatorSemanticsType = OperatorSemanticsType::NumberNumberOrStringString;
-			break;
-		//any-any mutating operators, two types where the right can be implicitly casted to the left
-		case OperatorType::Assign:
-			operatorSemanticsType = OperatorSemanticsType::AnyAny;
-			break;
 		//this one isn't supposed to be handled on its own
 		case OperatorType::Colon:
 			logSemantError(ErrorType::General, "colon missing question mark in ternary operator", o);
@@ -406,14 +297,15 @@ void Semant::semantOperator(
 		case OperatorType::ObjectMemberAccess:
 			logSemantError(ErrorType::General, "member variables are currently not supported", o);
 			return;
-		//these should have already been handled
+		//these should not get here
 		case OperatorType::None:
 		case OperatorType::StaticDot:
 		case OperatorType::StaticMemberAccess:
 		case OperatorType::Cast:
-		default:
 			Error::logError(ErrorType::CompilerIssue, "determining the operator semantics for this operator", o);
 			return;
+		default:
+			break;
 	}
 	//rewrite prefix operators to be postfix
 	if (o->left == nullptr) {
@@ -431,18 +323,21 @@ void Semant::semantOperator(
 		if (!tokenHasKnownType(o->left))
 			return;
 	}
-	if (operatorSemanticsType == OperatorSemanticsType::SingleBoolean
-		|| operatorSemanticsType == OperatorSemanticsType::SingleInteger
-		|| operatorSemanticsType == OperatorSemanticsType::SingleNumber)
+	//unary operators, make sure they only have one operand
+	if (o->semanticsType == OperatorSemanticsType::SingleBoolean
+		|| o->semanticsType == OperatorSemanticsType::SingleInteger
+		|| o->semanticsType == OperatorSemanticsType::SingleNumber)
 	{
 		if (o->right != nullptr) {
 			Error::logError(ErrorType::CompilerIssue, "resulting in a unary operator with an extra operand", o);
 			return;
 		}
+	//binary operator, make sure we have a right operand
 	} else if (o->right == nullptr) {
 		Error::logError(ErrorType::CompilerIssue, "resulting in a binary operator missing an operand", o);
 		return;
-	} else if (operatorSemanticsType != OperatorSemanticsType::Ternary) {
+	//semant the right operand for a binary operator
+	} else if (o->semanticsType != OperatorSemanticsType::Ternary) {
 		//any variables that appear on the right side of booleans are unavailable outside of it
 		if (o->operatorType == OperatorType::BooleanAnd || o->operatorType == OperatorType::BooleanOr) {
 			PrefixTrieUnion<char, CVariableDefinition*> booleanOperatorVariables (variables);
@@ -456,12 +351,13 @@ void Semant::semantOperator(
 	//copper: switch with gotos
 	Operator* ternaryResult;
 	CDataType* ternaryResultType;
-	switch (operatorSemanticsType) {
+	switch (o->semanticsType) {
 		case OperatorSemanticsType::BooleanBoolean:
 			if (o->right->dataType != CDataType::boolType) {
 				logSemantErrorWithErrorCheck(ErrorType::Expected, "a boolean value", o->right, o);
 				return;
 			}
+			//fallthrough
 		case OperatorSemanticsType::SingleBoolean:
 			if (o->left->dataType != CDataType::boolType) {
 				logSemantErrorWithErrorCheck(ErrorType::Expected, "a boolean value", o->left, o);
@@ -474,6 +370,7 @@ void Semant::semantOperator(
 				logSemantErrorWithErrorCheck(ErrorType::Expected, "an integer value", o->right, o);
 				return;
 			}
+			//fallthrough
 		case OperatorSemanticsType::SingleInteger:
 			if (!istype(o->left->dataType, CIntegerPrimitive*)) {
 				logSemantErrorWithErrorCheck(ErrorType::Expected, "an integer value", o->left, o);
@@ -485,6 +382,7 @@ void Semant::semantOperator(
 				logSemantErrorWithErrorCheck(ErrorType::Expected, "a numeric value", o->right, o);
 				return;
 			}
+			//fallthrough
 		case OperatorSemanticsType::SingleNumber:
 			if (!istype(o->left->dataType, CNumericPrimitive*)) {
 				logSemantErrorWithErrorCheck(ErrorType::Expected, "a numeric value", o->left, o);
@@ -537,6 +435,8 @@ void Semant::semantOperator(
 				logSemantError(ErrorType::General, errorMessage.c_str(), o);
 				return;
 			}
+			ternaryResult->left = implicitCast(ternaryResult->left, ternaryResultType);
+			ternaryResult->right = implicitCast(ternaryResult->right, ternaryResultType);
 			o->dataType = ternaryResultType;
 			return;
 		}
@@ -566,7 +466,8 @@ void Semant::semantOperator(
 		}
 		//make sure that either the type matches,
 		//	or that it's a multiple-variable-definition-list with all the same type that accepts the right type
-		if (CDataType::bestCompatibleType(o->left->dataType, o->right->dataType) != o->left->dataType) {
+		CDataType* leftType = o->left->dataType;
+		if (CDataType::bestCompatibleType(leftType, o->right->dataType) != leftType) {
 			bool singleTypeVariableDeclarationList = false;
 			if (v != nullptr && v->variables->length > 1) {
 				CSpecificGroup* groupType;
@@ -574,8 +475,8 @@ void Semant::semantOperator(
 					Error::logError(ErrorType::CompilerIssue, "determining the types of these variables", v);
 					return;
 				} else if (groupType->allSameType) {
-					CDataType* groupInnerType = groupType->types->get(0)->type;
-					if (CDataType::bestCompatibleType(groupInnerType, o->right->dataType) == groupInnerType)
+					leftType = groupType->types->get(0)->type;
+					if (CDataType::bestCompatibleType(leftType, o->right->dataType) == leftType)
 						singleTypeVariableDeclarationList = true;
 				}
 			}
@@ -592,29 +493,45 @@ void Semant::semantOperator(
 			return;
 		}
 		//TODO: Groups - figure out automatic grouping/ungrouping
+		o->right = implicitCast(o->right, leftType);
 		o->dataType = o->left->dataType;
 	//check that comparisons are valid- as long as one is castable to the other we're good
 	} else if (o->precedence == OperatorTypePrecedence::Comparison) {
-		if (CDataType::bestCompatibleType(o->left->dataType, o->right->dataType) == nullptr) {
+		CDataType* compatibleType = CDataType::bestCompatibleType(o->left->dataType, o->right->dataType);
+		if (compatibleType == nullptr) {
 			string errorMessage = "cannot compare values of type " + o->left->dataType->name
 				+ " and " + o->right->dataType->name;
 			logSemantError(ErrorType::General, errorMessage.c_str(), o);
 			return;
 		}
+		o->left = implicitCast(o->left, compatibleType);
+		o->right = implicitCast(o->right, compatibleType);
 		o->dataType = CDataType::boolType;
 	//check that we have a variable to modify
 	} else if (o->modifiesVariable) {
-		if (!istype(o->left, Identifier*)) {
+		Identifier* i;
+		if (!let(Identifier*, i, o->left)) {
 			logSemantErrorWithErrorCheck(ErrorType::Expected, "a variable", o->left, o);
 			return;
 		}
+		if (o->right != nullptr)
+			o->right = implicitCast(o->right, o->left->dataType);
+		o->dataType = i->dataType;
+		i->variable->writtenTo = true;
+	//unary operators don't need to do any type matching
+	} else if (o->right == nullptr)
 		o->dataType = o->left->dataType;
-	//bitshifts result in the left type regardless what the right type is
-	} else if (o->right == nullptr || operatorSemanticsType == OperatorSemanticsType::IntegerIntegerBitShift)
+	//bitshifts result in the left type regardless what the right type is (which we expect to be byte)
+	else if (o->semanticsType == OperatorSemanticsType::IntegerIntegerBitShift) {
+		o->right = implicitCast(o->right, CDataType::byteType);
 		o->dataType = o->left->dataType;
 	//and everything else results in the best compatible type between the two of them
-	else
-		o->dataType = CDataType::bestCompatibleType(o->left->dataType, o->right->dataType);
+	} else {
+		CDataType* compatibleType = CDataType::bestCompatibleType(o->left->dataType, o->right->dataType);
+		o->left = implicitCast(o->left, compatibleType);
+		o->right = implicitCast(o->right, compatibleType);
+		o->dataType = compatibleType;
+	}
 }
 //verify that this function call has the right function and argument types
 void Semant::semantFunctionCall(FunctionCall* f, PrefixTrie<char, CVariableDefinition*>* variables) {
@@ -647,7 +564,8 @@ void Semant::semantFunctionCall(FunctionCall* f, PrefixTrie<char, CVariableDefin
 			if (CDataType::bestCompatibleType(expectedType, t->dataType) != expectedType) {
 				string errorMessage = "expected a value of type " + expectedType->name + " but got " + t->dataType->name;
 				logSemantErrorWithErrorCheck(ErrorType::General, errorMessage.c_str(), t, f);
-			}
+			} else
+				f->arguments->set(i, implicitCast(t, expectedType));
 		} else
 			argumentTypesAreKnown = false;
 	}
@@ -667,6 +585,7 @@ void Semant::semantGroup(GroupToken* g, PrefixTrie<char, CVariableDefinition*>* 
 	Error::logError(ErrorType::CompilerIssue, "resulting in a Group appearing an expression", g);
 	assert(false); //TODO: Groups
 	//TODO: ???????????
+	//TODO: make sure to implicitly cast things
 }
 //semant all the statments in the given statement list
 //functions will pass a return type, to be recursively passed for other statement lists
@@ -763,6 +682,15 @@ bool Semant::tokenHasKnownType(Token* t) {
 	return t->dataType != nullptr
 		&& t->dataType != CDataType::errorType
 		&& (!resemantingGenericTypeVariables || !istype(t->dataType, CGenericPointerType*));
+}
+//if the token doesn't match the cast type, cast it to that type
+Token* Semant::implicitCast(Token* t, CDataType* castType) {
+	if (t->dataType == castType)
+		return t;
+	Cast* c = new Cast(castType, false, t);
+	c->right = t;
+	c->dataType = castType;
+	return c;
 }
 //log an error and give the token an error type, unless we've already done so
 void Semant::logSemantError(ErrorType type, const char* message, Token* token) {

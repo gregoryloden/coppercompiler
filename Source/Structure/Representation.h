@@ -439,7 +439,6 @@ public:
 	CDataType* type;
 	Identifier* name;
 	Token* initialValue;
-	TempStorage* storage;
 	bool writtenTo;
 	//CClass* owningClass;
 

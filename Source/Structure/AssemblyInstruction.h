@@ -1,7 +1,7 @@
 #include "../General/globals.h"
 
-class FunctionDefinition;
 class FunctionCall;
+class FunctionStaticStorage;
 class AssemblyStorage;
 class MemoryPointer;
 class StaticStorage;
@@ -82,10 +82,10 @@ public:
 //0-1 operand instructions
 class RET: public AssemblyInstruction {
 private:
-	FunctionDefinition* owningFunction;
+	FunctionStaticStorage* owningFunction;
 
 public:
-	RET(FunctionDefinition* pOwningFunction);
+	RET(FunctionStaticStorage* pOwningFunction);
 	virtual ~RET();
 
 	void removeDestinations(Array<AssemblyStorage*>* storages);
@@ -187,20 +187,19 @@ public:
 	void removeDestinations(Array<AssemblyStorage*>* storages);
 	void addSources(Array<AssemblyStorage*>* storages);
 };
-//this will become a SUB but we need to track it separately
+//this will become an (ADD/SUB *SP, #) but we need to track it separately
 class StackShift: public AssemblyInstruction {
-private:
-	FunctionDefinition* owningFunction;
-	FunctionDefinition* calledFunction;
-	int functionCallArgumentBytes;
-	bool calling;
-
 public:
+	FunctionStaticStorage* owningFunction; //copper: readonly
+	FunctionStaticStorage* calledFunction; //copper: readonly
+	int functionCallArgumentBytes; //copper: readonly
+	bool beforeFunctionCall; //copper: readonly
+
 	StackShift(
-		FunctionDefinition* pOwningFunction,
-		FunctionDefinition* pCalledFunction,
+		FunctionStaticStorage* pOwningFunction,
+		FunctionStaticStorage* pCalledFunction,
 		int pFunctionCallArgumentBytes,
-		bool pCalling);
+		bool pBeforeFunctionCall);
 	~StackShift();
 
 	void removeDestinations(Array<AssemblyStorage*>* storages);

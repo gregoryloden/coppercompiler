@@ -80,6 +80,10 @@ int Math::min(int a, int b) {
 int Math::max(int a, int b) {
 	return a > b ? a : b;
 }
+//round the value up to a multiple of the divisor
+int Math::roundUpToMultipleOf(int value, int divisor) {
+	return value + divisor - 1 - (value - 1) % divisor;
+}
 //return an array of substrings that appear between instances of the given delimiter
 Array<string>* StringUtils::split(string s, char delimiter) {
 	Array<string>* result = new Array<string>();
