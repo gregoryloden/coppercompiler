@@ -92,6 +92,10 @@ CDataType* CDataType::bestCompatibleType(CDataType* type1, CDataType* type2) {
 	//TODO: classes
 	return nullptr;
 }
+//return the number of bytes taken by the bit size
+int CDataType::bitSizeToByteSize(BitSize bitSize) {
+	return (int)(((unsigned char)bitSize + 7) / 8);
+}
 CPrimitive::CPrimitive(onlyWhenTrackingIDs(char* pObjType COMMA) string pName, BitSize pBitSize)
 : CDataType(onlyWhenTrackingIDs(pObjType COMMA) pName)
 , bitSize(pBitSize) {

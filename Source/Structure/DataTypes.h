@@ -48,6 +48,7 @@ public:
 	static void initializeGlobalDataTypes();
 	static void deleteGlobalDataTypes();
 	static CDataType* bestCompatibleType(CDataType* type1, CDataType* type2);
+	static int bitSizeToByteSize(BitSize bitSize);
 };
 class CPrimitive: public CDataType {
 public:

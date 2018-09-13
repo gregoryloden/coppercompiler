@@ -5,6 +5,8 @@
 	#undef max
 #endif
 
+//TODO: debug printout of functions, checking registers and stack pointers
+
 #define instantiateArrayDeleters(type) template class ArrayContentDeleter<type>; template class Deleter<Array<type*>>;
 #ifdef TRACK_OBJ_IDS
 	//**/#define PRINT_OBJ_ADD_OR_REMOVE

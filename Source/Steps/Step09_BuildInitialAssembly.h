@@ -21,6 +21,8 @@ enum class BitSize: unsigned char;
 enum class SpecificRegister: unsigned char;
 enum class ConflictRegister: unsigned char;
 template <class Key, class Value> class AVLTree;
+template <class Key, class Value> class AVLNode;
+template <class Key, class Value> class InsertionOrderedAVLTree;
 template <class KeyElement, class Value> class PrefixTrie;
 template <class Type> class Array;
 template <class Type1, class Type2> class Group2;
@@ -95,12 +97,22 @@ private:
 		Array<Array<AssemblyStorage*>*>* storagesUsed,
 		AVLTree<AssemblyStorage*, Array<AssemblyStorage*>*>* conflictsByStorage,
 		Array<CALL*>* calls,
+		Array<AVLNode<AssemblyStorage*, Array<AssemblyStorage*>*>*>* storagesWithPotentialSameStorages,
 		Array<SpecificRegister>* registersUsedForSource,
+		FunctionStaticStorage* source);
+	static void assignRegisterFinalStorages(
+		InsertionOrderedAVLTree<AssemblyStorage*, Array<AssemblyStorage*>*>* conflictsByStorage,
+		Array<AVLNode<AssemblyStorage*, Array<AssemblyStorage*>*>*>* storagesWithPotentialSameStorages,
+		Array<TempStorage*>* tempsToAssignOnStack,
 		FunctionStaticStorage* source);
 	static int setConflictRegisters(bool* conflictRegisters, Array<AssemblyStorage*>* conflictStorages);
 	static Group2<ConflictRegister, int> getFirstAvailableRegister(BitSize bitSize, bool* conflictRegisters);
 	static void setStorageToRegister(
 		AssemblyStorage* storageToAssign, SpecificRegister specificRegister, FunctionStaticStorage* errorTokenHolder);
+	static void assignStackFinalStorages(
+		Array<TempStorage*>* tempsToAssignOnStack,
+		AVLTree<AssemblyStorage*, Array<AssemblyStorage*>*>* conflictsByStorage,
+		FunctionStaticStorage* source);
 	static void shiftStackPointers(FunctionStaticStorage* source);
 	static BitSize typeBitSize(CDataType* dt);
 	template <class AssemblyStorageType> static AssemblyStorageType* globalTrackedStorage(AssemblyStorageType* a);

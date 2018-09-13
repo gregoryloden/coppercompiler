@@ -30,8 +30,6 @@
 
 //TODO: stack shifts need to handle temps
 
-//TODO: make sure all parameter memory pointers have the appropriate offset
-
 //TODO: stack shifts only care about cpuSPRegister, not any other memory pointer
 
 //TODO: track which registers hold which temps, and use the register in place of the temp if possible
@@ -154,7 +152,7 @@ thread_local ValueStaticStorage* BuildInitialAssembly::copperHeapSizePointer = n
 //build the final executable file for the specified bit size specified
 BuildResult* BuildInitialAssembly::buildInitialAssembly(Pliers* pliers, BitSize pCPUBitSize) {
 	cpuBitSize = pCPUBitSize;
-	cpuByteSize = (int)((unsigned char)cpuBitSize / 8);
+	cpuByteSize = CDataType::bitSizeToByteSize(cpuBitSize);
 	if (pliers->printProgress)
 		puts("Building executable...");
 
@@ -208,6 +206,8 @@ BuildResult* BuildInitialAssembly::buildInitialAssembly(Pliers* pliers, BitSize 
 		}
 		//if we didn't find a function without dependencies, assign temps on the last one
 		if (!foundFunctionToAssignTempsTo)
+//TODO: if we get here, all functions are mutually recursive with something
+//in that case, none of them are eligible for register parameters
 			assignTemps(functionsToAssignTempsTo->pop());
 	}
 	delete functionsToAssignTempsTo;
@@ -1004,14 +1004,14 @@ AssemblyStorage* BuildInitialAssembly::addFunctionCallAssembly(FunctionCall* f) 
 			return cpuARegister;
 		}
 		//find out how much we need to shift the stack and shift it
-		int shiftTotalBits = 0;
+		int shiftTotalBytes = 0;
 		Array<BitSize> argumentBitSizes;
 		forEach(Token*, t, f->arguments, ti) {
 			BitSize b = typeBitSize(t->dataType);
-			shiftTotalBits += Math::max(8, (int)((unsigned char)b));
+			shiftTotalBytes += CDataType::bitSizeToByteSize(b);
 			argumentBitSizes.add(b);
 		}
-		int shiftTotalBytes = Math::roundUpToMultipleOf(shiftTotalBits / 8, cpuByteSize);
+		shiftTotalBytes = Math::roundUpToMultipleOf(shiftTotalBytes, cpuByteSize);
 		currentFunction->instructions->add(new StackShift(currentFunction, nullptr, shiftTotalBytes, true));
 		Array<int>* argumentStackOffsets = getBitSizeOrderedStackOffsets(&argumentBitSizes);
 		//then get all the arguments
@@ -1189,33 +1189,6 @@ void BuildInitialAssembly::assignTemps(FunctionStaticStorage* source) {
 		storagesUsed.add(new Array<AssemblyStorage*>());
 	}
 
-	AVLTree<AssemblyStorage*, Array<AssemblyStorage*>*> potentialSameStoragesByStorage;
-	Array<CALL*> calls;
-	trackStoragesUsed(instructions, &storagesUsed, &potentialSameStoragesByStorage, &calls);
-
-	InsertionOrderedAVLTree<AssemblyStorage*, Array<AssemblyStorage*>*> conflictsByStorage;
-	Array<SpecificRegister>* registersUsed = new Array<SpecificRegister>();
-	markConflicts(&storagesUsed, &conflictsByStorage, &calls, registersUsed, source);
-
-	//make sure we won't try to match storage to another storage that conflicts with it
-	Array<AVLNode<AssemblyStorage*, Array<AssemblyStorage*>*>*>* storagesWithPotentialSameStorages =
-		potentialSameStoragesByStorage.entrySet();
-	forEach(
-		AVLNode<AssemblyStorage* COMMA Array<AssemblyStorage*>*>*,
-		storageWithPotentialSameStorages,
-		storagesWithPotentialSameStorages,
-		dontMatchI)
-	{
-		Array<AssemblyStorage*>* conflicts = conflictsByStorage.get(storageWithPotentialSameStorages->key);
-		//an unused, uninitialized variable has no conflicts
-		if (conflicts == nullptr)
-			continue;
-		Array<AssemblyStorage*>* potentialSameStorages = storageWithPotentialSameStorages->value;
-		forEach(AssemblyStorage*, conflict, conflicts, ci) {
-			potentialSameStorages->removeItem(conflict);
-		}
-	}
-
 	//if our function definition isn't eligible for register parameters, assign it stack pointers now
 	if (!source->eligibleForRegisterParameters) {
 		Array<BitSize> argumentBitSizes;
@@ -1225,178 +1198,35 @@ void BuildInitialAssembly::assignTemps(FunctionStaticStorage* source) {
 		Array<int>* parameterStackOffsets = getBitSizeOrderedStackOffsets(&argumentBitSizes);
 		for (int i = 0; i < parameterStackOffsets->length; i++)
 			source->parameterStorages->get(i)->finalStorage =
+				//address = *SP + parameter offset + one cpu word for the return address
 				new MemoryPointer(cpuSPRegister, parameterStackOffsets->get(i) + cpuByteSize, argumentBitSizes.get(i));
 		delete parameterStackOffsets;
 	}
 
-	//now we have a complete list of conflicts
-	//find all the temps and undecided registers to assign
-	Array<AssemblyStorage*> storagesToAssign;
-	Array<AssemblyStorage*> storagesToAssignWithGuaranteedRegister;
+	AVLTree<AssemblyStorage*, Array<AssemblyStorage*>*> potentialSameStoragesByStorage;
+	Array<CALL*> calls;
+	trackStoragesUsed(instructions, &storagesUsed, &potentialSameStoragesByStorage, &calls);
+
+	InsertionOrderedAVLTree<AssemblyStorage*, Array<AssemblyStorage*>*> conflictsByStorage;
+	Array<AVLNode<AssemblyStorage*, Array<AssemblyStorage*>*>*>* storagesWithPotentialSameStorages =
+		potentialSameStoragesByStorage.entrySet();
+	Array<SpecificRegister>* registersUsed = new Array<SpecificRegister>();
+	markConflicts(&storagesUsed, &conflictsByStorage, &calls, storagesWithPotentialSameStorages, registersUsed, source);
+
 	Array<TempStorage*> tempsToAssignOnStack;
-	forEach(AssemblyStorage*, storage, conflictsByStorage.insertionOrder, insertionOrderedConflictsI) {
-		Register* r;
-		if (istype(storage, TempStorage*)
-				|| (let(Register*, r, storage)
-					&& (r->specificRegister == SpecificRegister::Undecided8BitRegister
-						|| r->specificRegister == SpecificRegister::Undecided16BitRegister
-						|| r->specificRegister == SpecificRegister::Undecided32BitRegister)))
-			storagesToAssign.add(storage);
+	assignRegisterFinalStorages(&conflictsByStorage, storagesWithPotentialSameStorages, &tempsToAssignOnStack, source);
+	storagesUsed.deleteContents();
+	forEach(
+		AVLNode<AssemblyStorage* COMMA Array<AssemblyStorage*>*>*,
+		storageWithPotentialSameStorages,
+		storagesWithPotentialSameStorages,
+		deletePotentialSameStoragesI)
+	{
+		delete storageWithPotentialSameStorages->value;
 	}
-	//then go through all the temps and assign registers where possible
-	int minStackOffset = 0;
-	bool conflictRegisters[(unsigned char)ConflictRegister::ConflictRegisterCount];
-	while (storagesToAssign.length > 0) {
-		//first, see if there are any storages that share a MOV with an assigned register
-		bool foundSameStorage = false;
-		for (int i = 0; i < storagesWithPotentialSameStorages->length; i++) {
-			AVLNode<AssemblyStorage*, Array<AssemblyStorage*>*>* storageWithPotentialSameStorages =
-				storagesWithPotentialSameStorages->get(i);
-			AssemblyStorage* storageToAssign = storageWithPotentialSameStorages->key;
-			setConflictRegisters(conflictRegisters, conflictsByStorage.get(storageToAssign));
-			forEach(AssemblyStorage*, potentialSameStorage, storageWithPotentialSameStorages->value, pi) {
-				Register* otherRegister;
-				TempStorage* otherTemp;
-				//we found a register with a known specific register which does not conflict with this register
-				if ((let(Register*, otherRegister, potentialSameStorage)
-						|| (let(TempStorage*, otherTemp, potentialSameStorage)
-							&& let(Register*, otherRegister, otherTemp->finalStorage)))
-					&& !otherRegister->isConflictOrUnknown(conflictRegisters))
-				{
-					setStorageToRegister(storageToAssign, otherRegister->specificRegister, source);
-					foundSameStorage = true;
-					storagesWithPotentialSameStorages->remove(i);
-					storagesToAssign.removeItem(storageToAssign);
-					i--;
-					break;
-				}
-			}
-		}
-		if (foundSameStorage)
-			continue;
+	delete storagesWithPotentialSameStorages;
 
-		//we did not find any storages with a clear register to give them
-		//go through our storages, and either
-		//	-mark them as definitely able to be a register
-		//	-mark them as definitely having to go on the stack
-		//	-give them a register
-		AssemblyStorage* nextStorageToAssign = nullptr;
-		int nextStorageToAssignIndex = -1;
-		ConflictRegister nextFirstAvailableRegister = ConflictRegister::ConflictRegisterCount;
-		int nextUndecidedConflictsCount = 0;
-		int assignedStoragesCount = 0;
-		for (int i = 0; i < storagesToAssign.length; i++) {
-			//shift entries backwards as we iterate instead of removing them from the middle to save time
-			AssemblyStorage* storageToAssign = storagesToAssign.get(i);
-			storagesToAssign.set(i - assignedStoragesCount, storageToAssign);
-
-			int undecidedConflictsCount = setConflictRegisters(conflictRegisters, conflictsByStorage.get(storageToAssign));
-			Group2<ConflictRegister, int> firstAvailableRegisterAndTakenRegisterConflicts =
-				getFirstAvailableRegister(storageToAssign->bitSize, conflictRegisters);
-
-			//we found a storage that can definitely be a register without conflict, save it for later
-			if (undecidedConflictsCount + firstAvailableRegisterAndTakenRegisterConflicts.val2 < 8) {
-				storagesToAssignWithGuaranteedRegister.add(storageToAssign);
-				assignedStoragesCount++;
-				continue;
-			}
-
-			//if we can't give it a register, save it for later
-			ConflictRegister firstAvailableRegister = firstAvailableRegisterAndTakenRegisterConflicts.val1;
-			if (firstAvailableRegister == ConflictRegister::ConflictRegisterCount) {
-				TempStorage* tempToAssign;
-				if (let(TempStorage*, tempToAssign, storageToAssign))
-					tempsToAssignOnStack.add(tempToAssign);
-				else {
-					Error::logError(
-						ErrorType::CompilerIssue, "finding assembly stack storage for variables", source->sourceFunction);
-					return;
-				}
-				assignedStoragesCount++;
-				continue;
-			}
-
-			//we found a storage that has too many conflicts to be certain we can give it a register,
-			//	but we might be able to
-			//track whichever one has the lowest-index register, or on a tie whichever one has more undecided conflicts
-			//but don't replace an undecided register with an undecided temp
-			if ((istype(storageToAssign, Register*) || !istype(nextStorageToAssign, Register*))
-				&& ((unsigned char)firstAvailableRegister < (unsigned char)nextFirstAvailableRegister
-					|| (firstAvailableRegister == nextFirstAvailableRegister
-						&& undecidedConflictsCount > nextUndecidedConflictsCount)))
-			{
-				nextStorageToAssign = storageToAssign;
-				nextStorageToAssignIndex = i;
-				nextFirstAvailableRegister = firstAvailableRegister;
-				nextUndecidedConflictsCount = undecidedConflictsCount;
-			}
-		}
-		if (assignedStoragesCount > 0)
-			storagesToAssign.remove(storagesToAssign.length - assignedStoragesCount, assignedStoragesCount);
-		//we found a register that needs assigning, so assign it
-		if (nextStorageToAssignIndex >= 0) {
-			setStorageToRegister(
-				nextStorageToAssign,
-				Register::specificRegisterFor(nextFirstAvailableRegister, nextStorageToAssign->bitSize),
-				source);
-			storagesToAssign.remove(nextStorageToAssignIndex);
-		}
-	}
-
-	//we finished assigning all the storages we weren't sure about
-	//give registers to all the storages that can definitely have them
-	forEach(AssemblyStorage*, storageToAssign, &storagesToAssignWithGuaranteedRegister, guaranteedRegisterI) {
-		setConflictRegisters(conflictRegisters, conflictsByStorage.get(storageToAssign));
-		ConflictRegister firstAvailableRegister = getFirstAvailableRegister(storageToAssign->bitSize, conflictRegisters).val1;
-		if (firstAvailableRegister == ConflictRegister::ConflictRegisterCount) {
-			Error::logError(ErrorType::CompilerIssue, "finding final register storage for variables", source->sourceFunction);
-			return;
-		}
-		setStorageToRegister(
-			storageToAssign,
-			Register::specificRegisterFor(firstAvailableRegister, storageToAssign->bitSize),
-			source);
-	}
-//TODO: give stack memory pointers to parameter temps separately
-	//give stack memory pointers to all the temps that need to be on the stack
-	int lowestStackOffset = 0;
-	forEach(TempStorage*, tempToAssign, &tempsToAssignOnStack, ti) {
-		Array<AssemblyStorage*>* tempConflicts = conflictsByStorage.get(tempToAssign);
-		//for convenience, first extract any temp internal storages
-		for (int i = 0; i < tempConflicts->length; i++) {
-			TempStorage* tempConflict;
-			if (let(TempStorage*, tempConflict, tempConflicts->get(i)) && tempConflict->finalStorage != nullptr)
-				tempConflicts->set(i, tempConflict->finalStorage);
-		}
-
-		//now go through all storages and find the first free stack offset
-		int nextStackOffset = -cpuByteSize;
-		for (int i = tempConflicts->length - 1; true; i--) {
-			MemoryPointer* memoryPointerConflict;
-			//we passed all the conflicts and none were stack variables at this offset, so use a memory pointer here
-			if (i == 0) {
-				tempToAssign->finalStorage = new MemoryPointer(cpuSPRegister, nextStackOffset, tempToAssign->bitSize);
-				lowestStackOffset = Math::min(lowestStackOffset, nextStackOffset);
-				break;
-			//we found a memory pointer at this stack offset, restart the loop but bump the stack offset
-			} else if (let(MemoryPointer*, memoryPointerConflict, tempConflicts->get(i))
-				&& memoryPointerConflict->constant == nextStackOffset)
-			{
-				i = tempConflicts->length;
-				nextStackOffset -= cpuByteSize;
-			}
-		}
-	}
-	source->stackBytesUsed = -lowestStackOffset;
-
-	//figure out how big our stack parameters are
-	int parameterBytesUsed = 0;
-	forEach(ParameterStorage*, parameter, source->parameterStorages, parameterBytesUsedI) {
-		MemoryPointer* stackParameter;
-		if (let(MemoryPointer*, stackParameter, parameter->finalStorage))
-			parameterBytesUsed += (int)(((unsigned char)stackParameter->bitSize + 7) / 8);
-	}
-	source->parameterBytesUsed = Math::roundUpToMultipleOf(parameterBytesUsed, cpuByteSize);
+	assignStackFinalStorages(&tempsToAssignOnStack, &conflictsByStorage, source);
 
 	//and go through all the storages and mark registers as used
 	forEach(AssemblyStorage*, storage, conflictsByStorage.insertionOrder, usedRegistersI) {
@@ -1408,22 +1238,16 @@ void BuildInitialAssembly::assignTemps(FunctionStaticStorage* source) {
 	}
 	source->registersUsed = registersUsed;
 
-	storagesUsed.deleteContents();
-	forEach(
-			AVLNode<AssemblyStorage* COMMA Array<AssemblyStorage*>*>*,
-			storageWithPotentialSameStorages,
-			storagesWithPotentialSameStorages,
-			deletePotentialSameStoragesI)
-		delete storageWithPotentialSameStorages->value;
-	delete storagesWithPotentialSameStorages;
 	Array<AVLNode<AssemblyStorage*, Array<AssemblyStorage*>*>*>* storagesWithConflicts =
 		conflictsByStorage.entrySet();
 	forEach(
-			AVLNode<AssemblyStorage* COMMA Array<AssemblyStorage*>*>*,
-			storageWithConflicts,
-			storagesWithConflicts,
-			deleteConflictsI)
+		AVLNode<AssemblyStorage* COMMA Array<AssemblyStorage*>*>*,
+		storageWithConflicts,
+		storagesWithConflicts,
+		deleteConflictsI)
+	{
 		delete storageWithConflicts->value;
+	}
 	delete storagesWithConflicts;
 }
 //go through the instructions and track the of storages, per instruction, that need to be alive before the instruction executes
@@ -1503,6 +1327,7 @@ void BuildInitialAssembly::markConflicts(
 	Array<Array<AssemblyStorage*>*>* storagesUsed,
 	AVLTree<AssemblyStorage*, Array<AssemblyStorage*>*>* conflictsByStorage,
 	Array<CALL*>* calls,
+	Array<AVLNode<AssemblyStorage*, Array<AssemblyStorage*>*>*>* storagesWithPotentialSameStorages,
 	Array<SpecificRegister>* registersUsedForSource,
 	FunctionStaticStorage* source)
 {
@@ -1549,13 +1374,163 @@ void BuildInitialAssembly::markConflicts(
 				registersUsedForSource->addNonDuplicate((SpecificRegister)s);
 		}
 	}
-	//and also conflict all the parameters with each other
+	//conflict all the parameters with each other
 	forEach(ParameterStorage*, p, source->parameterStorages, firstParametersI) {
 		Array<AssemblyStorage*>* conflictsForStorage = storagesListFor(conflictsByStorage, p);
 		forEach(ParameterStorage*, p2, source->parameterStorages, secondParametersI) {
 			if (p != p2)
 				conflictsForStorage->addNonDuplicate(p2);
 		}
+	}
+	//make sure we won't try to match storage to another storage that conflicts with it
+	forEach(
+		AVLNode<AssemblyStorage* COMMA Array<AssemblyStorage*>*>*,
+		storageWithPotentialSameStorages,
+		storagesWithPotentialSameStorages,
+		dontMatchI)
+	{
+		Array<AssemblyStorage*>* conflicts = conflictsByStorage->get(storageWithPotentialSameStorages->key);
+		//an unused, uninitialized variable has no conflicts
+		if (conflicts == nullptr)
+			continue;
+		Array<AssemblyStorage*>* potentialSameStorages = storageWithPotentialSameStorages->value;
+		forEach(AssemblyStorage*, conflict, conflicts, ci) {
+			potentialSameStorages->removeItem(conflict);
+		}
+	}
+
+}
+//give registers to temps where possible
+void BuildInitialAssembly::assignRegisterFinalStorages(
+	InsertionOrderedAVLTree<AssemblyStorage*, Array<AssemblyStorage*>*>* conflictsByStorage,
+	Array<AVLNode<AssemblyStorage*, Array<AssemblyStorage*>*>*>* storagesWithPotentialSameStorages,
+	Array<TempStorage*>* tempsToAssignOnStack,
+	FunctionStaticStorage* source)
+{
+	//now we have a complete list of conflicts
+	//find all the temps and undecided registers to assign
+	Array<AssemblyStorage*> storagesToAssign;
+	Array<AssemblyStorage*> storagesToAssignWithGuaranteedRegister;
+	forEach(AssemblyStorage*, storage, conflictsByStorage->insertionOrder, insertionOrderedConflictsI) {
+		Register* r;
+		ParameterStorage* p;
+		if (istype(storage, TempStorage*)
+				? !let(ParameterStorage*, p, storage) || p->owningFunction == source
+				: (let(Register*, r, storage)
+					&& (r->specificRegister == SpecificRegister::Undecided8BitRegister
+						|| r->specificRegister == SpecificRegister::Undecided16BitRegister
+						|| r->specificRegister == SpecificRegister::Undecided32BitRegister)))
+			storagesToAssign.add(storage);
+	}
+	//then go through all the temps and assign registers where possible
+	bool conflictRegisters[(unsigned char)ConflictRegister::ConflictRegisterCount];
+	while (storagesToAssign.length > 0) {
+		//first, see if there are any storages that share a MOV with an assigned register
+		bool foundSameStorage = false;
+		for (int i = 0; i < storagesWithPotentialSameStorages->length; i++) {
+			AVLNode<AssemblyStorage*, Array<AssemblyStorage*>*>* storageWithPotentialSameStorages =
+				storagesWithPotentialSameStorages->get(i);
+			AssemblyStorage* storageToAssign = storageWithPotentialSameStorages->key;
+			setConflictRegisters(conflictRegisters, conflictsByStorage->get(storageToAssign));
+			forEach(AssemblyStorage*, potentialSameStorage, storageWithPotentialSameStorages->value, pi) {
+				Register* otherRegister;
+				TempStorage* otherTemp;
+				//we found a register with a known specific register which does not conflict with this register
+				if ((let(Register*, otherRegister, potentialSameStorage)
+						|| (let(TempStorage*, otherTemp, potentialSameStorage)
+							&& let(Register*, otherRegister, otherTemp->finalStorage)))
+					&& !otherRegister->isConflictOrUnknown(conflictRegisters))
+				{
+					setStorageToRegister(storageToAssign, otherRegister->specificRegister, source);
+					foundSameStorage = true;
+					storagesWithPotentialSameStorages->remove(i);
+					storagesToAssign.removeItem(storageToAssign);
+					i--;
+					break;
+				}
+			}
+		}
+		if (foundSameStorage)
+			continue;
+
+		//we did not find any storages with a clear register to give them
+		//go through our storages, and either
+		//	-mark them as definitely able to be a register
+		//	-mark them as definitely having to go on the stack
+		//	-give them a register
+		AssemblyStorage* nextStorageToAssign = nullptr;
+		int nextStorageToAssignIndex = -1;
+		ConflictRegister nextFirstAvailableRegister = ConflictRegister::ConflictRegisterCount;
+		int nextUndecidedConflictsCount = 0;
+		int assignedStoragesCount = 0;
+		for (int i = 0; i < storagesToAssign.length; i++) {
+			//shift entries backwards as we iterate instead of removing them from the middle to save time
+			AssemblyStorage* storageToAssign = storagesToAssign.get(i);
+			storagesToAssign.set(i - assignedStoragesCount, storageToAssign);
+
+			int undecidedConflictsCount = setConflictRegisters(conflictRegisters, conflictsByStorage->get(storageToAssign));
+			Group2<ConflictRegister, int> firstAvailableRegisterAndTakenRegisterConflicts =
+				getFirstAvailableRegister(storageToAssign->bitSize, conflictRegisters);
+
+			//we found a storage that can definitely be a register without conflict, save it for later
+			if (undecidedConflictsCount + firstAvailableRegisterAndTakenRegisterConflicts.val2 < 8) {
+				storagesToAssignWithGuaranteedRegister.add(storageToAssign);
+				assignedStoragesCount++;
+				continue;
+			}
+
+			//if we can't give it a register, save it for later
+			ConflictRegister firstAvailableRegister = firstAvailableRegisterAndTakenRegisterConflicts.val1;
+			if (firstAvailableRegister == ConflictRegister::ConflictRegisterCount) {
+				TempStorage* tempToAssign;
+				if (let(TempStorage*, tempToAssign, storageToAssign) && !istype(tempToAssign, ParameterStorage*))
+					tempsToAssignOnStack->add(tempToAssign);
+				else {
+					Error::logError(
+						ErrorType::CompilerIssue, "finding assembly stack storage for variables", source->sourceFunction);
+					return;
+				}
+				assignedStoragesCount++;
+				continue;
+			}
+
+			//we found a storage that has too many conflicts to be certain we can give it a register,
+			//	but we might be able to
+			//track whichever one has the lowest-index register, or on a tie whichever one has more undecided conflicts
+			//but don't replace an undecided register with an undecided temp
+			if ((istype(storageToAssign, Register*) || !istype(nextStorageToAssign, Register*))
+				&& ((unsigned char)firstAvailableRegister < (unsigned char)nextFirstAvailableRegister
+					|| (firstAvailableRegister == nextFirstAvailableRegister
+						&& undecidedConflictsCount > nextUndecidedConflictsCount)))
+			{
+				nextStorageToAssign = storageToAssign;
+				nextStorageToAssignIndex = i;
+				nextFirstAvailableRegister = firstAvailableRegister;
+				nextUndecidedConflictsCount = undecidedConflictsCount;
+			}
+		}
+		if (assignedStoragesCount > 0)
+			storagesToAssign.remove(storagesToAssign.length - assignedStoragesCount, assignedStoragesCount);
+		//we found a register that needs assigning, so assign it
+		if (nextStorageToAssignIndex >= 0) {
+			setStorageToRegister(
+				nextStorageToAssign,
+				Register::specificRegisterFor(nextFirstAvailableRegister, nextStorageToAssign->bitSize),
+				source);
+			storagesToAssign.remove(nextStorageToAssignIndex);
+		}
+	}
+	//we finished assigning all the storages we weren't sure about
+	//give registers to all the storages that can definitely have them
+	forEach(AssemblyStorage*, storageToAssign, &storagesToAssignWithGuaranteedRegister, guaranteedRegisterI) {
+		setConflictRegisters(conflictRegisters, conflictsByStorage->get(storageToAssign));
+		ConflictRegister firstAvailableRegister = getFirstAvailableRegister(storageToAssign->bitSize, conflictRegisters).val1;
+		if (firstAvailableRegister == ConflictRegister::ConflictRegisterCount) {
+			Error::logError(ErrorType::CompilerIssue, "finding final register storage for variables", source->sourceFunction);
+			return;
+		}
+		setStorageToRegister(
+			storageToAssign, Register::specificRegisterFor(firstAvailableRegister, storageToAssign->bitSize), source);
 	}
 }
 //set any conflicts from the given conflict storages
@@ -1633,6 +1608,63 @@ void BuildInitialAssembly::setStorageToRegister(
 	else
 		Error::logError(ErrorType::CompilerIssue, "assigning a register value to a variable", errorTokenHolder->sourceFunction);
 }
+//assign stack storage to the remaining temps
+void BuildInitialAssembly::assignStackFinalStorages(
+	Array<TempStorage*>* tempsToAssignOnStack,
+	AVLTree<AssemblyStorage*, Array<AssemblyStorage*>*>* conflictsByStorage,
+	FunctionStaticStorage* source)
+{
+	//give stack memory pointers to all the temps that need to be on the stack
+	int lowestStackOffset = 0;
+	forEach(TempStorage*, tempToAssign, tempsToAssignOnStack, ti) {
+		Array<AssemblyStorage*>* tempConflicts = conflictsByStorage->get(tempToAssign);
+		//now go through all storages and find the first free stack offset
+		int tempByteSize = CDataType::bitSizeToByteSize(tempToAssign->bitSize);
+		int nextStackOffset = -tempByteSize;
+		for (int i = tempConflicts->length - 1; true; i--) {
+			TempStorage* tempConflict;
+			MemoryPointer* memoryPointerConflict;
+			//we passed all the conflicts and none were stack variables at this offset, so use a memory pointer here
+			if (i == 0) {
+				tempToAssign->finalStorage = new MemoryPointer(cpuSPRegister, nextStackOffset, tempToAssign->bitSize);
+				lowestStackOffset = Math::min(lowestStackOffset, nextStackOffset);
+				break;
+			//we found a memory pointer that intersects this stack offset, restart the loop but bump the stack offset
+			} else if ((let(MemoryPointer*, memoryPointerConflict, tempConflicts->get(i))
+					|| (let(TempStorage*, tempConflict, tempConflicts->get(i))
+						&& let(MemoryPointer*, memoryPointerConflict, tempConflict->finalStorage)))
+				&& nextStackOffset + tempByteSize > memoryPointerConflict->constant
+				&& nextStackOffset
+					< memoryPointerConflict->constant + CDataType::bitSizeToByteSize(memoryPointerConflict->bitSize))
+			{
+				i = tempConflicts->length;
+				nextStackOffset = -Math::roundUpToMultipleOf(tempByteSize - memoryPointerConflict->constant, tempByteSize);
+			}
+		}
+	}
+	source->stackBytesUsed = -lowestStackOffset;
+
+	//assign storages to our parameters and figure out how much space they take up
+	//any parameter without a final storage will go on the stack
+	int parameterBytesUsed = 0;
+	Array<ParameterStorage*> parametersToAssignOnStack;
+	Array<BitSize> parametersToAssignOnStackBitSizes;
+	forEach(ParameterStorage*, parameter, source->parameterStorages, parametersMaybeOnStackI) {
+		if (parameter->finalStorage == nullptr) {
+			parametersToAssignOnStack.add(parameter);
+			parametersToAssignOnStackBitSizes.add(parameter->bitSize);
+			parameterBytesUsed += CDataType::bitSizeToByteSize(parameter->bitSize);
+		}
+	}
+	source->parameterBytesUsed = Math::roundUpToMultipleOf(parameterBytesUsed, cpuByteSize);
+	Array<int>* parameterStackOffsets = getBitSizeOrderedStackOffsets(&parametersToAssignOnStackBitSizes);
+	for (int i = 0; i < parametersToAssignOnStack.length; i++) {
+		ParameterStorage* parameter = parametersToAssignOnStack.get(i);
+		parameter->finalStorage =
+			new MemoryPointer(cpuSPRegister, parameterStackOffsets->get(i) + cpuByteSize, parameter->bitSize);
+	}
+	delete parameterStackOffsets;
+}
 //go through all the instructions and modify any memory pointers on the stack based on which stack shifts we have
 void BuildInitialAssembly::shiftStackPointers(FunctionStaticStorage* source) {
 	//this is an offset; after we shift the stack we need to add this to our memory pointers to get the same address
@@ -1681,6 +1713,8 @@ void BuildInitialAssembly::shiftStackPointers(FunctionStaticStorage* source) {
 						memoryPointer->bitSize));
 		}
 	}
+//gohere
+//TODO: do this next
 //TODO: how do we distinguish between parameters for this function (which get the full shift) and arguments (which get a cpuBitSize shift)?
 }
 //get the bit size to use for the provided type
@@ -1731,7 +1765,7 @@ Array<int>* BuildInitialAssembly::getBitSizeOrderedStackOffsets(Array<BitSize>* 
 		BitSize valueBitSize = valueBitSizes->get(i);
 		int stackOffset = bytesPerBitSize.get(valueBitSize);
 		orderedStackOffsets->add(stackOffset);
-		bytesPerBitSize.set(valueBitSize, stackOffset + (int)(((unsigned char)valueBitSize + 7) / 8));
+		bytesPerBitSize.set(valueBitSize, stackOffset + CDataType::bitSizeToByteSize(valueBitSize));
 	}
 	//then, shift over the bytes so that each bit size has the total bytes for values of the next-larger bit size
 	Array<AVLNode<BitSize, int>*>* bitSizesWithBytes = bytesPerBitSize.entrySet();

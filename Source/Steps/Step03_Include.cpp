@@ -30,8 +30,9 @@ void Include::loadFiles(Pliers* pliers) {
 			resolveIncludedFiles(nextFile, nextFile->path->parentDirectory, i->path, i->pathName, false);
 		}
 		//and now notify any of our own inclusion listeners that we included files
-		forEach(SourceFile*, listener, nextFile->inclusionListeners, sfi)
+		forEach(SourceFile*, listener, nextFile->inclusionListeners, sfi) {
 			listener->includedFiles->setAllFrom(nextFile->includedFiles);
+		}
 	}
 	basePath->deleteFullPath();
 	delete filesByName;
